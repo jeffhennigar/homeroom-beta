@@ -1,0 +1,8 @@
+{
+  "name": "HomeRoom: Web-App",
+  "description": "A versatile interactive classroom dashboard with resizable widgets including timer, randomizer, groups, seating chart, and AI tools.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

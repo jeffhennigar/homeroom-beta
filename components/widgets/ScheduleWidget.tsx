@@ -1,0 +1,112 @@
+import React, { useState, useEffect } from 'react';
+import { Calendar, Settings, Plus, X, Copy } from 'lucide-react';
+
+const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const SCHEDULE_EMOJIS = ['📚', '🎨', '🏃', '🎵', '💻', '🥪', '📝', '🔬', '🗣️', '🛑', '🚌', '🏠', '📅', '⭐', '🔔'];
+
+// Helper to interact with App-level state/storage for schedule template
+const getScheduleTemplate = () => {
+    try {
+        return JSON.parse(localStorage.getItem('homeroom_schedule_template')) || {
+            Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: []
+        };
+    } catch (e) {
+        return { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] };
+    }
+};
+
+const saveScheduleTemplate = (template) => {
+    localStorage.setItem('homeroom_schedule_template', JSON.stringify(template));
+};
+
+const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
+    const { fontSize = 14 } = widget.data;
+    const [dragIndex, setDragIndex] = useState(null);
+    const [emojiPickerIndex, setEmojiPickerIndex] = useState(null);
+    const today = DAYS_OF_WEEK[new Date().getDay()];
+    const [scheduleData, setScheduleData] = useState(() => { const template = getScheduleTemplate(); return template[today] || []; });
+
+    useEffect(() => {
+        const refreshFromStorage = () => { const template = getScheduleTemplate(); setScheduleData(template[today] || []); };
+        const interval = setInterval(refreshFromStorage, 1000);
+        return () => clearInterval(interval);
+    }, [today]);
+
+    useEffect(() => {
+        const handleClickOutside = () => setEmojiPickerIndex(null);
+        if (emojiPickerIndex !== null) { document.addEventListener('click', handleClickOutside); return () => document.removeEventListener('click', handleClickOutside); }
+    }, [emojiPickerIndex]);
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const parseTimeToMinutes = (time) => { if (!time) return 0; const [h, m] = time.split(':').map(Number); return h * 60 + m; };
+
+    const isCurrentItem = (item, index) => {
+        const itemMinutes = parseTimeToMinutes(item.time);
+        const nextItem = scheduleData[index + 1];
+        const nextMinutes = nextItem ? parseTimeToMinutes(nextItem.time) : 24 * 60;
+        return currentMinutes >= itemMinutes && currentMinutes < nextMinutes;
+    };
+
+    const saveScheduleData = (newItems) => { const template = getScheduleTemplate(); template[today] = newItems; saveScheduleTemplate(template); setScheduleData(newItems); };
+    const updateItem = (index, field, value) => { const newItems = [...scheduleData]; newItems[index] = { ...newItems[index], [field]: value }; saveScheduleData(newItems); };
+    const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' }; const newItems = [...scheduleData, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveScheduleData(newItems); };
+    const removeItem = (index) => { const newItems = scheduleData.filter((_, i) => i !== index); saveScheduleData(newItems); };
+
+    const handleDragStart = (index) => { setDragIndex(index); };
+    const handleDragOver = (e) => { e.preventDefault(); };
+    const handleDrop = (targetIndex) => { if (dragIndex === null || dragIndex === targetIndex) return; const newItems = [...scheduleData]; const [moved] = newItems.splice(dragIndex, 1); newItems.splice(targetIndex, 0, moved); saveScheduleData(newItems); setDragIndex(null); };
+    const selectEmoji = (index, emoji) => { updateItem(index, 'emoji', emoji); setEmojiPickerIndex(null); };
+
+    return (
+        <div className="flex flex-col h-full bg-gradient-to-br from-indigo-50 to-purple-50">
+            <div className="h-10 bg-white/80 backdrop-blur border-b flex items-center justify-between px-3 shrink-0">
+                <h3 className="font-bold text-indigo-800 text-sm flex items-center gap-2"><Calendar size={16} /> {today}'s Schedule</h3>
+                <div className="flex gap-1">
+                    <button onClick={addItem} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors" title="Add activity"><Plus size={16} /></button>
+                    <button onClick={onOpenSettings} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors" title="Schedule settings"><Settings size={16} /></button>
+                </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 custom-scrollbar">
+                {scheduleData.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                        <Calendar size={40} className="text-indigo-200 mb-3" />
+                        <p className="text-indigo-400 text-sm font-medium mb-2">No schedule items yet</p>
+                        <button onClick={addItem} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 flex items-center gap-1"><Plus size={14} /> Add Activity</button>
+                    </div>
+                ) : (
+                    scheduleData.map((item, index) => {
+                        const isCurrent = isCurrentItem(item, index);
+                        return (
+                            <div key={item.id} draggable onDragStart={() => handleDragStart(index)} onDragOver={handleDragOver} onDrop={() => handleDrop(index)} className={`relative group flex gap-2 p-2 rounded-lg border transition-all cursor-move w-full min-h-[4rem] ${isCurrent ? 'bg-indigo-100 border-indigo-400 ring-2 ring-indigo-300' : 'bg-white border-gray-200 hover:border-indigo-200'}`} style={{ zIndex: emojiPickerIndex === index ? 50 : 0 }}>
+                                {isCurrent && <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />}
+
+                                <div className="flex flex-col items-center shrink-0 w-18">
+                                    <input type="time" value={item.time || '09:00'} onChange={(e) => updateItem(index, 'time', e.target.value)} className="w-full text-sm font-bold text-indigo-600 bg-transparent border-none text-center cursor-pointer hover:bg-indigo-50 rounded" />
+                                </div>
+
+                                <div className="relative flex items-center text-xl shrink-0">
+                                    <div className="cursor-pointer hover:scale-110 transition-transform p-1 rounded hover:bg-indigo-100" onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}>
+                                        {item.emoji || '📚'}
+                                    </div>
+                                    {emojiPickerIndex === index && (
+                                        <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-2 w-48 max-h-40 overflow-y-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
+                                            <div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-xl p-1.5 rounded-lg hover:bg-indigo-100 transition-colors ${item.emoji === emoji ? 'bg-indigo-200 ring-2 ring-indigo-400' : ''}`}>{emoji}</button>))} </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-gray-800 bg-transparent border-none outline-none truncate" style={{ fontSize: fontSize + 'px' }} placeholder="Activity name" />
+                                    <input type="text" value={item.description || ''} onChange={(e) => updateItem(index, 'description', e.target.value)} className="w-full text-xs text-gray-500 bg-transparent border-none outline-none truncate" placeholder="Description (optional)" />
+                                </div>
+                                <button onClick={() => removeItem(index)} className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity self-center"><X size={14} /></button>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default ScheduleWidget;
