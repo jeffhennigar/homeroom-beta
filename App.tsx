@@ -202,11 +202,11 @@ const App: React.FC = () => {
     loadUserData();
   }, [user]);
 
-  // Sync to Supabase on Change
+  // Sync to Supabase on Change (Debounced)
   useEffect(() => {
     if (!user || isSyncing) return;
 
-    const syncProfile = async () => {
+    const timer = setTimeout(async () => {
       try {
         await dataService.updateProfile(user.id, {
           dock_order: dockOrder,
@@ -219,15 +219,40 @@ const App: React.FC = () => {
           active_roster_id: activeRosterId
         });
       } catch (e) { console.error('Error syncing profile:', e); }
-    };
+    }, 1000);
 
-    syncProfile();
+    return () => clearTimeout(timer);
   }, [user, dockOrder, background, slideBackgrounds, customBackgrounds, activeScheduleDays, isGridEnabled, clockStyle, activeRosterId, isSyncing]);
 
   useEffect(() => {
     if (!user || isSyncing) return;
-    dataService.saveSlide(user.id, currentSlideIndex, slides[currentSlideIndex]);
+
+    const timer = setTimeout(async () => {
+      try {
+        await dataService.saveSlide(user.id, currentSlideIndex, slides[currentSlideIndex]);
+      } catch (e) { console.error('Error syncing slide:', e); }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [user, slides, currentSlideIndex, isSyncing]);
+
+  // Sync Rosters to Supabase
+  useEffect(() => {
+    if (!user || isSyncing || allRosters.length === 0) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        // Find the active roster or sync all
+        // For simplicity, we sync the active one or the most recently changed
+        // Based on the dataService.saveRoster signature, it's one by one
+        for (const r of allRosters) {
+          await dataService.saveRoster(user.id, r);
+        }
+      } catch (e) { console.error('Error syncing rosters:', e); }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [user, allRosters, isSyncing]);
 
   useEffect(() => {
     // Timer
