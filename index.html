@@ -5340,12 +5340,30 @@
           const syncToCloud = async () => {
             setIsSyncing(true);
             try {
-              await supabase.from('slides').upsert({ user_id: user.id, slide_index: currentSlideIndex, widgets: slides[currentSlideIndex], updated_at: new Date().toISOString() }, { onConflict: 'user_id,slide_index' });
+              // 1. Sync Slides
+              const { error: slideError } = await supabase.from('slides').upsert({
+                user_id: user.id,
+                slide_index: currentSlideIndex,
+                widgets: slides[currentSlideIndex],
+                updated_at: new Date().toISOString()
+              }); // Removed redundant onConflict params, Supabase infers from unique keys
+
+              if (slideError) console.error("Sync Slides Error:", slideError);
+
+              // 2. Sync Active Roster
               const activeRoster = allRosters.find(r => r.id === activeRosterId);
               if (activeRoster) {
-                await supabase.from('rosters').upsert({ user_id: user.id, name: activeRoster.name, roster: activeRoster.roster, updated_at: new Date().toISOString() }, { onConflict: 'user_id,name' });
+                const { error: rosterError } = await supabase.from('rosters').upsert({
+                  user_id: user.id,
+                  name: activeRoster.name,
+                  roster: activeRoster.roster,
+                  updated_at: new Date().toISOString()
+                });
+                if (rosterError) console.error("Sync Roster Error:", rosterError);
               }
-            } catch (e) { console.error(e); } finally { setIsSyncing(false); }
+            } catch (e) {
+              console.error("Sync Exception:", e);
+            } finally { setIsSyncing(false); }
           };
           const t = setTimeout(syncToCloud, 3000);
           return () => clearTimeout(t);
