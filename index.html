@@ -5471,7 +5471,7 @@
             }
             // 3. Sync Profile (Settings, Background, etc.)
             const { error: profileError } = await supabase.from('profiles').upsert({
-              user_id: user.id,
+              id: user.id,
               background,
               slide_backgrounds: slideBackgrounds,
               my_backgrounds: customBackgrounds,
