@@ -5223,7 +5223,7 @@
               if (p.background) setBackground(p.background);
               if (p.grid_enabled !== undefined) setIsGridEnabled(p.grid_enabled);
               if (p.clock_style) setClockStyle(p.clock_style);
-              if (p.schedule) setActiveScheduleDays(p.schedule);
+              if (p.schedule) setScheduleTemplate(p.schedule);
             }
           })
           .subscribe();
@@ -5363,7 +5363,7 @@
               background,
               slide_backgrounds: slideBackgrounds,
               my_backgrounds: customBackgrounds,
-              schedule: activeScheduleDays,
+              schedule: scheduleTemplate,
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: dockOrder,
@@ -5377,7 +5377,7 @@
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, activeScheduleDays, isGridEnabled, clockStyle, dockOrder]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, isGridEnabled, clockStyle, dockOrder]);
 
       // Supabase Data Loading
       useEffect(() => {
@@ -5433,7 +5433,7 @@
               if (profile.background) setBackground(profile.background);
               if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
               if (profile.clock_style) setClockStyle(profile.clock_style);
-              if (profile.schedule) setActiveScheduleDays(profile.schedule);
+              if (profile.schedule) setScheduleTemplate(profile.schedule);
               if (profile.dock_order) setDockOrder(profile.dock_order);
             }
 
