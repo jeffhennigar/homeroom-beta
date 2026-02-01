@@ -3550,7 +3550,7 @@
       };
 
       const updateItem = (index, field, value) => { const newItems = [...items]; newItems[index] = { ...newItems[index], [field]: value }; saveItems(newItems); };
-      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: 'ðŸ“š', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
+      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
       const removeItem = (index) => { const newItems = items.filter((_, i) => i !== index); saveItems(newItems); };
 
       const handleDragStart = (index) => { setDragIndex(index); };
@@ -3679,7 +3679,7 @@
                       {timePickerState.index === index && <TimePicker time={item.time || '09:00'} onChange={(t) => updateItem(index, 'time', t)} onClose={() => setTimePickerState({ index: null, triggerRef: null })} triggerRef={timePickerState.triggerRef} />}
                     </div>
                     <div className="relative flex items-center justify-center shrink-0">
-                      <div className="text-2xl cursor-pointer hover:scale-110 transition-transform active:scale-95 p-1 rounded-lg hover:bg-indigo-50" onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}>{item.emoji || 'ðŸ“š'}</div>
+                      <div className="text-2xl cursor-pointer hover:scale-110 transition-transform active:scale-95 p-1 rounded-lg hover:bg-indigo-50" onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}>{item.emoji || '📚'}</div>
                       {emojiPickerIndex === index && <div className="absolute left-0 top-full mt-2 z-[100] bg-white rounded-xl shadow-2xl border border-slate-100 p-2 w-56 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100" onClick={(e) => e.stopPropagation()}><div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-2xl p-2 rounded-lg hover:bg-indigo-50 transition-colors ${item.emoji === emoji ? 'bg-indigo-100' : ''}`}>{emoji}</button>))} </div></div>}
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -3782,7 +3782,7 @@
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-              <h2 className="text-2xl font-bold mb-2">Welcome to HomeRoom! ðŸŽ</h2>
+              <h2 className="text-2xl font-bold mb-2">Welcome to HomeRoom! 🍎</h2>
               <p className="opacity-90 text-sm">Let's set up your class roster. You can change this anytime.</p>
             </div>
             <div className="p-6">
@@ -3883,7 +3883,7 @@
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 focus:bg-white transition-all font-medium text-gray-800"
-                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                    placeholder="••••••••"
                   />
                 </div>
                 <button
