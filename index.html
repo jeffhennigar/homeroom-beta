@@ -5355,40 +5355,58 @@
         const loadFromCloud = async () => {
           setIsSyncing(true);
           try {
-            const { data: cloudRosters } = await supabase.from('rosters').select('*').eq('user_id', user.id);
-            const { data: cloudSlides } = await supabase.from('slides').select('*').eq('user_id', user.id).order('slide_index', { ascending: true });
+            console.log("Fetching cloud data for user:", user.email);
+            const { data: cloudRosters, error: rosterError } = await supabase.from('rosters').select('*').eq('user_id', user.id);
+            const { data: cloudSlides, error: slidesError } = await supabase.from('slides').select('*').eq('user_id', user.id).order('slide_index', { ascending: true });
 
-            let merged = [...allRosters];
+            if (rosterError) console.error("Roster fetch error:", rosterError);
+            if (slidesError) console.error("Slides fetch error:", slidesError);
+
+            let newAllRosters = [];
             let activeId = activeRosterId;
 
+            // 1. Process Rosters
             if (cloudRosters && cloudRosters.length > 0) {
-              cloudRosters.forEach(cr => {
-                const existingIdx = merged.findIndex(r => r.name === cr.name);
-                if (existingIdx !== -1) merged[existingIdx] = { ...merged[existingIdx], roster: cr.roster };
-                else merged.push({ id: cr.id || Date.now().toString(), name: cr.name, roster: cr.roster, slides: [[]] });
-              });
+              newAllRosters = cloudRosters.map(cr => ({
+                id: cr.id || Date.now().toString(),
+                name: cr.name,
+                roster: cr.roster || [],
+                slides: [[]]
+              }));
 
-              // If we have cloud rosters and our current roster is empty/default, switch to the first cloud roster
-              if (allRosters.length === 0 || (allRosters.length === 1 && allRosters[0].id === 'default' && allRosters[0].roster.length === 0)) {
-                activeId = cloudRosters[0].id || merged[0].id;
-                setActiveRosterId(activeId);
-                setRoster(cloudRosters[0].roster);
+              // Default to the first roster if current is default/empty
+              if (activeRosterId === 'default' || !newAllRosters.find(r => r.id === activeRosterId)) {
+                activeId = newAllRosters[0].id;
               }
+            } else {
+              // Keep existing if no cloud data (or empty)
+              newAllRosters = [...allRosters];
             }
 
+            // 2. Process Slides
+            let loadedSlides = [[]];
             if (cloudSlides && cloudSlides.length > 0) {
-              const slidesArray = cloudSlides.map(s => s.widgets);
-              const targetIdx = merged.findIndex(r => r.id === activeId);
+              loadedSlides = cloudSlides.map(s => s.widgets);
+              // Attach slides to the active roster
+              const targetIdx = newAllRosters.findIndex(r => r.id === activeId);
               if (targetIdx !== -1) {
-                merged[targetIdx].slides = slidesArray;
-                setSlides(slidesArray);
-              } else if (merged.length > 0) {
-                merged[0].slides = slidesArray;
-                setSlides(slidesArray); // Fix: always set slides if we found them
+                newAllRosters[targetIdx].slides = loadedSlides;
               }
             }
 
-            if (merged.length > 0) setAllRosters(merged);
+            // 3. Update State
+            if (newAllRosters.length > 0) {
+              setAllRosters(newAllRosters);
+              setActiveRosterId(activeId);
+
+              // Force update current view
+              const currentActive = newAllRosters.find(r => r.id === activeId);
+              if (currentActive) {
+                setRoster(currentActive.roster || []);
+                setSlides(loadedSlides);
+              }
+            }
+
           } catch (e) {
             console.error('Cloud load error:', e);
           } finally {
