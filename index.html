@@ -5688,7 +5688,7 @@
           {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} onSaveRoster={(newRoster) => setRoster(newRoster)} />}
           {showSettingsModal && <SettingsModal
             user={user}
-            onSignOut={() => { supabase.auth.signOut(); setShowSettingsModal(false); }}
+            onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://homeroom.mrhennigar.com/'; }}
             isSyncing={isSyncing}
             roster={roster}
             allRosters={allRosters}
