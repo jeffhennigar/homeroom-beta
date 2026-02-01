@@ -4394,13 +4394,13 @@
       }, [roster]);
 
       const tabs = [
+        { id: 'debug', label: 'Debug', icon: <Activity size={16} /> },
         { id: 'appearance', label: 'Appearance', icon: <ImageIcon size={16} /> },
         { id: 'roster', label: 'Rosters', icon: <User size={16} /> },
         { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
         { id: 'data', label: 'Data', icon: <Download size={16} /> },
         { id: 'about', label: 'About', icon: <Info size={16} /> },
-        { id: 'feedback', label: 'Feedback', icon: <Mail size={16} /> },
-        { id: 'debug', label: 'Debug', icon: <Activity size={16} /> }
+        { id: 'feedback', label: 'Feedback', icon: <Mail size={16} /> }
       ];
 
       return (
@@ -4422,7 +4422,7 @@
                   <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-500"><X size={20} /></button>
                 </div>
               </div>
-              <div className="flex px-2 pb-0">
+              <div className="flex px-2 pb-0 overflow-x-auto custom-scrollbar">
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
