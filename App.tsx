@@ -186,6 +186,8 @@ const App: React.FC = () => {
       setIsSyncing(true);
       try {
         const profile = await dataService.getProfile(user.id);
+        let activeId = profile?.active_roster_id;
+
         if (profile) {
           if (profile.dock_order) setDockOrder(profile.dock_order);
           if (profile.background) setBackground(profile.background);
@@ -194,18 +196,28 @@ const App: React.FC = () => {
           if (profile.schedule) setActiveScheduleDays(profile.schedule);
           if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
           if (profile.clock_style) setClockStyle(profile.clock_style);
-          if (profile.active_roster_id) setActiveRosterId(profile.active_roster_id);
+          if (activeId) setActiveRosterId(activeId);
+        }
+
+        const cloudRosters = await dataService.getRosters(user.id);
+        if (cloudRosters && cloudRosters.length > 0) {
+          setAllRosters(cloudRosters);
+
+          // If we're in a fresh state (incognito), automatically pick the first cloud roster
+          if (!activeRosterId && !activeId) {
+            const firstRoster = cloudRosters[0];
+            setActiveRosterId(firstRoster.id);
+            setRoster(firstRoster.roster || []);
+          } else if (activeId) {
+            const current = cloudRosters.find(r => r.id === activeId);
+            if (current) setRoster(current.roster || []);
+          }
         }
 
         const cloudSlides = await dataService.getSlides(user.id);
         if (cloudSlides && cloudSlides.length > 0) {
           const sortedSlides = cloudSlides.map(s => s.widgets);
           setSlides(sortedSlides);
-        }
-
-        const cloudRosters = await dataService.getRosters(user.id);
-        if (cloudRosters && cloudRosters.length > 0) {
-          setAllRosters(cloudRosters);
         }
       } catch (e) {
         console.error('Error loading cloud data:', e);
