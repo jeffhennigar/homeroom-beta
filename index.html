@@ -5178,7 +5178,7 @@
 
       // Supabase Sync Logic
       useEffect(() => {
-        if (!user) return;
+        if (!user || isSyncing || !hasCheckedCloud) return;
         const syncToCloud = async () => {
           setIsSyncing(true);
           try {
@@ -5191,7 +5191,7 @@
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud]);
 
       // Supabase Data Loading
       useEffect(() => {
@@ -5228,7 +5228,7 @@
                 setSlides(slidesArray);
               } else if (merged.length > 0) {
                 merged[0].slides = slidesArray;
-                if (activeId === merged[0].id) setSlides(slidesArray);
+                setSlides(slidesArray); // Fix: always set slides if we found them
               }
             }
 
@@ -5436,8 +5436,14 @@
       useEffect(() => { const timer = setInterval(() => { setCurrentTime(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })); }, 1000 * 60); return () => clearInterval(timer); }, []);
       // improved onboarding trigger
       useEffect(() => {
-        if (authLoading || isSyncing) return;
-        if (user && !hasCheckedCloud) return;
+        if (authLoading || isSyncing) {
+          if (user) setShowOnboarding(false);
+          return;
+        }
+        if (user && !hasCheckedCloud) {
+          setShowOnboarding(false);
+          return;
+        }
 
         const hasData = allRosters.length > 0 && allRosters.some(r => r.roster && r.roster.length > 0);
         if (!hasData && !hasRoster()) {

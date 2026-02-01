@@ -129,11 +129,13 @@ const App: React.FC = () => {
   }, [allRosters]);
 
   useEffect(() => {
-    // Wait for auth check and initial cloud sync before showing onboarding
-    if (authLoading) return;
-    if (user && !hasCheckedCloud) return;
-
     const hasData = allRosters.length > 0 && allRosters.some(r => r.roster && r.roster.length > 0);
+
+    // If logged in, hide modal immediately while checking/syncing
+    if (user && !hasCheckedCloud) {
+      if (showOnboarding) setShowOnboarding(false);
+      return;
+    }
 
     if (activeRosterId) {
       localStorage.setItem('homeroom_active_roster_id', activeRosterId);
@@ -152,13 +154,13 @@ const App: React.FC = () => {
         setAllRosters([newRoster]);
         setActiveRosterId('default');
         setRoster(r);
-      } else {
+      } else if (!user) {
         // Only show onboarding if we are sure there is no data locally or in cloud
         setShowOnboarding(true);
       }
     }
 
-    if (hasData) {
+    if (hasData && showOnboarding) {
       setShowOnboarding(false);
     }
   }, [activeRosterId, allRosters, user, authLoading, hasCheckedCloud]);
@@ -232,7 +234,7 @@ const App: React.FC = () => {
 
   // Sync to Supabase on Change (Debounced)
   useEffect(() => {
-    if (!user || isSyncing) return;
+    if (!user || isSyncing || !hasCheckedCloud) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -250,10 +252,10 @@ const App: React.FC = () => {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [user, dockOrder, background, slideBackgrounds, customBackgrounds, activeScheduleDays, isGridEnabled, clockStyle, activeRosterId, isSyncing]);
+  }, [user, dockOrder, background, slideBackgrounds, customBackgrounds, activeScheduleDays, isGridEnabled, clockStyle, activeRosterId, isSyncing, hasCheckedCloud]);
 
   useEffect(() => {
-    if (!user || isSyncing) return;
+    if (!user || isSyncing || !hasCheckedCloud) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -262,11 +264,11 @@ const App: React.FC = () => {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [user, slides, currentSlideIndex, isSyncing]);
+  }, [user, slides, currentSlideIndex, isSyncing, hasCheckedCloud]);
 
   // Sync Rosters to Supabase
   useEffect(() => {
-    if (!user || isSyncing || allRosters.length === 0) return;
+    if (!user || isSyncing || !hasCheckedCloud || allRosters.length === 0) return;
 
     const timer = setTimeout(async () => {
       try {
