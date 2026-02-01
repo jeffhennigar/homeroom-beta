@@ -308,11 +308,11 @@
 
     const CLOCK_STYLES = [
       { id: 'standard', name: 'Standard', preview: '12:00' },
-      { id: 'analog', name: 'Analog', preview: 'ðŸ•’' },
-      { id: 'modern-analog', name: 'Modern Analog', preview: 'âŒš' },
+      { id: 'analog', name: 'Analog', preview: '🕐' },
+      { id: 'modern-analog', name: 'Modern Analog', preview: '⌚' },
       { id: 'bighour', name: 'Big Hour', preview: '12 00' },
       { id: 'modern', name: 'Modern Digital', preview: '12:00' },
-      { id: 'retro', name: 'RETRO', preview: 'ðŸ—“ï¸' }
+      { id: 'retro', name: 'RETRO', preview: '📅' }
     ];
 
     // --- STORAGE SERVICE ---
@@ -1794,7 +1794,7 @@
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{isMinimized ? <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{widgetLabel}</span> : <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto" />}</div>
           <div className="flex items-center gap-1 z-10">
             {onSpotlight && (<button onClick={(e) => { e.stopPropagation(); onSpotlight(id); }} className={`p-1 rounded transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Spotlight"> <Lightbulb size={14} /> </button>)}
-            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title={isMinimized ? "Restore" : "Minimize"}> <span className="font-bold text-sm leading-none">{isMinimized ? '+' : 'âˆ’'}</span> </button>)}
+            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title={isMinimized ? "Restore" : "Minimize"}> <span className="font-bold text-sm leading-none">{isMinimized ? '+' : '−'}</span> </button>)}
             <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> </button>
           </div>
         </div>}
@@ -2934,7 +2934,7 @@
     // ============================================================
     // ENHANCED DRAWING WIDGET - With speed-sensitive pen, text, emojis
     // ============================================================
-    const DRAWING_EMOJIS = ['â­', 'â¤ï¸', 'âœ…', 'âŒ', 'ðŸ‘', 'ðŸ‘Ž', 'ðŸŽ¯', 'ðŸ†', 'ðŸ”¥', 'ðŸ’¡', 'ðŸ“Œ', 'ðŸŽ¨', 'ðŸ“', 'ðŸŒŸ', 'âœ¨', 'ðŸŽ‰', 'ðŸ’¯', 'ðŸ‘€', 'ðŸ¤”', 'ðŸ’ª', 'ðŸŒˆ', 'âš¡', 'ðŸŽ', 'ðŸ˜Š', 'ðŸ™Œ', 'ðŸŽµ', 'ðŸŒ¸', 'ðŸŽ', 'ðŸš€', 'ðŸ’Ž'];
+    const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎'];
 
     const DrawingWidget = ({ widget, updateData }) => {
       const { color = '#000000', brushSize = 8, tool = 'pen', textItems = [], emojiItems = [] } = widget.data;
@@ -3458,7 +3458,7 @@
 
 
 
-    const SCHEDULE_EMOJIS = ['ðŸ“š', 'ðŸŽ¨', 'ðŸƒ', 'ðŸŽµ', 'ðŸ’»', 'ðŸ¥ª', 'ðŸ“', 'ðŸ”¬', 'ðŸ—£ï¸', 'ðŸ›‘', 'ðŸšŒ', 'ðŸ ', 'ðŸ“…', 'â­', 'ðŸ””'];
+    const SCHEDULE_EMOJIS = ['📚', '🎨', '🏃', '🎵', '💻', '🥪', '📝', '🔬', '🗣️', '🛑', '🚌', '🏠', '📅', '⭐', '🔔'];
 
     const ScheduleWidget = ({ widget, updateData, onOpenSettings, selectedDate, setSelectedDate, scheduleTemplate, setScheduleTemplate, scheduleOverrides, setScheduleOverrides, scheduleSettings, setScheduleSettings }) => {
       const { fontSize = 14 } = widget.data;
