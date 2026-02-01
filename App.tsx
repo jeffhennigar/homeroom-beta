@@ -180,6 +180,54 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Realtime Cloud Sync
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase.channel(`realtime:${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` }, (payload) => {
+        if (isSyncing) return;
+        const updatedSlide = payload.new as any;
+        if (updatedSlide && updatedSlide.slide_index !== undefined) {
+          setSlides(prev => {
+            const next = [...prev];
+            next[updatedSlide.slide_index] = updatedSlide.widgets;
+            return next;
+          });
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rosters', filter: `user_id=eq.${user.id}` }, (payload) => {
+        if (isSyncing) return;
+        const updatedRoster = payload.new as any;
+        if (updatedRoster) {
+          setAllRosters(prev => {
+            const existingIdx = prev.findIndex(r => r.name === updatedRoster.name);
+            if (existingIdx !== -1) {
+              const next = [...prev];
+              next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster };
+              return next;
+            } else {
+              return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster, slides: [[]] }];
+            }
+          });
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `user_id=eq.${user.id}` }, (payload) => {
+        if (isSyncing) return;
+        const p = payload.new as any;
+        if (p) {
+          if (p.background) setBackground(p.background);
+          if (p.grid_enabled !== undefined) setIsGridEnabled(p.grid_enabled);
+          if (p.clock_style) setClockStyle(p.clock_style);
+          if (p.schedule) setActiveScheduleDays(p.schedule);
+          if (p.dock_order) setDockOrder(p.dock_order);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, isSyncing]);
+
   // Fetch from Supabase on Login
   useEffect(() => {
     if (!user) return;
@@ -562,13 +610,15 @@ const App: React.FC = () => {
       )}
 
       {/* Modals */}
-      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} onSave={handleUpdateRoster} />}
+      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} onSave={handleUpdateRoster} onLogin={() => setShowLoginModal(true)} />}
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         user={user}
         onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://homeroom.mrhennigar.com/'; }}
+        onSignIn={() => { setShowSettingsModal(false); setShowLoginModal(true); }}
+        isSyncing={isSyncing}
         roster={roster}
         setRoster={handleUpdateRoster}
         backgrounds={BACKGROUNDS}

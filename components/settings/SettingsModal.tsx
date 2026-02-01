@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { User, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3 } from 'lucide-react';
+import { User, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud } from 'lucide-react';
 import AppearanceSettings from './AppearanceSettings';
 import TimePicker from '../TimePicker';
 import { SCHEDULE_EMOJIS } from '../../constants';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle }) => {
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -389,25 +389,50 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, roster, setRoster, ba
             case 'data':
                 return (
                     <div className="space-y-6">
+                        <div className={`p-4 rounded-xl flex gap-3 border ${user ? 'bg-green-50 border-green-100' : 'bg-blue-50 border-blue-100'}`}>
+                            <div className={`shrink-0 ${user ? 'text-green-500' : 'text-blue-500'}`}>
+                                {user ? <Cloud size={20} /> : <Info size={20} />}
+                            </div>
+                            <div className="flex-1">
+                                <div className={`text-sm font-bold ${user ? 'text-green-900' : 'text-blue-900'} mb-1`}>
+                                    {user ? 'Cloud Sync Active' : 'Cloud Sync Available'}
+                                    {isSyncing && <span className="ml-2 text-xs font-normal animate-pulse text-green-600">(Syncing...)</span>}
+                                </div>
+                                <p className={`text-xs ${user ? 'text-green-700' : 'text-blue-700'} opacity-80 leading-relaxed mb-3`}>
+                                    {user
+                                        ? `HomeRoom is automatically syncing your data to ${user.email}.`
+                                        : "Sign in to sync your rosters and slides across all your devices and browsers."}
+                                </p>
+                                {!user && (
+                                    <button
+                                        onClick={onSignIn}
+                                        className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+                                    >
+                                        <Cloud size={14} /> Sign In to HomeRoom
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                            <h3 className="font-bold text-slate-800">Export Data</h3>
-                            <p className="text-sm text-slate-500">Download a backup of your roster and settings.</p>
-                            <button onClick={handleExport} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
-                                <Download size={18} /> Download Backup
+                            <h3 className="font-bold text-slate-800">Export Locally</h3>
+                            <p className="text-xs text-slate-500">Download a manual backup file of your data.</p>
+                            <button onClick={handleExport} className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
+                                <Download size={16} /> Download Backup
                             </button>
                         </div>
-                        <div className="w-full h-px bg-slate-100" />
+
                         <div className="space-y-2">
-                            <h3 className="font-bold text-slate-800">Import Data</h3>
-                            <p className="text-sm text-slate-500">Paste your backup JSON below to restore.</p>
+                            <h3 className="font-bold text-slate-800">Import Manually</h3>
+                            <p className="text-xs text-slate-500">Restore your data from a previous backup file.</p>
                             <textarea
                                 value={importText}
                                 onChange={(e) => setImportText(e.target.value)}
-                                className="w-full h-32 p-3 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
-                                placeholder='Paste JSON here...'
+                                className="w-full h-24 p-3 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+                                placeholder='Paste backup data here...'
                             />
-                            <button onClick={handleImport} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
-                                <Upload size={18} /> Restore Data
+                            <button onClick={handleImport} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
+                                <Upload size={16} /> Restore Data
                             </button>
                         </div>
                     </div>

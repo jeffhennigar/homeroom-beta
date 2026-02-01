@@ -6,9 +6,10 @@ import { Student } from '../types';
 interface OnboardingModalProps {
     onComplete: () => void;
     onSave?: (roster: Student[]) => void;
+    onLogin?: () => void;
 }
 
-const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete, onSave }) => {
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete, onSave, onLogin }) => {
     const [input, setInput] = useState('');
 
     const handleSave = () => {
@@ -50,6 +51,17 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete, onSave })
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                     />
+
+                    {onLogin && (
+                        <div className="mt-4 text-center">
+                            <button
+                                onClick={onLogin}
+                                className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center justify-center gap-1 mx-auto"
+                            >
+                                Already have an account? Sign In to Sync
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end">
