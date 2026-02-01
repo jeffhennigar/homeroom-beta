@@ -5342,8 +5342,7 @@
             const { error: slideError } = await supabase.from('slides').upsert({
               user_id: user.id,
               slide_index: currentSlideIndex,
-              widgets: slides[currentSlideIndex],
-              updated_at: new Date().toISOString()
+              widgets: slides[currentSlideIndex]
             }); // Removed redundant onConflict params, Supabase infers from unique keys
 
             if (slideError) console.error("Sync Slides Error:", slideError);
@@ -5354,18 +5353,31 @@
               const { error: rosterError } = await supabase.from('rosters').upsert({
                 user_id: user.id,
                 name: activeRoster.name,
-                roster: activeRoster.roster,
-                updated_at: new Date().toISOString()
+                roster: activeRoster.roster
               });
               if (rosterError) console.error("Sync Roster Error:", rosterError);
             }
+            // 3. Sync Profile (Settings, Background, etc.)
+            const { error: profileError } = await supabase.from('profiles').upsert({
+              user_id: user.id,
+              background,
+              slide_backgrounds: slideBackgrounds,
+              my_backgrounds: customBackgrounds,
+              schedule: activeScheduleDays,
+              grid_enabled: isGridEnabled,
+              clock_style: clockStyle,
+              dock_order: dockOrder,
+              active_roster_id: activeRosterId
+            });
+            if (profileError) console.error("Sync Profile Error:", profileError);
+
           } catch (e) {
             console.error("Sync Exception:", e);
           } finally { setIsSyncing(false); }
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, activeScheduleDays, isGridEnabled, clockStyle, dockOrder]);
 
       // Supabase Data Loading
       useEffect(() => {

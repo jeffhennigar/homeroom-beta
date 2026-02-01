@@ -8,7 +8,7 @@ export const dataService = {
             .from('profiles')
             .select('*')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
         if (error && error.code !== 'PGRST116') throw error;
         return data;
     },
@@ -16,7 +16,7 @@ export const dataService = {
     async updateProfile(userId: string, updates: any) {
         const { error } = await supabase
             .from('profiles')
-            .upsert({ id: userId, ...updates, updated_at: new Date().toISOString() });
+            .upsert({ id: userId, ...updates });
         if (error) throw error;
     },
 
@@ -37,8 +37,7 @@ export const dataService = {
             .upsert({
                 user_id: userId,
                 slide_index: slideIndex,
-                widgets,
-                created_at: new Date().toISOString()
+                widgets
             }, { onConflict: 'user_id,slide_index' });
         if (error) throw error;
     },
