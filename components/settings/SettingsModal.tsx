@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { User, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud } from 'lucide-react';
+import { User, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud, Terminal } from 'lucide-react';
 import AppearanceSettings from './AppearanceSettings';
 import TimePicker from '../TimePicker';
 import { SCHEDULE_EMOJIS } from '../../constants';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle }) => {
+import { dataService } from '../../services/dataService'; // Add Import
+
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -26,11 +28,16 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
     const copyScheduleDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].filter(d => d !== selectedDay);
     const [timePickerTrigger, setTimePickerTrigger] = useState(null);
 
+    // Debug
+    const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+    const [testResult, setTestResult] = useState<string | null>(null);
+
     const tabs = [
         { id: 'roster', label: 'Roster', icon: <User size={16} /> },
         { id: 'appearance', label: 'Appearance', icon: <ImageIcon size={16} /> },
         { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
         { id: 'data', label: 'Data', icon: <Download size={16} /> },
+        { id: 'debug', label: 'Debug', icon: <Terminal size={16} /> },
         { id: 'about', label: 'About', icon: <Info size={16} /> },
         { id: 'feedback', label: 'Feedback', icon: <Mail size={16} /> }
     ];
@@ -146,6 +153,25 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
         a.href = url;
         a.download = 'homeroom_backup.json';
         a.click();
+    };
+
+    const runConnectionTest = async () => {
+        if (!user) { setTestStatus('error'); setTestResult("Not logged in."); return; }
+        setTestStatus('testing');
+        setTestResult(null);
+        try {
+            const res = await dataService.testConnection(user.id);
+            if (res.success) {
+                setTestStatus('success');
+                setTestResult("Read/Write test passed successfully.");
+            } else {
+                setTestStatus('error');
+                setTestResult(res.error || "Unknown error during test.");
+            }
+        } catch (e: any) {
+            setTestStatus('error');
+            setTestResult(e.message || "Exception during test.");
+        }
     };
 
     const renderContent = () => {
@@ -434,6 +460,52 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                             <button onClick={handleImport} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
                                 <Upload size={16} /> Restore Data
                             </button>
+                        </div>
+                    </div>
+                );
+            case 'debug':
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-slate-900 rounded-xl p-6 text-slate-300 font-mono text-xs overflow-hidden">
+                            <h3 className="text-white text-sm font-bold mb-4 flex items-center gap-2">
+                                <Terminal size={16} /> System Status
+                            </h3>
+
+                            <div className="space-y-2 mb-6">
+                                <div className="flex justify-between">
+                                    <span>User:</span>
+                                    <span className="text-white">{user ? user.email : 'Not logged in'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Sync Status:</span>
+                                    <span className={isSyncing ? 'text-yellow-400' : 'text-green-400'}>{isSyncing ? 'Syncing...' : 'Idle'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Last Sync Error:</span>
+                                    <span className={lastSyncError ? 'text-red-400 font-bold' : 'text-green-500'}>{lastSyncError || 'None'}</span>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-slate-700 pt-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-white">Connectivity Test</span>
+                                    <button
+                                        onClick={runConnectionTest}
+                                        disabled={testStatus === 'testing' || !user}
+                                        className="px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-xs"
+                                    >
+                                        {testStatus === 'testing' ? 'Testing...' : 'Run Test'}
+                                    </button>
+                                </div>
+                                <p className="text-slate-500 mb-2">
+                                    Attemps to read and write a small timestamp to your profile in the database to verify permissions.
+                                </p>
+                                {testResult && (
+                                    <div className={`p-3 rounded border ${testStatus === 'success' ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-red-900/20 border-red-800 text-red-400'}`}>
+                                        {testResult}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 );

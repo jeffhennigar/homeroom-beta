@@ -109,6 +109,7 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
+  const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
   const widgets = slides[currentSlideIndex] || [];
   const currentBg = slideBackgrounds[currentSlideIndex] || background;
@@ -296,7 +297,11 @@ const App: React.FC = () => {
           clock_style: clockStyle,
           active_roster_id: activeRosterId
         });
-      } catch (e) { console.error('Error syncing profile:', e); }
+        setLastSyncError(null);
+      } catch (e: any) {
+        console.error('Error syncing profile:', e);
+        setLastSyncError(e.message || "Profile sync failed");
+      }
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -308,7 +313,11 @@ const App: React.FC = () => {
     const timer = setTimeout(async () => {
       try {
         await dataService.saveSlide(user.id, currentSlideIndex, slides[currentSlideIndex]);
-      } catch (e) { console.error('Error syncing slide:', e); }
+        setLastSyncError(null);
+      } catch (e: any) {
+        console.error('Error syncing slide:', e);
+        setLastSyncError(e.message || "Slide sync failed");
+      }
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -326,7 +335,11 @@ const App: React.FC = () => {
         for (const r of allRosters) {
           await dataService.saveRoster(user.id, r);
         }
-      } catch (e) { console.error('Error syncing rosters:', e); }
+        setLastSyncError(null);
+      } catch (e: any) {
+        console.error('Error syncing rosters:', e);
+        setLastSyncError(e.message || "Roster sync failed");
+      }
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -604,8 +617,10 @@ const App: React.FC = () => {
       {/* Cloud Status */}
       {user && (
         <div className="absolute bottom-4 left-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-md rounded-full border border-white/50 shadow-sm transition-all hover:bg-white">
-          <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-400 animate-pulse' : 'bg-green-500'}`} />
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Synced as {user.email}</span>
+          <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-400 animate-pulse' : lastSyncError ? 'bg-red-500' : 'bg-green-500'}`} />
+          <span className={`text-[10px] font-bold text-slate-500 uppercase tracking-wider ${lastSyncError ? 'text-red-500' : ''}`}>
+            {lastSyncError ? 'Sync Error' : `Synced as ${user.email}`}
+          </span>
         </div>
       )}
 
@@ -636,6 +651,7 @@ const App: React.FC = () => {
         saveScheduleTemplate={setActiveScheduleDays}
         clockStyle={clockStyle}
         setClockStyle={setClockStyle}
+        lastSyncError={lastSyncError}
       />
 
       {/* Top Bar */}

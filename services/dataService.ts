@@ -81,5 +81,26 @@ export const dataService = {
             .eq('user_id', userId)
             .eq('id', rosterId);
         if (error) throw error;
+    },
+
+    // --- Debug ---
+    async testConnection(userId: string) {
+        // Try to read profiles
+        const { error: readError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (readError) return { success: false, error: `Read Error: ${readError.message}` };
+
+        // Try to write access (update timestamp or similar - harmless update)
+        const { error: writeError } = await supabase
+            .from('profiles')
+            .upsert({ id: userId, updated_at: new Date().toISOString() });
+
+        if (writeError) return { success: false, error: `Write Error: ${writeError.message}` };
+
+        return { success: true, error: null };
     }
 };
