@@ -5442,8 +5442,10 @@
         const hasData = allRosters.length > 0 && allRosters.some(r => r.roster && r.roster.length > 0);
         if (!hasData && !hasRoster()) {
           setShowOnboarding(true);
+        } else {
+          setShowOnboarding(false);
         }
-      }, [authLoading, isSyncing, hasCheckedCloud, allRosters]);
+      }, [authLoading, isSyncing, hasCheckedCloud, allRosters, user]);
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {

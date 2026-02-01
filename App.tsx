@@ -133,6 +133,8 @@ const App: React.FC = () => {
     if (authLoading) return;
     if (user && !hasCheckedCloud) return;
 
+    const hasData = allRosters.length > 0 && allRosters.some(r => r.roster && r.roster.length > 0);
+
     if (activeRosterId) {
       localStorage.setItem('homeroom_active_roster_id', activeRosterId);
       const active = allRosters.find(r => r.id === activeRosterId);
@@ -154,6 +156,10 @@ const App: React.FC = () => {
         // Only show onboarding if we are sure there is no data locally or in cloud
         setShowOnboarding(true);
       }
+    }
+
+    if (hasData) {
+      setShowOnboarding(false);
     }
   }, [activeRosterId, allRosters, user, authLoading, hasCheckedCloud]);
 
