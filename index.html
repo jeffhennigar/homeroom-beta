@@ -3793,6 +3793,14 @@
                 className="w-full h-32 border-2 border-gray-200 rounded-xl p-4 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all custom-scrollbar resize-none font-sans"
                 placeholder="Paste names here..."
               />
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center justify-center gap-1 mx-auto"
+                >
+                  <Cloud size={14} /> Already have an account? Sign In to Sync
+                </button>
+              </div>
             </div>
             <div className="p-4 border-t bg-gray-50 flex justify-end">
               <button
@@ -3801,6 +3809,99 @@
               >
                 <Save size={18} /> Save & Get Started
               </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const AuthModal = () => {
+      const [isOpen, setIsOpen] = useState(false);
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [mode, setMode] = useState('login'); // 'login' or 'signup'
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+
+      useEffect(() => {
+        const handleOpen = () => setIsOpen(true);
+        window.addEventListener('open-auth', handleOpen);
+        return () => window.removeEventListener('open-auth', handleOpen);
+      }, []);
+
+      const handleAuth = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        try {
+          let res;
+          if (mode === 'login') {
+            res = await supabase.auth.signInWithPassword({ email, password });
+          } else {
+            res = await supabase.auth.signUp({ email, password });
+          }
+          if (res.error) throw res.error;
+          setIsOpen(false);
+        } catch (e) {
+          setError(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="p-8 bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12" />
+              <h2 className="text-3xl font-bold mb-2">HomeRoom Cloud</h2>
+              <p className="text-blue-100 text-sm opacity-90">Sign in to sync your class across all devices.</p>
+              <button onClick={() => setIsOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>
+            </div>
+            <div className="p-8 bg-white">
+              {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
+              <form onSubmit={handleAuth} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 focus:bg-white transition-all font-medium text-gray-800"
+                    placeholder="teacher@school.edu"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 focus:bg-white transition-all font-medium text-gray-800"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? <RefreshCw className="animate-spin" size={20} /> : (mode === 'login' ? 'Sign In' : 'Create Account')}
+                </button>
+              </form>
+              <div className="mt-8 pt-8 border-t border-gray-100 text-center">
+                <button
+                  onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                  className="text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                >
+                  {mode === 'login' ? "Don't have an account? Create one" : "Already have an account? Sign In"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -4709,14 +4810,22 @@
                     </div>
                     <div className={`text-sm ${user ? 'text-green-900' : 'text-blue-900'}`}>
                       <p className="font-bold mb-1">
-                        {user ? 'Cloud Sync Active' : 'Your Data is Private & Local'}
+                        {user ? 'Cloud Sync Active' : 'Cloud Sync Available'}
                         {isSyncing && <span className="ml-2 text-xs font-normal animate-pulse text-green-600">(Syncing...)</span>}
                       </p>
-                      <p className="opacity-80 leading-relaxed">
+                      <p className="opacity-80 leading-relaxed mb-3">
                         {user
                           ? `HomeRoom is automatically syncing your rosters and widgets to your account (${user.email}).`
-                          : "HomeRoom stores all your data directly on this computer's browser. Nothing is sent to the cloud. Please backup your data regularly to keep it safe!"}
+                          : "Sign in to sync your data across devices and never lose your rosters again!"}
                       </p>
+                      {!user && (
+                        <button
+                          onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
+                          className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md shadow-blue-200"
+                        >
+                          <Cloud size={14} /> Sign In to Sync
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -5074,6 +5183,53 @@
 
         return () => subscription.unsubscribe();
       }, []);
+
+      // Realtime Cloud Sync (Cross-browser)
+      useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase.channel(`realtime:${user.id}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` }, (payload) => {
+            if (isSyncing) return; // Ignore our own changes
+            const updatedSlide = payload.new;
+            if (updatedSlide && updatedSlide.slide_index !== undefined) {
+              setSlides(prev => {
+                const next = [...prev];
+                next[updatedSlide.slide_index] = updatedSlide.widgets;
+                return next;
+              });
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'rosters', filter: `user_id=eq.${user.id}` }, (payload) => {
+            if (isSyncing) return;
+            const updatedRoster = payload.new;
+            if (updatedRoster) {
+              setAllRosters(prev => {
+                const existingIdx = prev.findIndex(r => r.name === updatedRoster.name);
+                if (existingIdx !== -1) {
+                  const next = [...prev];
+                  next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster };
+                  return next;
+                } else {
+                  return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster }];
+                }
+              });
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `user_id=eq.${user.id}` }, (payload) => {
+            if (isSyncing) return;
+            const p = payload.new;
+            if (p) {
+              if (p.background) setBackground(p.background);
+              if (p.grid_enabled !== undefined) setIsGridEnabled(p.grid_enabled);
+              if (p.clock_style) setClockStyle(p.clock_style);
+              if (p.schedule) setActiveScheduleDays(p.schedule);
+            }
+          })
+          .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+      }, [user, isSyncing]);
 
       // --- MANAGEMENT FUNCTIONS ---
       const handleSetActiveRoster = (id) => {
@@ -5727,6 +5883,7 @@
         }} onMouseDown={() => setSelectedId(null)}>
           {/* Modals */}
           {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} onSaveRoster={(newRoster) => setRoster(newRoster)} />}
+          <AuthModal />
           {showSettingsModal && <SettingsModal
             user={user}
             onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://homeroom.mrhennigar.com/'; }}
