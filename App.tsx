@@ -107,6 +107,8 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
 
   const widgets = slides[currentSlideIndex] || [];
   const currentBg = slideBackgrounds[currentSlideIndex] || background;
@@ -127,6 +129,10 @@ const App: React.FC = () => {
   }, [allRosters]);
 
   useEffect(() => {
+    // Wait for auth check and initial cloud sync before showing onboarding
+    if (authLoading) return;
+    if (user && !hasCheckedCloud) return;
+
     if (activeRosterId) {
       localStorage.setItem('homeroom_active_roster_id', activeRosterId);
       const active = allRosters.find(r => r.id === activeRosterId);
@@ -144,20 +150,23 @@ const App: React.FC = () => {
         setAllRosters([newRoster]);
         setActiveRosterId('default');
         setRoster(r);
-      } else if (!user) {
+      } else {
+        // Only show onboarding if we are sure there is no data locally or in cloud
         setShowOnboarding(true);
       }
     }
-  }, [activeRosterId, allRosters, user]);
+  }, [activeRosterId, allRosters, user, authLoading, hasCheckedCloud]);
 
   // Auth Sync
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -196,6 +205,7 @@ const App: React.FC = () => {
         console.error('Error loading cloud data:', e);
       } finally {
         setIsSyncing(false);
+        setHasCheckedCloud(true);
       }
     };
 

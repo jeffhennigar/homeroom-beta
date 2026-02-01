@@ -5039,6 +5039,8 @@
       const [backupEnabled, setBackupEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_backup_enabled')) ?? true; } catch { return true; } });
       const [backupInterval, setBackupInterval] = useState(() => { try { return parseInt(localStorage.getItem('homeroom_backup_interval')) || 7; } catch { return 7; } });
       const fileInputRef = useRef(null);
+      const [authLoading, setAuthLoading] = useState(true);
+      const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
 
       // --- DERIVED STATE ---
       const currentBg = slideBackgrounds[currentSlideIndex] || background;
@@ -5062,10 +5064,12 @@
       useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
           setUser(session?.user ?? null);
+          setAuthLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           setUser(session?.user ?? null);
+          setAuthLoading(false);
         });
 
         return () => subscription.unsubscribe();
@@ -5197,24 +5201,44 @@
           try {
             const { data: cloudRosters } = await supabase.from('rosters').select('*').eq('user_id', user.id);
             const { data: cloudSlides } = await supabase.from('slides').select('*').eq('user_id', user.id).order('slide_index', { ascending: true });
+
+            let merged = [...allRosters];
+            let activeId = activeRosterId;
+
             if (cloudRosters && cloudRosters.length > 0) {
-              const merged = [...allRosters];
               cloudRosters.forEach(cr => {
                 const existingIdx = merged.findIndex(r => r.name === cr.name);
                 if (existingIdx !== -1) merged[existingIdx] = { ...merged[existingIdx], roster: cr.roster };
                 else merged.push({ id: cr.id || Date.now().toString(), name: cr.name, roster: cr.roster, slides: [[]] });
               });
-              if (cloudSlides && cloudSlides.length > 0) {
-                const activeIdx = merged.findIndex(r => r.id === activeRosterId);
-                if (activeIdx !== -1) {
-                  const slidesArray = cloudSlides.map(s => s.widgets);
-                  merged[activeIdx].slides = slidesArray;
-                  setSlides(slidesArray);
-                }
+
+              // If we have cloud rosters and our current roster is empty/default, switch to the first cloud roster
+              if (allRosters.length === 0 || (allRosters.length === 1 && allRosters[0].id === 'default' && allRosters[0].roster.length === 0)) {
+                activeId = cloudRosters[0].id || merged[0].id;
+                setActiveRosterId(activeId);
+                setRoster(cloudRosters[0].roster);
               }
-              setAllRosters(merged);
             }
-          } catch (e) { console.error(e); } finally { setIsSyncing(false); }
+
+            if (cloudSlides && cloudSlides.length > 0) {
+              const slidesArray = cloudSlides.map(s => s.widgets);
+              const targetIdx = merged.findIndex(r => r.id === activeId);
+              if (targetIdx !== -1) {
+                merged[targetIdx].slides = slidesArray;
+                setSlides(slidesArray);
+              } else if (merged.length > 0) {
+                merged[0].slides = slidesArray;
+                if (activeId === merged[0].id) setSlides(slidesArray);
+              }
+            }
+
+            if (merged.length > 0) setAllRosters(merged);
+          } catch (e) {
+            console.error('Cloud load error:', e);
+          } finally {
+            setIsSyncing(false);
+            setHasCheckedCloud(true);
+          }
         };
         loadFromCloud();
       }, [user]);
@@ -5410,7 +5434,16 @@
 
       const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       useEffect(() => { const timer = setInterval(() => { setCurrentTime(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })); }, 1000 * 60); return () => clearInterval(timer); }, []);
-      useEffect(() => { if (!hasRoster()) setShowOnboarding(true); }, []);
+      // improved onboarding trigger
+      useEffect(() => {
+        if (authLoading || isSyncing) return;
+        if (user && !hasCheckedCloud) return;
+
+        const hasData = allRosters.length > 0 && allRosters.some(r => r.roster && r.roster.length > 0);
+        if (!hasData && !hasRoster()) {
+          setShowOnboarding(true);
+        }
+      }, [authLoading, isSyncing, hasCheckedCloud, allRosters]);
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
