@@ -103,8 +103,8 @@
       margin: 0.25rem 0;
     }
   </style>
-  <!-- Babel for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Babel for JSX (Pinned stable version) -->
+  <script src="https://unpkg.com/@babel/standalone@7.25.9/babel.min.js"></script>
   <!-- Import Map -->
   <script type="importmap">
   {
@@ -116,12 +116,24 @@
     }
   }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function () {
+      const url = 'https://ypdbgixqxpozdetkapge.supabase.co';
+      const key = 'sb_publishable_eJtxz6JkotwKbuzQpPgfCQ_S-ftklk1';
+      try {
+        window.supabaseClient = window.supabase.createClient(url, key);
+      } catch (e) {
+        console.error("Supabase Init Error:", e);
+      }
+    })();
+  </script>
 </head>
 
 <body>
   <div id="root"></div>
 
-  <script type="text/babel" data-type="module">
+  <script type="text/babel" data-presets="react" data-type="module">
     import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
     import { createRoot } from 'react-dom/client';
     import { createPortal } from 'react-dom';
@@ -134,10 +146,28 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Grid,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, Bell, StickyNote, PieChart, Hash, ListOrdered, Pencil
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, Bell, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud
     } from 'lucide-react';
 
     const TimerIcon = Timer;
+
+    // --- SUPABASE INITIALIZATION ---
+    // Using the client initialized in the head
+    const supabase = window.supabaseClient || {
+      auth: {
+        getSession: () => Promise.resolve({ data: { session: null } }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } })
+      },
+      from: () => ({
+        upsert: () => Promise.resolve({ error: null }),
+        select: () => ({
+          eq: () => ({
+            order: () => Promise.resolve({ data: [], error: null }),
+            single: () => Promise.resolve({ data: null, error: null })
+          })
+        })
+      })
+    };
 
     // --- CONSTANTS ---
     const DEFAULT_NAMES = [];
@@ -4061,7 +4091,7 @@
       );
     };
 
-    const SettingsModal = ({ onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
+    const SettingsModal = ({ user, onSignOut, isSyncing, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
       const [realignDate, setRealignDate] = useState(new Date().toISOString().split('T')[0]);
       const [realignTargetDay, setRealignTargetDay] = useState(1);
       const [realignSuccess, setRealignSuccess] = useState(false);
@@ -4223,7 +4253,17 @@
             <div className="border-b">
               <div className="p-4 flex justify-between items-center">
                 <h3 className="font-bold text-gray-800 flex items-center gap-2"><Settings size={20} /> Settings</h3>
-                <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-500"><X size={20} /></button>
+                <div className="flex items-center gap-2">
+                  {user && (
+                    <button
+                      onClick={onSignOut}
+                      className="px-3 py-1.5 bg-red-50 text-red-600 font-bold text-xs rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <Lock size={14} /> Sign Out
+                    </button>
+                  )}
+                  <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-500"><X size={20} /></button>
+                </div>
               </div>
               <div className="flex px-2 pb-0">
                 {tabs.map(tab => (
@@ -4663,11 +4703,20 @@
               {/* DATA TAB */}
               {activeTab === 'data' && (
                 <div className="p-6">
-                  <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl flex gap-3">
-                    <div className="shrink-0 text-blue-500"><Info size={20} /></div>
-                    <div className="text-sm text-blue-900">
-                      <p className="font-bold mb-1">Your Data is Private & Local</p>
-                      <p className="opacity-80 leading-relaxed">HomeRoom stores all your data directly on this computer's browser. Nothing is sent to the cloud. Please <strong>backup your data regularly</strong> to keep it safe!</p>
+                  <div className={`mb-6 p-4 rounded-xl flex gap-3 border ${user ? 'bg-green-50 border-green-100' : 'bg-blue-50 border-blue-100'}`}>
+                    <div className={`shrink-0 ${user ? 'text-green-500' : 'text-blue-500'}`}>
+                      {user ? <Cloud size={20} /> : <Info size={20} />}
+                    </div>
+                    <div className={`text-sm ${user ? 'text-green-900' : 'text-blue-900'}`}>
+                      <p className="font-bold mb-1">
+                        {user ? 'Cloud Sync Active' : 'Your Data is Private & Local'}
+                        {isSyncing && <span className="ml-2 text-xs font-normal animate-pulse text-green-600">(Syncing...)</span>}
+                      </p>
+                      <p className="opacity-80 leading-relaxed">
+                        {user
+                          ? `HomeRoom is automatically syncing your rosters and widgets to your account (${user.email}).`
+                          : "HomeRoom stores all your data directly on this computer's browser. Nothing is sent to the cloud. Please backup your data regularly to keep it safe!"}
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -4881,28 +4930,25 @@
     };
 
     const App = () => {
+      const [user, setUser] = useState(null);
+      const [isSyncing, setIsSyncing] = useState(false);
+
+      // --- STATE DECLARATIONS ---
       const [allRosters, setAllRosters] = useState(() => {
         try {
           const stored = localStorage.getItem('homeroom_all_rosters');
           if (stored) return JSON.parse(stored);
         } catch (e) { }
-        // Migration of single roster
         const defaultRoster = getRoster();
         const defaultSlides = (() => {
           try {
             let s = JSON.parse(localStorage.getItem(WIDGETS_STORAGE_KEY)) || [[]];
-            // Ensure Clock is present in the first slide if not anywhere
-            // Check first slide
             if (!s[0].some(w => w.type === 'CLOCK')) {
               const clockWidget = {
                 id: 'default-clock-' + Date.now(),
                 type: 'CLOCK',
-                position: { x: 50, y: 40 }, // Top Left
-                id: 'default-clock-' + Date.now(),
-                type: 'CLOCK',
-                position: { x: 50, y: 40 }, // Top Left
+                position: { x: 50, y: 40 },
                 size: { width: 340, height: 260 },
-                zIndex: 100,
                 zIndex: 100,
                 data: { fontSize: 16 },
                 isMinimized: false
@@ -4927,14 +4973,12 @@
       const [slides, setSlides] = useState(() => {
         const active = allRosters.find(r => r.id === (localStorage.getItem('homeroom_active_roster_id') || 'default'));
         let initialSlides = active ? (active.slides || [[]]) : [[]];
-
-        // Ensure default clock on first load/empty state
         if (initialSlides.length === 1 && initialSlides[0].length === 0) {
           const defaultClock = {
             id: 'default-clock',
             type: 'CLOCK',
-            position: { x: 50, y: 50 }, // Left aligned
-            size: { width: 625, height: 275 }, // 500 * 1.25, 220 * 1.25
+            position: { x: 50, y: 50 },
+            size: { width: 625, height: 275 },
             zIndex: 1,
             data: { fontSize: 16, style: 'standard', isGlassy: 'clear' },
             isMinimized: false
@@ -4944,12 +4988,93 @@
         return initialSlides;
       });
 
+      const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+      const [selectedId, setSelectedId] = useState(null);
+      const [spotlightId, setSpotlightId] = useState(null);
+      const [maxZIndex, setMaxZIndex] = useState(10);
+      const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+      const [isDockMinimized, setIsDockMinimized] = useState(false);
+      const [editingWidgetId, setEditingWidgetId] = useState(null);
+      const [clockStyle, setClockStyle] = useState(() => localStorage.getItem('homeroom_clock_style') || 'standard');
+      const [showClockDate, setShowClockDate] = useState(() => localStorage.getItem('homeroom_show_clock_date') !== 'false');
+      const [isClockGlassy, setIsClockGlassy] = useState(() => localStorage.getItem('homeroom_clock_glassy') || 'clear');
+
+      const [dockOrder, setDockOrder] = useState(() => {
+        const stored = getDockOrder();
+        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+        const allDefaults = [...mainDefaults, ...drawerDefaults];
+        if (Array.isArray(stored)) {
+          const extras = stored.filter(id => !allDefaults.includes(id));
+          const missing = allDefaults.filter(id => !stored.includes(id));
+          return { main: mainDefaults.filter(id => stored.includes(id)), drawer: [...drawerDefaults.filter(id => stored.includes(id)), ...extras, ...missing] };
+        }
+        if (stored && stored.main && stored.drawer) {
+          const currentIds = [...stored.main, ...stored.drawer];
+          const missing = allDefaults.filter(id => !currentIds.includes(id));
+          if (missing.length > 0) return { ...stored, drawer: [...stored.drawer, ...missing] };
+          return stored;
+        }
+        return { main: mainDefaults, drawer: drawerDefaults };
+      });
+
+      const [isDockLocked, setIsDockLocked] = useState(true);
+      const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+      const drawerRef = useRef(null);
+      const [history, setHistory] = useState([]);
+      const [redoStack, setRedoStack] = useState([]);
+      const [showOnboarding, setShowOnboarding] = useState(false);
+      const [showSettingsModal, setShowSettingsModal] = useState(false);
+      const [settingsInitialTab, setSettingsInitialTab] = useState('appearance');
+      const [showBackupPrompt, setShowBackupPrompt] = useState(true);
+      const [selectedDate, setSelectedDate] = useState(new Date());
+      const [scheduleTemplate, setScheduleTemplate] = useState(getScheduleTemplate());
+      const [scheduleOverrides, setScheduleOverrides] = useState(getScheduleOverrides());
+      const [scheduleSettings, setScheduleSettings] = useState(getScheduleSettings());
+      const [background, setBackground] = useState(getBackground());
+      const [slideBackgrounds, setSlideBackgrounds] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_slide_backgrounds')) || {}; } catch { return {}; } });
+      const [customBackgrounds, setCustomBackgrounds] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_my_backgrounds')) || []; } catch { return []; } });
+      const [showBgPicker, setShowBgPicker] = useState(false);
+      const [isGridEnabled, setIsGridEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_grid_enabled')) || false; } catch { return false; } });
+      const [backupEnabled, setBackupEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_backup_enabled')) ?? true; } catch { return true; } });
+      const [backupInterval, setBackupInterval] = useState(() => { try { return parseInt(localStorage.getItem('homeroom_backup_interval')) || 7; } catch { return 7; } });
+      const fileInputRef = useRef(null);
+
+      // --- DERIVED STATE ---
+      const currentBg = slideBackgrounds[currentSlideIndex] || background;
+      const widgets = slides[currentSlideIndex] || [];
+      const setWidgets = (newWidgetsOrFn) => {
+        setSlides(prev => {
+          const next = [...prev];
+          const currentWidgets = next[currentSlideIndex] || [];
+          const updatedWidgets = typeof newWidgetsOrFn === 'function' ? newWidgetsOrFn(currentWidgets) : newWidgetsOrFn;
+          next[currentSlideIndex] = updatedWidgets;
+          return next;
+        });
+      };
+
+
+
+
+      // --- EFFECTS ---
+
+      // Auth state listener
+      useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setUser(session?.user ?? null);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+      }, []);
+
+      // --- MANAGEMENT FUNCTIONS ---
       const handleSetActiveRoster = (id) => {
         if (id === activeRosterId) return;
-        // Save CURRENT state to current roster entry BEFORE switching
         setAllRosters(prev => prev.map(r => r.id === activeRosterId ? { ...r, roster, slides } : r));
-
-        // Load NEW state
         const next = allRosters.find(r => r.id === id);
         if (next) {
           setRoster(next.roster);
@@ -4969,7 +5094,6 @@
       const handleDeleteRoster = (id) => {
         if (allRosters.length <= 1) return;
         const newRosters = allRosters.filter(r => r.id !== id);
-
         if (activeRosterId === id) {
           const nextRoster = newRosters[0];
           setActiveRosterId(nextRoster.id);
@@ -4978,114 +5102,25 @@
           localStorage.setItem('homeroom_active_roster_id', nextRoster.id);
         }
         setAllRosters(newRosters);
-        // Force immediate save for critical deletion
-        try {
-          localStorage.setItem('homeroom_all_rosters', JSON.stringify(newRosters));
-        } catch (err) {
-          console.error("Critical Save Error (Deletion):", err);
-        }
+        try { localStorage.setItem('homeroom_all_rosters', JSON.stringify(newRosters)); } catch (err) { console.error(err); }
       };
 
       const handleRenameRoster = (id, newName) => {
         setAllRosters(prev => prev.map(r => r.id === id ? { ...r, name: newName } : r));
       };
 
-      // Periodic Sync to allRosters with Debounce (Performance optimization for 50+ classes)
-      useEffect(() => {
-        const t = setTimeout(() => {
-          setAllRosters(prev => prev.map(r => r.id === activeRosterId ? { ...r, roster, slides } : r));
-        }, 1500); // Wait 1.5s after last change before processing the massive global array
-        return () => clearTimeout(t);
-      }, [roster, slides, activeRosterId]);
-
-      useEffect(() => {
-        const t = setTimeout(() => {
-          try {
-            localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters));
-          } catch (e) {
-            if (e.name === 'QuotaExceededError') {
-              console.error("HomeRoom Storage Full: Try deleting unneeded drawings or images.");
-            }
-          }
-        }, 2000); // Separate debounce for actual disk write
-        return () => clearTimeout(t);
-      }, [allRosters]);
-
-      const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-      const [selectedId, setSelectedId] = useState(null);
-      const [spotlightId, setSpotlightId] = useState(null);
-
-      const [maxZIndex, setMaxZIndex] = useState(10);
-      const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
-      const [isDockMinimized, setIsDockMinimized] = useState(false);
-      const [editingWidgetId, setEditingWidgetId] = useState(null);
-      const [clockStyle, setClockStyle] = useState(() => {
-        return localStorage.getItem('homeroom_clock_style') || 'standard';
-      });
-      useEffect(() => {
-        localStorage.setItem('homeroom_clock_style', clockStyle);
-      }, [clockStyle]);
-
-      const [showClockDate, setShowClockDate] = useState(() => {
-        return localStorage.getItem('homeroom_show_clock_date') !== 'false';
-      });
-
-      useEffect(() => {
-        localStorage.setItem('homeroom_show_clock_date', showClockDate);
-      }, [showClockDate]);
-
-      const [isClockGlassy, setIsClockGlassy] = useState(() => {
-        return localStorage.getItem('homeroom_clock_glassy') || 'clear';
-      });
-
-      useEffect(() => {
-        localStorage.setItem('homeroom_clock_glassy', isClockGlassy);
-      }, [isClockGlassy]);
-
-      const [dockOrder, setDockOrder] = useState(() => {
-        const stored = getDockOrder();
-        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
-        const allDefaults = [...mainDefaults, ...drawerDefaults];
-
-        // 1. Legacy Array Migration
-        if (Array.isArray(stored)) {
-          const extras = stored.filter(id => !allDefaults.includes(id));
-          const missing = allDefaults.filter(id => !stored.includes(id));
-          return {
-            main: mainDefaults.filter(id => stored.includes(id)),
-            drawer: [...drawerDefaults.filter(id => stored.includes(id)), ...extras, ...missing]
-          };
+      const handleBgSelect = (id, src, type, textColor) => {
+        const newBg = { id, src, type, textColor };
+        setBackground(newBg);
+        setSlideBackgrounds(prev => ({ ...prev, [currentSlideIndex]: newBg }));
+        if (id !== 'custom') {
+          saveBackground(newBg);
+          setSlideBackgrounds({});
         }
+      };
 
-        // 2. Object Storage (Ensure new tools are added)
-        if (stored && stored.main && stored.drawer) {
-          const currentIds = [...stored.main, ...stored.drawer];
-          const missing = allDefaults.filter(id => !currentIds.includes(id));
-          if (missing.length > 0) {
-            return {
-              ...stored,
-              drawer: [...stored.drawer, ...missing]
-            };
-          }
-          return stored;
-        }
-
-        // 3. Fallback / First Load
-        return {
-          main: mainDefaults,
-          drawer: drawerDefaults
-        };
-      });
-
-      const [isDockLocked, setIsDockLocked] = useState(true);
-      const [showMoreDrawer, setShowMoreDrawer] = useState(false);
-      const drawerRef = useRef(null);
-
-
-      // Undo/Redo History
-      const [history, setHistory] = useState([]);
-      const [redoStack, setRedoStack] = useState([]);
+      const updateWidgetLayout = useCallback((id, newPos, newSize) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, position: newPos, size: newSize } : w)); }, [currentSlideIndex]);
+      const updateWidgetData = useCallback((id, updates) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...updates } } : w)); }, [currentSlideIndex]);
 
       const addToHistory = () => {
         setHistory(prev => [...prev.slice(-19), slides]);
@@ -5107,6 +5142,102 @@
         setSlides(next);
         setRedoStack(prev => prev.slice(0, -1));
       }, [redoStack, slides]);
+
+
+
+      // Periodic Sync to allRosters
+      useEffect(() => {
+        const t = setTimeout(() => {
+          setAllRosters(prev => prev.map(r => r.id === activeRosterId ? { ...r, roster, slides } : r));
+        }, 1500);
+        return () => clearTimeout(t);
+      }, [roster, slides, activeRosterId]);
+
+      // LocalStorage Save allRosters
+      useEffect(() => {
+        const t = setTimeout(() => {
+          try { localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters)); } catch (e) { console.error(e); }
+        }, 2000);
+        return () => clearTimeout(t);
+      }, [allRosters]);
+
+      // LocalStorage Save current slide
+      useEffect(() => {
+        const t = setTimeout(() => {
+          try {
+            localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(slides));
+            saveRoster(roster);
+          } catch (e) { }
+        }, 1000);
+        return () => clearTimeout(t);
+      }, [slides, roster]);
+
+      // Supabase Sync Logic
+      useEffect(() => {
+        if (!user) return;
+        const syncToCloud = async () => {
+          setIsSyncing(true);
+          try {
+            await supabase.from('slides').upsert({ user_id: user.id, slide_index: currentSlideIndex, widgets: slides[currentSlideIndex], updated_at: new Date().toISOString() }, { onConflict: 'user_id,slide_index' });
+            const activeRoster = allRosters.find(r => r.id === activeRosterId);
+            if (activeRoster) {
+              await supabase.from('rosters').upsert({ user_id: user.id, name: activeRoster.name, roster: activeRoster.roster, updated_at: new Date().toISOString() }, { onConflict: 'user_id,name' });
+            }
+          } catch (e) { console.error(e); } finally { setIsSyncing(false); }
+        };
+        const t = setTimeout(syncToCloud, 3000);
+        return () => clearTimeout(t);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId]);
+
+      // Supabase Data Loading
+      useEffect(() => {
+        if (!user) return;
+        const loadFromCloud = async () => {
+          setIsSyncing(true);
+          try {
+            const { data: cloudRosters } = await supabase.from('rosters').select('*').eq('user_id', user.id);
+            const { data: cloudSlides } = await supabase.from('slides').select('*').eq('user_id', user.id).order('slide_index', { ascending: true });
+            if (cloudRosters && cloudRosters.length > 0) {
+              const merged = [...allRosters];
+              cloudRosters.forEach(cr => {
+                const existingIdx = merged.findIndex(r => r.name === cr.name);
+                if (existingIdx !== -1) merged[existingIdx] = { ...merged[existingIdx], roster: cr.roster };
+                else merged.push({ id: cr.id || Date.now().toString(), name: cr.name, roster: cr.roster, slides: [[]] });
+              });
+              if (cloudSlides && cloudSlides.length > 0) {
+                const activeIdx = merged.findIndex(r => r.id === activeRosterId);
+                if (activeIdx !== -1) {
+                  const slidesArray = cloudSlides.map(s => s.widgets);
+                  merged[activeIdx].slides = slidesArray;
+                  setSlides(slidesArray);
+                }
+              }
+              setAllRosters(merged);
+            }
+          } catch (e) { console.error(e); } finally { setIsSyncing(false); }
+        };
+        loadFromCloud();
+      }, [user]);
+
+      // Settings hooks
+      useEffect(() => { localStorage.setItem('homeroom_clock_style', clockStyle); }, [clockStyle]);
+      useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
+      useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
+      useEffect(() => { localStorage.setItem('homeroom_grid_enabled', JSON.stringify(isGridEnabled)); }, [isGridEnabled]);
+      useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
+      useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
+      useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
+      useEffect(() => { localStorage.setItem('homeroom_backup_interval', backupInterval); }, [backupInterval]);
+
+      useEffect(() => {
+        saveScheduleTemplate(scheduleTemplate);
+      }, [scheduleTemplate]);
+      useEffect(() => {
+        saveScheduleOverrides(scheduleOverrides);
+      }, [scheduleOverrides]);
+      useEffect(() => {
+        localStorage.setItem('homeroom_schedule_settings', JSON.stringify(scheduleSettings));
+      }, [scheduleSettings]);
 
       useEffect(() => {
         const handleKeyDown = (e) => {
@@ -5134,6 +5265,14 @@
         if (showMoreDrawer) document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
       }, [showMoreDrawer]);
+
+      useEffect(() => {
+        if (!localStorage.getItem('homeroom_last_backup')) {
+          localStorage.setItem('homeroom_last_backup', Date.now());
+        }
+      }, []);
+
+
 
       const handleDockDrop = (e, targetLocation, targetId = null) => {
         e.preventDefault();
@@ -5177,58 +5316,8 @@
       };
 
 
-      const [showOnboarding, setShowOnboarding] = useState(false);
-      const [showSettingsModal, setShowSettingsModal] = useState(false);
-      const [settingsInitialTab, setSettingsInitialTab] = useState('appearance');
-      const [showBackupPrompt, setShowBackupPrompt] = useState(true); // Control visibility of backup prompt
-
-      // Link Schedule to Calendar
-      const [selectedDate, setSelectedDate] = useState(new Date());
-      const [scheduleTemplate, setScheduleTemplate] = useState(getScheduleTemplate());
-      const [scheduleOverrides, setScheduleOverrides] = useState(getScheduleOverrides());
-      const [scheduleSettings, setScheduleSettings] = useState(getScheduleSettings());
-      useEffect(() => saveScheduleTemplate(scheduleTemplate), [scheduleTemplate]);
-      useEffect(() => saveScheduleOverrides(scheduleOverrides), [scheduleOverrides]);
-      useEffect(() => localStorage.setItem('homeroom_schedule_settings', JSON.stringify(scheduleSettings)), [scheduleSettings]);
-
-      // New Background State
-      const [background, setBackground] = useState(getBackground());
-      const [slideBackgrounds, setSlideBackgrounds] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_slide_backgrounds')) || {}; } catch (e) { return {}; } });
-      const [customBackgrounds, setCustomBackgrounds] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_my_backgrounds')) || []; } catch (e) { return []; } });
-      const [showBgPicker, setShowBgPicker] = useState(false);
-      const [isGridEnabled, setIsGridEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_grid_enabled')) || false; } catch (e) { return false; } });
-      useEffect(() => { localStorage.setItem('homeroom_grid_enabled', JSON.stringify(isGridEnabled)); }, [isGridEnabled]);
-      useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
-      useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
-
-      // Backup Settings
-      const [backupEnabled, setBackupEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_backup_enabled')) ?? true; } catch { return true; } });
-      const [backupInterval, setBackupInterval] = useState(() => { try { return parseInt(localStorage.getItem('homeroom_backup_interval')) || 7; } catch { return 7; } });
-
-      useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
-      useEffect(() => { localStorage.setItem('homeroom_backup_interval', backupInterval); }, [backupInterval]);
-
-      // Initialize backup timer on first load
-      useEffect(() => {
-        if (!localStorage.getItem('homeroom_last_backup')) {
-          localStorage.setItem('homeroom_last_backup', Date.now());
-        }
-      }, []);
 
       // --- PERSISTENCE & DATA ---
-      useEffect(() => {
-        const t = setTimeout(() => {
-          try {
-            localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(slides));
-            saveRoster(roster);
-          } catch (e) {
-            console.warn("HomeRoom: Quick-save failed. Data will still persist via global sync.");
-          }
-        }, 1000);
-        return () => clearTimeout(t);
-      }, [slides, roster]);
-
-      const fileInputRef = useRef(null);
       const downloadData = () => {
         const data = {
           roster: getRoster(), // Current roster
@@ -5319,24 +5408,9 @@
         reader.readAsText(file);
       };
 
-      // ... existing effects/callbacks ...
-      const widgets = slides[currentSlideIndex] || [];
-      const setWidgets = useCallback((updater) => { setSlides(prev => { const newS = [...prev]; newS[currentSlideIndex] = updater(newS[currentSlideIndex]); return newS; }); }, [currentSlideIndex]);
       const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       useEffect(() => { const timer = setInterval(() => { setCurrentTime(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })); }, 1000 * 60); return () => clearInterval(timer); }, []);
       useEffect(() => { if (!hasRoster()) setShowOnboarding(true); }, []);
-
-      const currentBg = slideBackgrounds[currentSlideIndex] || background;
-
-      const handleBgSelect = (newBg, mode = 'all') => {
-        if (mode === 'single') {
-          setSlideBackgrounds(prev => ({ ...prev, [currentSlideIndex]: newBg }));
-        } else {
-          setBackground(newBg);
-          saveBackground(newBg);
-          setSlideBackgrounds({});
-        }
-      };
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
@@ -5400,9 +5474,17 @@
         window.addEventListener('paste', handlePaste);
         return () => window.removeEventListener('paste', handlePaste);
       }, [addWidget, updateWidgetData, selectedId, slides, currentSlideIndex]);
-      const removeWidget = (id) => { addToHistory(); const widget = widgets.find(w => w.id === id); if (widget && widget.type === 'SEAT_PICKER' && widget.data.desks) { saveSeatLayout(widget.data.desks); } setWidgets(prev => prev.filter(w => w.id !== id)); if (selectedId === id) setSelectedId(null); };
-      const updateWidgetLayout = useCallback((id, newPos, newSize) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, position: newPos, size: newSize } : w)); }, [setWidgets]);
-      const updateWidgetData = useCallback((id, updates) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...updates } } : w)); }, [setWidgets]);
+
+      const removeWidget = (id) => {
+        addToHistory();
+        const widget = (slides[currentSlideIndex] || []).find(w => w.id === id);
+        if (widget && widget.type === 'SEAT_PICKER' && widget.data.desks) {
+          saveSeatLayout(widget.data.desks);
+        }
+        setWidgets(prev => prev.filter(w => w.id !== id));
+        if (selectedId === id) setSelectedId(null);
+      };
+
       const bringToFront = (id) => {
         setSelectedId(id);
         const widget = widgets.find(w => w.id === id);
@@ -5605,6 +5687,9 @@
           {/* Modals */}
           {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} onSaveRoster={(newRoster) => setRoster(newRoster)} />}
           {showSettingsModal && <SettingsModal
+            user={user}
+            onSignOut={() => { supabase.auth.signOut(); setShowSettingsModal(false); }}
+            isSyncing={isSyncing}
             roster={roster}
             allRosters={allRosters}
             activeRosterId={activeRosterId}

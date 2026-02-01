@@ -4,7 +4,7 @@ import AppearanceSettings from './AppearanceSettings';
 import TimePicker from '../TimePicker';
 import { SCHEDULE_EMOJIS } from '../../constants';
 
-const SettingsModal = ({ isOpen, onClose, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle }) => {
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -480,7 +480,25 @@ const SettingsModal = ({ isOpen, onClose, roster, setRoster, backgrounds, curren
                 {/* Content */}
                 <div className="flex-1 flex flex-col min-w-0 bg-white">
                     <div className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/50 sticky top-0 z-10">
-                        <h2 className="font-bold text-lg text-slate-800">{tabs.find(t => t.id === activeTab)?.label}</h2>
+                        <div className="flex items-center gap-4">
+                            <h2 className="font-bold text-lg text-slate-800">{tabs.find(t => t.id === activeTab)?.label}</h2>
+                            {user && (
+                                <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-600 rounded-full border border-red-100">
+                                    <span className="text-xs font-bold truncate max-w-[150px]">{user.email}</span>
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm("Sign out of HomeRoom?")) {
+                                                onSignOut();
+                                                onClose();
+                                            }
+                                        }}
+                                        className="text-[10px] uppercase font-black hover:underline"
+                                    >
+                                        Sign Out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
                             <X size={20} />
                         </button>

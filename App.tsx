@@ -537,6 +537,8 @@ const App: React.FC = () => {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+        user={user}
+        onSignOut={() => supabase.auth.signOut()}
         roster={roster}
         setRoster={handleUpdateRoster}
         backgrounds={BACKGROUNDS}
