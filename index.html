@@ -163,10 +163,28 @@
         select: () => ({
           eq: () => ({
             order: () => Promise.resolve({ data: [], error: null }),
-            single: () => Promise.resolve({ data: null, error: null })
+            single: () => Promise.resolve({ data: null, error: null }),
+            maybeSingle: () => Promise.resolve({ data: null, error: null })
           })
         })
       })
+    };
+
+    const testSupabaseConnection = async (userId) => {
+      if (!supabase || !userId) return { success: false, error: 'No user or client' };
+      try {
+        // 1. Try to Read Profiles
+        const { error: readError } = await supabase.from('profiles').select('id').eq('id', userId).maybeSingle();
+        if (readError) return { success: false, error: 'Read Error: ' + readError.message };
+
+        // 2. Try to Write (Update timestamp)
+        const { error: writeError } = await supabase.from('profiles').upsert({ id: userId, updated_at: new Date().toISOString() });
+        if (writeError) return { success: false, error: 'Write Error: ' + writeError.message };
+
+        return { success: true, error: null };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
     };
 
     // --- CONSTANTS ---
@@ -4192,7 +4210,44 @@
       );
     };
 
-    const SettingsModal = ({ user, onSignOut, isSyncing, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
+
+    const TestConnectionButton = ({ user, testFn }) => {
+      const [status, setStatus] = useState('idle'); // idle, testing, success, error
+      const [result, setResult] = useState(null);
+
+      const runTest = async () => {
+        if (!user) return;
+        setStatus('testing');
+        setResult(null);
+        try {
+          const res = await testFn(user.id);
+          setResult(res);
+          setStatus(res.success ? 'success' : 'error');
+        } catch (e) {
+          setResult({ success: false, error: e.message });
+          setStatus('error');
+        }
+      };
+
+      return (
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={runTest}
+            disabled={status === 'testing' || !user}
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-xs font-bold transition-colors"
+          >
+            {status === 'testing' ? 'Testing...' : 'Run Test'}
+          </button>
+          {result && (
+            <div className={`text-xs font-bold ${result.success ? 'text-green-600' : 'text-red-500'}`}>
+              {result.success ? 'Success!' : result.error}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
       const [realignDate, setRealignDate] = useState(new Date().toISOString().split('T')[0]);
       const [realignTargetDay, setRealignTargetDay] = useState(1);
       const [realignSuccess, setRealignSuccess] = useState(false);
@@ -4344,7 +4399,8 @@
         { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
         { id: 'data', label: 'Data', icon: <Download size={16} /> },
         { id: 'about', label: 'About', icon: <Info size={16} /> },
-        { id: 'feedback', label: 'Feedback', icon: <Mail size={16} /> }
+        { id: 'feedback', label: 'Feedback', icon: <Mail size={16} /> },
+        { id: 'debug', label: 'Debug', icon: <Activity size={16} /> }
       ];
 
       return (
@@ -4775,6 +4831,59 @@
                 </div>
               )}
 
+              {/* DEBUG TAB */}
+              {activeTab === 'debug' && (
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2"><Activity size={24} className="text-blue-500" /> System Status</h3>
+
+                  {/* Authentication Status */}
+                  <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-slate-700">Authentication</span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${user ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {user ? 'Authenticated' : 'Not Signed In'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono break-all">
+                      User ID: {user ? user.id : 'N/A'}
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono mt-1">
+                      Role: {user ? user.role : 'N/A'}
+                    </div>
+                  </div>
+
+                  {/* Last Sync Error */}
+                  <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-slate-700">Last Sync Status</span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${lastSyncError ? 'bg-red-100 text-red-700' : (isSyncing ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700')}`}>
+                        {lastSyncError ? 'Error' : (isSyncing ? 'Syncing...' : 'Synced')}
+                      </span>
+                    </div>
+                    {lastSyncError ? (
+                      <div className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded border border-red-100 mb-2">
+                        {lastSyncError}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500">
+                        Sync is performed automatically on changes.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Connectivity Test */}
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-slate-700">Connectivity Test</span>
+                      <TestConnectionButton user={user} testFn={testSupabaseConnection} />
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Tests Read/Write access to your profile.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* ABOUT TAB */}
               {activeTab === 'about' && (
                 <div className="p-6">
@@ -5041,6 +5150,7 @@
     const App = () => {
       const [user, setUser] = useState(null);
       const [isSyncing, setIsSyncing] = useState(false);
+      const [lastSyncError, setLastSyncError] = useState(null);
 
       // --- STATE DECLARATIONS ---
       const [allRosters, setAllRosters] = useState(() => {
@@ -5346,7 +5456,7 @@
             }));
             const { error: slideError } = await supabase.from('slides').upsert(slidesToSync);
 
-            if (slideError) console.error("Sync Slides Error:", slideError);
+            if (slideError) throw slideError;
 
             // 2. Sync Active Roster
             const activeRoster = allRosters.find(r => r.id === activeRosterId);
@@ -5357,7 +5467,7 @@
                 name: activeRoster.name,
                 roster: activeRoster.roster
               });
-              if (rosterError) console.error("Sync Roster Error:", rosterError);
+              if (rosterError) throw rosterError;
             }
             // 3. Sync Profile (Settings, Background, etc.)
             const { error: profileError } = await supabase.from('profiles').upsert({
@@ -5371,10 +5481,14 @@
               dock_order: dockOrder,
               active_roster_id: activeRosterId
             });
-            if (profileError) console.error("Sync Profile Error:", profileError);
+            if (profileError) throw profileError;
+
+            // If we get here, sync was successful
+            setLastSyncError(null);
 
           } catch (e) {
             console.error("Sync Exception:", e);
+            setLastSyncError(e.message || "Unknown Sync Error");
           } finally { setIsSyncing(false); }
         };
         const t = setTimeout(syncToCloud, 3000);
@@ -5976,6 +6090,7 @@
             user={user}
             onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://homeroom.mrhennigar.com/'; }}
             isSyncing={isSyncing}
+            lastSyncError={lastSyncError}
             roster={roster}
             allRosters={allRosters}
             activeRosterId={activeRosterId}
