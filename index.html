@@ -5394,28 +5394,59 @@
               }
             }
 
+            // 2.5 Process Profile (Settings, Background, Dock)
+            const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
+            if (profile) {
+              if (profile.background) setBackground(profile.background);
+              if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
+              if (profile.clock_style) setClockStyle(profile.clock_style);
+              if (profile.schedule) setActiveScheduleDays(profile.schedule);
+              if (profile.dock_order) setDockOrder(profile.dock_order);
+            }
+
             // 3. Update State
+            // Force Update - Even if cloud data is "empty", we must override local if we are in a fresh session
             if (newAllRosters.length > 0) {
               setAllRosters(newAllRosters);
               setActiveRosterId(activeId);
 
-              // Force update current view
               const currentActive = newAllRosters.find(r => r.id === activeId);
               if (currentActive) {
                 setRoster(currentActive.roster || []);
-                setSlides(loadedSlides);
+                // Critical: Ensure slides are set even if empty to clear "default" local state
+                setSlides(loadedSlides.length > 0 ? loadedSlides : [[]]);
               }
+            } else if (hasCheckedCloud === false) {
+              // If cloud returned NOTHING, but we haven't checked before, maybe we should warn or just accept it.
             }
 
           } catch (e) {
             console.error('Cloud load error:', e);
+            // SIMPLE RETRY (One time)
+            if (!window.hasRetriedCloud) {
+              window.hasRetriedCloud = true;
+              setTimeout(loadFromCloud, 2000);
+            }
           } finally {
             setIsSyncing(false);
             setHasCheckedCloud(true);
           }
         };
-        loadFromCloud();
+
+        // Wait for Supabase auth to fully stabilize
+        const t = setTimeout(loadFromCloud, 500);
+        return () => clearTimeout(t);
       }, [user]);
+
+      // Force Re-render on Roster Change (Safety Net)
+      useEffect(() => {
+        if (hasCheckedCloud && activeRosterId) {
+          const r = allRosters.find(rr => rr.id === activeRosterId);
+          if (r && r.roster?.length !== roster.length) {
+            setRoster(r.roster);
+          }
+        }
+      }, [activeRosterId, hasCheckedCloud]);
 
       // Settings hooks
       useEffect(() => { localStorage.setItem('homeroom_clock_style', clockStyle); }, [clockStyle]);
