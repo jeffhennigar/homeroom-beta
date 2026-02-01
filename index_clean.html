@@ -1,5 +1,4 @@
-﻿<!DOCTYPE html>
-  <html lang="en">
+﻿  <html lang="en">
 
   <head>
     <meta charset="UTF-8" />
@@ -5415,9 +5414,7 @@
               }
 
               // 2.5 Process Profile (Settings, Background, Dock)
-              const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
-              if (profileError && profileError.code !== 'PGRST116') console.error("Profile Fetch Error:", profileError);
-
+              const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
               if (profile) {
                 console.log("Loaded Profile:", profile);
                 if (profile.background) setBackground(profile.background);
@@ -6230,6 +6227,8 @@
       };
 
 
+
+      const root = createRoot(document.getElementById('root')); root.render(<App />);
     </script>
   </body>
-</html>
+
