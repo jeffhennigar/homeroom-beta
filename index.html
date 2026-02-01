@@ -5338,12 +5338,13 @@
         const syncToCloud = async () => {
           setIsSyncing(true);
           try {
-            // 1. Sync Slides
-            const { error: slideError } = await supabase.from('slides').upsert({
+            // 1. Sync Slides (BATCH ALL)
+            const slidesToSync = slides.map((widgets, idx) => ({
               user_id: user.id,
-              slide_index: currentSlideIndex,
-              widgets: slides[currentSlideIndex]
-            }); // Removed redundant onConflict params, Supabase infers from unique keys
+              slide_index: idx,
+              widgets: widgets
+            }));
+            const { error: slideError } = await supabase.from('slides').upsert(slidesToSync);
 
             if (slideError) console.error("Sync Slides Error:", slideError);
 
@@ -5351,6 +5352,7 @@
             const activeRoster = allRosters.find(r => r.id === activeRosterId);
             if (activeRoster) {
               const { error: rosterError } = await supabase.from('rosters').upsert({
+                id: activeRoster.id, // CRITICAL: Must sync ID to link with profile
                 user_id: user.id,
                 name: activeRoster.name,
                 roster: activeRoster.roster
