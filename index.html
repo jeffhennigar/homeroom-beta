@@ -368,7 +368,15 @@
     };
     const saveDockOrder = (order) => { try { localStorage.setItem(DOCK_ORDER_KEY, JSON.stringify(order)); } catch (e) { } };
 
-    const getBackground = () => { try { return JSON.parse(localStorage.getItem(BG_STORAGE_KEY)) || BACKGROUNDS[0]; } catch (e) { return BACKGROUNDS[0]; } };
+    const getBackground = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem(BG_STORAGE_KEY));
+        if (stored && typeof stored === 'object' && stored.id) return stored;
+        return BACKGROUNDS[0];
+      } catch (e) {
+        return BACKGROUNDS[0];
+      }
+    };
     const saveBackground = (bg) => { try { localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(bg)); } catch (e) { } };
 
     // Seat Layout Persistence (survives widget close/reopen)
@@ -2112,27 +2120,27 @@
       const renderBigHour = () => (
         <div className="flex flex-col items-center justify-center w-full h-full">
           <div className="flex items-center justify-center gap-[2cqw]">
-            <div className={`font-black tracking-tighter ${textColor} opacity-90 drop-shadow-lg leading-none`} style={{ fontSize: 'min(35cqw, 70cqh)' }}>{displayHours}</div>
+            <div className={`font-black tracking-tighter ${textColor} opacity-90 drop-shadow-lg leading-none`} style={{ fontSize: 'min(35cqw, 80cqh)' }}>{displayHours}</div>
             <div className="flex flex-col items-start justify-center gap-0">
-              <div className={`font-bold tracking-tight ${textColor} opacity-80 drop-shadow-md leading-none`} style={{ fontSize: 'min(15cqw, 30cqh)' }}>{minutes.toString().padStart(2, '0')}</div>
-              <div className={`font-medium opacity-70 ${textColor} drop-shadow-md leading-none`} style={{ fontSize: 'min(8cqw, 16cqh)' }}>{seconds.toString().padStart(2, '0')}</div>
+              <div className={`font-bold tracking-tight ${textColor} opacity-80 drop-shadow-md leading-none`} style={{ fontSize: 'min(15cqw, 35cqh)' }}>{minutes.toString().padStart(2, '0')}</div>
+              <div className={`font-medium opacity-70 ${textColor} drop-shadow-md leading-none`} style={{ fontSize: 'min(8cqw, 18cqh)' }}>{seconds.toString().padStart(2, '0')}</div>
             </div>
           </div>
-          {showDate && <div className={`font-medium uppercase tracking-widest opacity-80 mt-[1cqh] ${textColor}`} style={{ fontSize: 'min(4cqw, 8cqh)' }}>{dateString}</div>}
+          {showDate && <div className={`font-medium uppercase tracking-widest opacity-80 mt-[1cqh] ${textColor}`} style={{ fontSize: 'min(4cqw, 10cqh)' }}>{dateString}</div>}
         </div>
       );
 
       const renderModern = () => (
         <div className="flex flex-col items-center gap-0 w-full h-full justify-center">
-          <div className={`font-thin tracking-widest ${textColor} drop-shadow-sm`} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'min(20cqw, 45cqh)' }}>{timeString.split(' ')[0]}</div>
-          {showDate && <div className={`font-light tracking-wide uppercase opacity-80 ${textColor}`} style={{ fontSize: 'min(4cqw, 10cqh)' }}>{dateString}</div>}
+          <div className={`font-thin tracking-widest ${textColor} drop-shadow-sm`} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'min(20cqw, 60cqh)' }}>{timeString.split(' ')[0]}</div>
+          {showDate && <div className={`font-light tracking-wide uppercase opacity-80 ${textColor}`} style={{ fontSize: 'min(4cqw, 12cqh)' }}>{dateString}</div>}
         </div>
       );
 
       const renderStandard = () => (
         <div className="flex flex-col items-start gap-0 w-full h-full justify-center px-[5cqw]">
-          <div className={`font-bold tracking-tight ${textColor} drop-shadow-md`} style={{ fontVariantNumeric: 'tabular-nums', lineHeight: 0.9, fontSize: 'min(22cqw, 55cqh)' }}>{timeString}</div>
-          {showDate && <div className={`font-medium tracking-wide uppercase opacity-90 mt-[2cqh] ${textColor}`} style={{ fontSize: 'min(5cqw, 12cqh)' }}>{dateString}</div>}
+          <div className={`font-bold tracking-tight ${textColor} drop-shadow-md`} style={{ fontVariantNumeric: 'tabular-nums', lineHeight: 0.85, fontSize: 'min(22cqw, 70cqh)' }}>{timeString}</div>
+          {showDate && <div className={`font-medium tracking-wide uppercase opacity-90 mt-[2cqh] ${textColor}`} style={{ fontSize: 'min(5cqw, 15cqh)' }}>{dateString}</div>}
         </div>
       );
 
@@ -3867,6 +3875,29 @@
         }
       };
 
+      const handleGoogleLogin = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          // 'redirectTo' tells Supabase where to send the user after Google approves.
+          // If this URL is not in your Supabase "Redirect URLs" whitelist, it will fallback to your Site URL (homeroom.mrhennigar.com).
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: window.location.origin,
+              queryParams: {
+                access_type: 'offline',
+                prompt: 'consent',
+              }
+            }
+          });
+          if (error) throw error;
+        } catch (e) {
+          setError(e.message);
+          setLoading(false);
+        }
+      };
+
       if (!isOpen) return null;
 
       return (
@@ -3881,6 +3912,27 @@
             </div>
             <div className="p-8 bg-white">
               {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
+
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full py-3 bg-white border-2 border-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 flex items-center justify-center gap-3 mb-6 relative group overflow-hidden"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+                Sign in with Google
+              </button>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 h-px bg-slate-100 pb-[1px]" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Or continue with</span>
+                <div className="flex-1 h-px bg-slate-100 pb-[1px]" />
+              </div>
+
               <form onSubmit={handleAuth} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
@@ -4394,7 +4446,6 @@
       }, [roster]);
 
       const tabs = [
-        { id: 'debug', label: 'Debug', icon: <Activity size={16} /> },
         { id: 'appearance', label: 'Appearance', icon: <ImageIcon size={16} /> },
         { id: 'roster', label: 'Rosters', icon: <User size={16} /> },
         { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
@@ -4922,20 +4973,28 @@
                         {user ? 'Cloud Sync Active' : 'Cloud Sync Available'}
                         {isSyncing && <span className="ml-2 text-xs font-normal animate-pulse text-green-600">(Syncing...)</span>}
                       </p>
-                      <p className="opacity-80 leading-relaxed mb-3">
+                      <p className="opacity-80 leading-relaxed">
                         {user
                           ? `HomeRoom is automatically syncing your rosters and widgets to your account (${user.email}).`
                           : "Sign in to sync your data across devices and never lose your rosters again!"}
+                        <span className="ml-1 text-[11px] opacity-70 italic">
+                          Note: Please check with your school's IT policy before sharing classroom data with third-party applications.
+                        </span>
                       </p>
                       {!user && (
                         <button
                           onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
-                          className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md shadow-blue-200"
+                          className="mt-4 px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md shadow-blue-200 active:scale-95"
                         >
                           <Cloud size={14} /> Sign In to Sync
                         </button>
                       )}
                     </div>
+                  </div>
+                  <div className="mb-6 px-1">
+                    <p className="text-sm text-gray-500 opacity-80 leading-relaxed italic">
+                      For added privacy, you can choose to stay signed out and use the <strong>Export</strong> and <strong>Import</strong> tools below to manually save and restore your classroom data.
+                    </p>
                   </div>
                   <div className="space-y-3">
                     <button onClick={downloadData} className="w-full flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors group border border-green-200">
@@ -5379,14 +5438,38 @@
         setAllRosters(prev => prev.map(r => r.id === id ? { ...r, name: newName } : r));
       };
 
-      const handleBgSelect = (id, src, type, textColor) => {
-        const newBg = { id, src, type, textColor };
-        setBackground(newBg);
-        setSlideBackgrounds(prev => ({ ...prev, [currentSlideIndex]: newBg }));
-        if (id !== 'custom') {
-          saveBackground(newBg);
-          setSlideBackgrounds({});
+      const handleBgSelect = (arg1, arg2, arg3, arg4) => {
+        let newBg;
+        let mode = 'single'; // 'single' or 'all'
+
+        if (typeof arg1 === 'object' && arg1 !== null) {
+          // Called with object: (bgObject, mode)
+          newBg = {
+            id: arg1.id,
+            src: arg1.src,
+            type: arg1.type,
+            textColor: arg1.textColor
+          };
+          if (typeof arg2 === 'string') mode = arg2;
+        } else {
+          // Called with individual args: (id, src, type, textColor) - Legacy support if needed
+          newBg = { id: arg1, src: arg2, type: arg3, textColor: arg4 };
         }
+
+        // Update State
+        if (mode === 'all') {
+          setBackground(newBg); // Update global default
+          // Also clear individual overrides OR set them all to this?
+          // Usually "Apply to All" means set Global and clear overrides.
+          setSlideBackgrounds({});
+          // Also need to update current slide in case we rely on slideBackgrounds[current]
+          // But if slideBackgrounds is empty, it falls back to global 'background'.
+        } else {
+          // Apply to current slide only
+          setSlideBackgrounds(prev => ({ ...prev, [currentSlideIndex]: newBg }));
+        }
+
+        // Persist logic handled by useEffect
       };
 
       const updateWidgetLayout = useCallback((id, newPos, newSize) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, position: newPos, size: newSize } : w)); }, [currentSlideIndex]);
@@ -5540,6 +5623,26 @@
               }
             }
 
+            // --- CLOCK PERSISTENCE FIX ---
+            // If the first slide is empty (new user/no data), add a default Clock widget
+            if (loadedSlides.length > 0 && loadedSlides[0].length === 0) {
+              console.log("No widgets found. Adding default Clock.");
+              const defaultClock = {
+                id: 'clock-' + Date.now(),
+                type: 'CLOCK',
+                position: { x: 100, y: 100 }, // Top-left-ish
+                size: { width: 400, height: 200 },
+                zIndex: 10,
+                data: { style: 'standard', showDate: true }
+              };
+              loadedSlides[0].push(defaultClock);
+              // Also update the target roster if needed
+              const targetIdx = newAllRosters.findIndex(r => r.id === activeId);
+              if (targetIdx !== -1) {
+                newAllRosters[targetIdx].slides = loadedSlides;
+              }
+            }
+
             // 2.5 Process Profile (Settings, Background, Dock)
             const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
             if (profileError && profileError.code !== 'PGRST116') console.error("Profile Fetch Error:", profileError);
@@ -5604,6 +5707,13 @@
       }, [activeRosterId, hasCheckedCloud]);
 
       // Settings hooks
+      useEffect(() => {
+        if (user && backupEnabled) {
+          console.log("Cloud sync active: Disabling local backup reminders.");
+          setBackupEnabled(false);
+        }
+      }, [user]);
+
       useEffect(() => { localStorage.setItem('homeroom_clock_style', clockStyle); }, [clockStyle]);
       useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
       useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
@@ -6081,7 +6191,7 @@
       return (
         <div className="w-screen h-screen overflow-hidden relative" style={{
           backgroundColor: '#dbeafe', // fallback
-          backgroundImage: currentBg && currentBg.id !== 'default' ? `url(${currentBg.src})` : 'none',
+          backgroundImage: (currentBg && currentBg.id !== 'default' && currentBg.src) ? `url(${currentBg.src})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }} onMouseDown={() => setSelectedId(null)}>
@@ -6156,7 +6266,7 @@
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={uploadData} />
 
           {/* Default Geometric Background Layer */}
-          {(!currentBg || currentBg.id === 'default') && (
+          {(!currentBg || !currentBg.id || currentBg.id === 'default' || currentBg.id === 'Original') && (
             <div className="absolute inset-0 pointer-events-none z-0">
               <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} /></linearGradient><linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} /></linearGradient></defs><rect width="100%" height="100%" fill="#dbeafe" /><path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#gradOrange)" opacity="0.9" /><path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" opacity="0.5" /><path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#gradBlue)" opacity="0.9" /><path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" opacity="0.5" /></svg>
             </div>
