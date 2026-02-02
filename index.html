@@ -4321,7 +4321,7 @@
       const [feedbackName, setFeedbackName] = useState('');
       const [feedbackEmail, setFeedbackEmail] = useState('');
       const [feedbackMessage, setFeedbackMessage] = useState('');
-      const [feedbackCopied, setFeedbackCopied] = useState(false);
+      const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
       const toggleActive = (id) => {
         setLocalRoster(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
@@ -4353,32 +4353,37 @@
 
       const [feedbackStatus, setFeedbackStatus] = useState('');
 
-      const handleFeedbackSubmit = () => {
-        const subject = encodeURIComponent('HomeRoom Feedback');
-        const body = encodeURIComponent(`Name: ${feedbackName}\nEmail: ${feedbackEmail}\n\nMessage:\n${feedbackMessage}`);
-        window.location.href = `mailto:jeffhennigar@gmail.com?subject=${subject}&body=${body}`;
-        setFeedbackName(''); setFeedbackEmail(''); setFeedbackMessage('');
-        setFeedbackStatus('Opening email client...');
-        setTimeout(() => setFeedbackStatus(''), 3000);
-      };
+      const handleFormspreeSubmit = async () => {
+        if (!feedbackMessage.trim()) return;
+        setSubmittingFeedback(true);
+        setFeedbackStatus('');
 
-      const handleGmailSubmit = () => {
-        const subject = encodeURIComponent(`Feedback from ${feedbackName || 'User'}`);
-        const body = encodeURIComponent(`${feedbackMessage}\n\nFrom: ${feedbackName}\nEmail: ${feedbackEmail}`);
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=jeffhennigar@gmail.com&su=${subject}&body=${body}`;
-        window.open(gmailUrl, '_blank');
-        setFeedbackName(''); setFeedbackEmail(''); setFeedbackMessage('');
-        setFeedbackStatus('Opening Gmail...');
-        setTimeout(() => setFeedbackStatus(''), 3000);
-      };
+        try {
+          const response = await fetch('https://formspree.io/f/xrelyply', {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: feedbackName,
+              email: feedbackEmail,
+              message: feedbackMessage,
+              _subject: 'HomeRoom Feedback'
+            })
+          });
 
-      const handleCopyFeedback = () => {
-        const text = `To: jeffhennigar@gmail.com\nSubject: HomeRoom Feedback\n\nName: ${feedbackName}\nEmail: ${feedbackEmail}\n\nMessage:\n${feedbackMessage}`;
-        navigator.clipboard.writeText(text).then(() => {
-          setFeedbackCopied(true);
-          setFeedbackStatus('Copied to clipboard!');
-          setTimeout(() => { setFeedbackCopied(false); setFeedbackStatus(''); }, 3000);
-        });
+          if (response.ok) {
+            setFeedbackStatus('Success! Your feedback has been sent.');
+            setFeedbackName('');
+            setFeedbackEmail('');
+            setFeedbackMessage('');
+          } else {
+            setFeedbackStatus('Submission failed. Please try "Copy Text" instead.');
+          }
+        } catch (error) {
+          setFeedbackStatus('Connection error. Please try "Copy Text".');
+        } finally {
+          setSubmittingFeedback(false);
+          setTimeout(() => setFeedbackStatus(''), 5000);
+        }
       };
 
       // Schedule template state managed by App now
@@ -5079,22 +5084,15 @@
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <button onClick={handleFeedbackSubmit} disabled={!feedbackMessage.trim()} className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
-                        <Mail size={18} /> Send via Email App
+                      <button
+                        onClick={handleFormspreeSubmit}
+                        disabled={!feedbackMessage.trim() || submittingFeedback}
+                        className={`w-full py-3 ${submittingFeedback ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-50`}
+                      >
+                        {submittingFeedback ? <RefreshCw className="animate-spin" size={18} /> : <Mail size={18} />}
+                        {submittingFeedback ? 'Sending...' : 'Send Feedback'}
                       </button>
-
-                      <div className="flex gap-2">
-                        <button onClick={handleGmailSubmit} disabled={!feedbackMessage.trim()} className="flex-1 py-3 bg-red-100 hover:bg-red-200 disabled:bg-gray-100 disabled:text-gray-400 text-red-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
-                          <Mail size={18} /> Send via Gmail
-                        </button>
-                        <button onClick={handleCopyFeedback} disabled={!feedbackMessage.trim()} className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300 text-gray-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
-                          {feedbackCopied ? <Check size={18} className="text-green-600" /> : <List size={18} />} {feedbackCopied ? 'Copied!' : 'Copy Text'}
-                        </button>
-                      </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 text-center mt-2">
-                      If "Send" doesn't work, use "Copy Text" and paste it into your email manually to <b>jeffhennigar@gmail.com</b>
-                    </p>
                     {feedbackStatus && <div className="text-center text-sm font-bold text-green-600 mt-2 bg-green-50 p-2 rounded-lg animate-in fade-in slide-in-from-bottom-2">{feedbackStatus}</div>}
                   </div>
                 </div>
