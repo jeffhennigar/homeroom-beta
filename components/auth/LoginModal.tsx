@@ -5,9 +5,10 @@ import { supabase } from '../../services/supabaseClient';
 interface LoginModalProps {
     isOpen: boolean;
     onClose: () => void;
+    forced?: boolean;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, forced = false }) => {
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -25,12 +26,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
         try {
             if (isSignUp) {
+                if (!email.includes('@')) {
+                    throw new Error('Please enter a valid email address. HomeRoom uses emails for accounts, not usernames.');
+                }
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
                 });
                 if (error) throw error;
-                setMessage('Check your email for the confirmation link!');
+                setMessage('Account created! Please check your email inbox to confirm your account before signing in.');
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
@@ -67,12 +71,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-white/90 backdrop-blur-2xl w-full max-w-md rounded-3xl shadow-2xl border border-white/50 overflow-hidden animate-in zoom-in-95 duration-300">
                 <div className="relative p-8">
-                    <button
-                        onClick={onClose}
-                        className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100/50 rounded-full transition-all"
-                    >
-                        <X size={20} />
-                    </button>
+                    {!forced && (
+                        <button
+                            onClick={onClose}
+                            className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100/50 rounded-full transition-all"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
 
                     <div className="mb-8">
                         <h2 className="text-3xl font-bold text-slate-800 mb-2">
@@ -138,7 +144,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                             className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 flex items-center justify-center gap-2 group"
                         >
                             {loading ? (
-                                <Loader2 size={24} className="animate-spin" />
+                                <div className="flex items-center gap-2">
+                                    <Loader2 size={24} className="animate-spin" />
+                                    <span>{isSignUp ? 'Creating Account...' : 'Signing In...'}</span>
+                                </div>
                             ) : (
                                 <>
                                     {isSignUp ? <UserPlus size={22} /> : <LogIn size={22} />}

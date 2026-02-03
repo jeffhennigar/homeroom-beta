@@ -3848,6 +3848,7 @@
       const [mode, setMode] = useState('login'); // 'login' or 'signup'
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState(null);
+      const [message, setMessage] = useState(null);
 
       useEffect(() => {
         const handleOpen = () => setIsOpen(true);
@@ -3859,7 +3860,11 @@
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setMessage(null);
         try {
+          if (mode === 'signup' && !email.includes('@')) {
+            throw new Error('Please enter a valid email address. HomeRoom uses emails for accounts, not usernames.');
+          }
           let res;
           if (mode === 'login') {
             res = await supabase.auth.signInWithPassword({ email, password });
@@ -3867,7 +3872,12 @@
             res = await supabase.auth.signUp({ email, password });
           }
           if (res.error) throw res.error;
-          setIsOpen(false);
+
+          if (mode === 'signup') {
+            setMessage('Account created! Please check your email inbox to confirm your account before signing in.');
+          } else {
+            setIsOpen(false);
+          }
         } catch (e) {
           setError(e.message);
         } finally {
@@ -3912,6 +3922,7 @@
             </div>
             <div className="p-8 bg-white">
               {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
+              {message && <div className="mb-6 p-4 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-100 flex items-center gap-2"><Check size={16} /> {message}</div>}
 
               <button
                 onClick={handleGoogleLogin}
@@ -3961,7 +3972,12 @@
                   disabled={loading}
                   className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {loading ? <RefreshCw className="animate-spin" size={20} /> : (mode === 'login' ? 'Sign In' : 'Create Account')}
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="animate-spin" size={20} />
+                      <span>{mode === 'signup' ? 'Creating Account...' : 'Signing In...'}</span>
+                    </div>
+                  ) : (mode === 'login' ? 'Sign In' : 'Create Account')}
                 </button>
               </form>
               <div className="mt-8 pt-8 border-t border-gray-100 text-center">

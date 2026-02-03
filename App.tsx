@@ -4,7 +4,7 @@ import {
   Camera, Dices, ChevronDown, ChevronUp,
   ChevronLeft, ChevronRight, Plus, Settings, Youtube,
   Lock, Unlock, GripVertical, Undo2, ArrowRightSquare, Trash2, AlertTriangle, X,
-  Calendar as CalendarIcon, StickyNote
+  Calendar as CalendarIcon, StickyNote, Loader2
 } from 'lucide-react';
 import DraggableResizable from './components/DraggableResizable';
 import TimerWidget from './components/widgets/TimerWidget';
@@ -616,6 +616,48 @@ const App: React.FC = () => {
       default: return null;
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-[#0f172a] relative overflow-hidden">
+        {/* Decorative Background for Loading */}
+        <div className="absolute inset-0 opacity-20">
+          <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+            <rect width="100%" height="100%" fill="#0f172a" />
+            <circle cx="20%" cy="20%" r="300" fill="#3b82f6" filter="blur(100px)" />
+            <circle cx="80%" cy="80%" r="300" fill="#ea580c" filter="blur(100px)" />
+          </svg>
+        </div>
+        <div className="flex flex-col items-center gap-6 z-10">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-orange-500 rounded-3xl flex items-center justify-center text-white text-4xl font-black shadow-2xl animate-pulse transform -rotate-6">
+            H
+          </div>
+          <div className="flex flex-col items-center">
+            <h2 className="text-white text-xl font-bold tracking-tight mb-2">HomeRoom Cloud</h2>
+            <div className="flex items-center gap-2">
+              <Loader2 className="animate-spin text-blue-400" size={16} />
+              <p className="text-slate-400 text-sm font-medium">Securing session...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="w-screen h-screen bg-[#0f172a] relative overflow-hidden">
+        <div className="absolute inset-0">
+          <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+            <rect width="100%" height="100%" fill="#0f172a" />
+            <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="#ea580c" opacity="0.1" />
+            <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="#3b82f6" opacity="0.1" />
+          </svg>
+        </div>
+        <LoginModal isOpen={true} onClose={() => { }} forced={true} />
+      </div>
+    );
+  }
 
   return (
     <div className="w-screen h-screen overflow-hidden relative" style={{
