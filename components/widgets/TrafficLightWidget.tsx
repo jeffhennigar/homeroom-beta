@@ -131,7 +131,8 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
                 <div
                     key={color}
                     onClick={() => !isListening && updateData(widget.id, { activeLight: activeLight === color ? null : color })}
-                    className={`w-20 h-20 rounded-full transition-all duration-200 
+                    style={{ width: (widget.data.fontSize || 36) * 4, height: (widget.data.fontSize || 36) * 4 }}
+                    className={`rounded-full transition-all duration-200 
             ${activeLight === color ? (
                             color === 'red' ? 'bg-red-500 shadow-[0_0_30px_rgba(239,68,68,0.8)] scale-105' :
                                 color === 'yellow' ? 'bg-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.8)] scale-105' :

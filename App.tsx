@@ -42,7 +42,30 @@ const App: React.FC = () => {
       const stored = localStorage.getItem('homeroom_slides');
       if (stored) return JSON.parse(stored);
     } catch (e) { console.error('Error loading slides:', e); }
-    return [[]];
+
+    // Default widgets for new users
+    const clockSize = WIDGET_SIZES['CLOCK'];
+    const calendarSize = WIDGET_SIZES['CALENDAR'];
+    return [[
+      {
+        id: 'default-clock',
+        type: 'CLOCK',
+        position: { x: 20, y: 20 },
+        size: clockSize,
+        zIndex: 10,
+        data: { fontSize: 16, style: 'standard' },
+        isMinimized: false
+      },
+      {
+        id: 'default-calendar',
+        type: 'CALENDAR',
+        position: { x: 20, y: 20 + clockSize.height + 20 },
+        size: calendarSize,
+        zIndex: 11,
+        data: { fontSize: 16 },
+        isMinimized: false
+      }
+    ]];
   });
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -155,7 +178,7 @@ const App: React.FC = () => {
         setAllRosters([newRoster]);
         setActiveRosterId('default');
         setRoster(r);
-      } else if (!user) {
+      } else if (!user && !authLoading && hasCheckedCloud) {
         // Only show onboarding if we are sure there is no data locally or in cloud
         setShowOnboarding(true);
       }
@@ -401,9 +424,14 @@ const App: React.FC = () => {
     };
 
     let data: WidgetData = { fontSize: 36 };
+    if (type === 'TIMER' || type === 'VOTE') data.fontSize = 20; // 8 clicks smaller
+    if (type === 'TRAFFIC' || type === 'DICE') data.fontSize = 16; // 10 clicks smaller
     if (type === 'TIMER') data = { ...data, durationMinutes: 2, timeLeft: 120, isRunning: false };
     if (type === 'RANDOMIZER') data = { ...data, currentName: null, isAnimating: false };
-    if (type === 'GROUP_MAKER') data = { ...data, groupCount: 4, groups: [] };
+    if (type === 'GROUP_MAKER') {
+      data = { ...data, groupCount: 4, groups: [] };
+      position.y += 40; // 40 pixels lower
+    }
     if (type === 'SEAT_PICKER') {
       const existingSeatPicker = (slides[currentSlideIndex] || []).find(w => w.type === 'SEAT_PICKER');
       if (existingSeatPicker) {
@@ -427,7 +455,7 @@ const App: React.FC = () => {
     if (type === 'CLOCK') data = { ...data, style: 'standard' };
     if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] };
     if (type === 'OVERLAY_TEXT') data = { ...data, content: '' };
-    if (type === 'WEBCAM') data = { ...data, isMirrored: true, isActive: true };
+    if (type === 'WEBCAM') data = { ...data, isMirrored: false, isActive: true };
     if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false };
     if (type === 'YOUTUBE') data = { ...data, youtubeUrl: '' };
     if (type === 'TRAFFIC') data = { ...data, activeLight: null, isListening: false, sensitivity: 50, threshold: 80, showSettings: false };
@@ -584,7 +612,7 @@ const App: React.FC = () => {
       case 'QR': return <QRCodeWidget {...props} />;
       case 'AI_CHAT': return <AiChatWidget {...props} />;
       case 'TRANSLATOR': return <TranslatorWidget {...props} />;
-      case 'CLOCK': return <ClockWidget {...props} extraProps={{ clockStyle, isGlassy: 'clear', showDate: true, textColor: currentBg.textColor }} />;
+      case 'CLOCK': return <ClockWidget {...props} extraProps={{ clockStyle, isGlassy: true, showDate: true, textColor: currentBg.textColor }} />;
       default: return null;
     }
   };
@@ -655,7 +683,7 @@ const App: React.FC = () => {
       />
 
       {/* Top Bar */}
-      <div className={`absolute top-10 left-12 z-10 select-none transition-colors duration-300 ${currentBg.textColor || 'text-slate-800'}`}>
+      <div className={`absolute top-0 left-0 z-10 select-none transition-colors duration-300 p-8 ${currentBg.textColor || 'text-slate-800'}`}>
         <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowSettingsModal(true)}>
           <div className="flex items-center gap-1.5 mb-1 opacity-60">
             <div className={`px-1.5 py-0.5 rounded text-[10px] font-black tracking-tighter shadow-md ${currentBg.textColor === 'text-white' ? 'bg-white text-slate-900' : 'bg-slate-800 text-white'}`}>HR</div>

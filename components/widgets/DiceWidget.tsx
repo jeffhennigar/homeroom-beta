@@ -22,7 +22,8 @@ const DiceWidget = ({ widget, updateData }) => {
     };
 
     const renderFace = (num) => {
-        const size = diceCount === 1 ? 64 : 48;
+        const baseSize = (widget.data.fontSize || 36) * 1.5;
+        const size = diceCount === 1 ? baseSize * 2 : baseSize * 1.5;
         switch (num) {
             case 1: return <Dice1 size={size} className="text-indigo-600" />;
             case 2: return <Dice2 size={size} className="text-indigo-600" />;

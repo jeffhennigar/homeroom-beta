@@ -40,7 +40,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData }) =
     const [viewMode, setViewMode] = useState<'calendar' | 'big'>('calendar');
 
     return (
-        <div className="flex flex-col h-full bg-white relative p-4 group">
+        <div className={`flex flex-col h-full relative p-4 group ${widget.data.isGlassy ? 'bg-white/10 backdrop-blur-md rounded-2xl border border-white/20' : 'bg-white'}`}>
             {/* Header */}
             <div className={`flex justify-between items-center ${viewMode === 'calendar' ? 'mb-2' : 'mb-0'} shrink-0`}>
                 <div className="flex items-center">
@@ -51,7 +51,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData }) =
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <div className="font-bold text-slate-800 text-[1.1em] mx-1 whitespace-nowrap">
+                    <div className={`font-bold text-[1.1em] mx-1 whitespace-nowrap ${widget.data.isGlassy ? 'text-white' : 'text-slate-800'}`}>
                         {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                     </div>
                     <button

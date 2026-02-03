@@ -37,20 +37,20 @@ export const WIDGET_SIZES: Record<string, Size> = {
   RANDOMIZER: { width: 250, height: 250 },
   GROUP_MAKER: { width: 880, height: 460 },
   SEAT_PICKER: { width: 900, height: 390 },
-  TEXT: { width: 600, height: 400 },
-  WEBCAM: { width: 320, height: 240 },
-  DICE: { width: 300, height: 300 },
+  TEXT: { width: 300, height: 300 },
+  WEBCAM: { width: 640, height: 480 },
+  DICE: { width: 250, height: 250 },
   YOUTUBE: { width: 480, height: 360 },
-  TRAFFIC: { width: 220, height: 360 },
+  TRAFFIC: { width: 180, height: 320 },
   CALENDAR: { width: 300, height: 320 },
   SCHEDULE: { width: 380, height: 500 },
   OVERLAY_TEXT: { width: 500, height: 120 },
   VOTE: { width: 400, height: 350 },
-  WHITEBOARD: { width: 600, height: 450 },
+  WHITEBOARD: { width: 1200, height: 900 },
   QR: { width: 250, height: 280 },
   AI_CHAT: { width: 400, height: 500 },
   TRANSLATOR: { width: 350, height: 400 },
-  CLOCK: { width: 500, height: 220 }
+  CLOCK: { width: 400, height: 220 }
 };
 
 export const SCHEDULE_EMOJIS = ["📚", "✏️", "🎨", "🤸", "🍎", "🚌", "📝", "💻", "🔬", "🌈", "🎵", "⚽", "📖", "🧠", "🗣️"];

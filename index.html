@@ -404,17 +404,17 @@
     const WIDGET_SIZES = {
 
       TIMER: { width: 280, height: 340 },
-      CLOCK: { width: 500, height: 220 },
+      CLOCK: { width: 400, height: 220 },
       RANDOMIZER: { width: 250, height: 250 },
       GROUP_MAKER: { width: 900, height: 550 },
       SEAT_PICKER: { width: 900, height: 530 },
-      TEXT: { width: 600, height: 400 },
+      TEXT: { width: 300, height: 300 },
       WEBCAM: { width: 320, height: 240 },
       DICE: { width: 300, height: 320 },
       TRAFFIC: { width: 220, height: 360 },
       QR: { width: 250, height: 280 },
       VOTE: { width: 400, height: 350 },
-      DRAWING: { width: 600, height: 450 },
+      DRAWING: { width: 1200, height: 900 },
 
       SCHEDULE: { width: 380, height: 500 },
       YOUTUBE: { width: 480, height: 360 },
@@ -3841,8 +3841,8 @@
       );
     };
 
-    const AuthModal = () => {
-      const [isOpen, setIsOpen] = useState(false);
+    const AuthModal = ({ forced = false }) => {
+      const [isOpen, setIsOpen] = useState(forced);
       const [email, setEmail] = useState('');
       const [password, setPassword] = useState('');
       const [mode, setMode] = useState('login'); // 'login' or 'signup'
@@ -3880,7 +3880,7 @@
         setError(null);
         try {
           // 'redirectTo' tells Supabase where to send the user after Google approves.
-          // If this URL is not in your Supabase "Redirect URLs" whitelist, it will fallback to your Site URL (homeroom.mrhennigar.com).
+          // If this URL is not in your Supabase "Redirect URLs" whitelist, it will fallback to your Site URL (pro.ourhomeroom.app).
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -3898,7 +3898,7 @@
         }
       };
 
-      if (!isOpen) return null;
+      if (!isOpen && !forced) return null;
 
       return (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
@@ -3908,7 +3908,7 @@
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12" />
               <h2 className="text-3xl font-bold mb-2">HomeRoom Cloud</h2>
               <p className="text-blue-100 text-sm opacity-90">Sign in to sync your class across all devices.</p>
-              <button onClick={() => setIsOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>
+              {!forced && <button onClick={() => setIsOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>}
             </div>
             <div className="p-8 bg-white">
               {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
@@ -4944,10 +4944,10 @@
               {activeTab === 'about' && (
                 <div className="p-6">
                   <div className="flex flex-col items-center mb-6">
-                    <img src="https://raw.githubusercontent.com/jeffhennigar/homeroom/main/effortless_edtech_logo.png" alt="Effortless EdTech" className="w-24 h-24 rounded-full bg-white p-1 shadow-lg mb-3 object-contain" />
+                    <img src="./public/eduloop-logo.png" alt="EduLoop" className="w-24 h-24 rounded-full bg-white p-1 shadow-lg mb-3 object-contain" />
                     <h2 className="text-lg font-bold text-gray-800">HomeRoom</h2>
                     <div className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full mb-2 tracking-widest uppercase">Version 1.0</div>
-                    <p className="text-gray-500 text-sm text-center">A classroom management tool by <span className="font-semibold text-teal-600">Effortless EdTech</span></p>
+                    <p className="text-gray-500 text-sm text-center">A classroom management tool by <span className="font-semibold text-teal-600">EduLoop</span></p>
                   </div>
                   <div className="space-y-2">
                     <a href="mailto:jeffhennigar@gmail.com" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-blue-50 rounded-xl transition-colors group">
@@ -5894,8 +5894,21 @@
             if (d.isGridEnabled !== undefined) { setIsGridEnabled(d.isGridEnabled); localStorage.setItem('homeroom_grid_enabled', d.isGridEnabled); }
             if (d.currentSlideIndex !== undefined) { setCurrentSlideIndex(d.currentSlideIndex); }
 
+            if (d.currentSlideIndex !== undefined) { setCurrentSlideIndex(d.currentSlideIndex); }
+
+            // FORCE REFRESH ROSTER VIEW
+            if (d.allRosters && d.activeRosterId) {
+              const active = d.allRosters.find(r => r.id === d.activeRosterId);
+              if (active) {
+                setRoster(active.roster || []);
+                // If the export included slides, we've already set them via setSlides above.
+                // But in some formats, slides might be inside the roster object.
+                if (active.slides) setSlides(active.slides);
+              }
+            }
+
             alert("Import successful!");
-          } catch (err) { alert("Import failed."); }
+          } catch (err) { console.error(err); alert("Import failed."); }
         };
         reader.readAsText(file);
       };
@@ -5923,7 +5936,7 @@
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 100; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY }; let data = { fontSize: 36 }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
+        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 100; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY }; let data = { fontSize: type === 'RANDOMIZER' ? 20 : 36 }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
         if (type === 'SEAT_PICKER') {
           const existing = (slides[currentSlideIndex] || []).find(w => w.type === 'SEAT_PICKER');
           if (existing) {
@@ -6186,6 +6199,29 @@
         }
       };
 
+      if (authLoading) {
+        return (
+          <div className="w-screen h-screen flex items-center justify-center bg-slate-50">
+            <div className="flex flex-col items-center gap-4">
+              <RefreshCw className="animate-spin text-blue-500" size={40} />
+              <div className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-[10px]">Loading HomeRoom...</div>
+            </div>
+          </div>
+        );
+      }
+
+      if (!user) {
+        return (
+          <div className="w-screen h-screen bg-slate-100 flex items-center justify-center overflow-hidden">
+            {/* Simple background for login */}
+            <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
+              <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="loginGradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} /></linearGradient><linearGradient id="loginGradBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} /></linearGradient></defs><rect width="100%" height="100%" fill="#dbeafe" /><path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#loginGradOrange)" opacity="0.9" /><path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" opacity="0.5" /><path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#loginGradBlue)" opacity="0.9" /><path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" opacity="0.5" /></svg>
+            </div>
+            <AuthModal forced={true} />
+          </div>
+        );
+      }
+
       return (
         <div className="w-screen h-screen overflow-hidden relative" style={{
           backgroundColor: '#dbeafe', // fallback
@@ -6198,7 +6234,7 @@
           <AuthModal />
           {showSettingsModal && <SettingsModal
             user={user}
-            onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://homeroom.mrhennigar.com/'; }}
+            onSignOut={async () => { await supabase.auth.signOut(); window.location.reload(); }}
             isSyncing={isSyncing}
             lastSyncError={lastSyncError}
             roster={roster}
