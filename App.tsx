@@ -659,7 +659,7 @@ const App: React.FC = () => {
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         user={user}
-        onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://homeroom.mrhennigar.com/'; }}
+        onSignOut={async () => { await supabase.auth.signOut(); window.location.reload(); }}
         onSignIn={() => { setShowSettingsModal(false); setShowLoginModal(true); }}
         isSyncing={isSyncing}
         roster={roster}

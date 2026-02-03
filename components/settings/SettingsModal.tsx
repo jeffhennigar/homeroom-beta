@@ -151,7 +151,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'homeroom_backup.json';
+        a.download = 'homeroompro_backup.json';
         a.click();
     };
 
@@ -563,7 +563,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                         <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-3xl mx-auto shadow-xl flex items-center justify-center text-white font-black text-4xl mb-4 transform -rotate-3">H</div>
                         <h2 className="text-2xl font-black text-slate-800">HomeRoom</h2>
                         <p className="text-slate-500 max-w-md mx-auto">
-                            The ultimate classroom dashboard for modern teachers. Built with ❤️ for educators.
+                            The ultimate classroom dashboard for modern teachers. A tool by <span className="font-bold text-teal-600">EduLoop</span>.
                         </p>
                         <div className="flex justify-center gap-4 text-sm font-medium text-slate-400">
                             <span>Version 2.1.0</span>
@@ -618,7 +618,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                         ))}
                     </div>
                     <div className="p-4 text-xs text-center text-slate-300 font-medium">
-                        HomeRoom 2024
+                        HomeRoom 2026 by EduLoop
                     </div>
                 </div>
 
