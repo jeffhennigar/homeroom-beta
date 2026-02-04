@@ -423,9 +423,11 @@ const App: React.FC = () => {
       y: (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20)
     };
 
-    let data: WidgetData = { fontSize: 36 };
-    if (type === 'TIMER' || type === 'VOTE') data.fontSize = 20; // 8 clicks smaller
-    if (type === 'TRAFFIC' || type === 'DICE') data.fontSize = 16; // 10 clicks smaller
+    let fontSize = 36;
+    if (type === 'RANDOMIZER' || type === 'TIMER' || type === 'VOTE' || type === 'GROUP_MAKER' || type === 'SEAT_PICKER') fontSize = 20; // Reduced by ~8 clicks (36 -> 20)
+    if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16; // Reduced by ~10 clicks (36 -> 16)
+
+    let data: WidgetData = { fontSize };
     if (type === 'TIMER') data = { ...data, durationMinutes: 2, timeLeft: 120, isRunning: false };
     if (type === 'RANDOMIZER') data = { ...data, currentName: null, isAnimating: false };
     if (type === 'GROUP_MAKER') {

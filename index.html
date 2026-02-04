@@ -812,7 +812,7 @@
           });
           // Create new desks for remaining
           for (var i = 0; i < unseated.length; i++) {
-            currentDesks.push({ id: Date.now() + Math.random(), x: 50 + (i % 5) * 110, y: 50 + Math.floor(i / 5) * 80 + 100, student: unseated[i], color: "blue", type: "student", rotation: 0 });
+            currentDesks.push({ id: (Date.now() + Math.random()).toString(), x: 50 + (i % 5) * 110, y: 50 + Math.floor(i / 5) * 80 + 100, student: unseated[i], color: "blue", type: "student", rotation: 0 });
           }
         }
         if (needsUpdate) updateData(widget.id, { desks: currentDesks });
@@ -1028,18 +1028,20 @@
         e.preventDefault();
         e.stopPropagation();
         const sourceDeskId = e.dataTransfer.getData('sourceDeskId');
-        if (!sourceDeskId || sourceDeskId === targetDeskId) return;
+        // Loose comparison or toString() to handle potential Type mismatches (Number vs String)
+        if (!sourceDeskId || sourceDeskId.toString() === targetDeskId.toString()) return;
 
         const newDesks = [...desks];
-        const sourceIndex = newDesks.findIndex(d => d.id === sourceDeskId);
-        const targetIndex = newDesks.findIndex(d => d.id === targetDeskId);
+        const sourceIndex = newDesks.findIndex(d => d.id.toString() === sourceDeskId.toString());
+        const targetIndex = newDesks.findIndex(d => d.id.toString() === targetDeskId.toString());
 
         if (sourceIndex === -1 || targetIndex === -1) return;
 
-        // Swap students
+        // Swap students logic
         const sourceStudent = newDesks[sourceIndex].student;
         const targetStudent = newDesks[targetIndex].student;
 
+        // Apply swap
         newDesks[sourceIndex] = { ...newDesks[sourceIndex], student: targetStudent };
         newDesks[targetIndex] = { ...newDesks[targetIndex], student: sourceStudent };
 
@@ -1624,7 +1626,7 @@
                   color === 'red' ? 'bg-red-500 shadow-[0_0_30px_rgba(239,68,68,0.8)] scale-105' :
                     color === 'yellow' ? 'bg-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.8)] scale-105' :
                       'bg-green-500 shadow-[0_0_30px_rgba(34,197,94,0.8)] scale-105'
-                ) : 'bg-gray-100 scale-100'}
+                ) : 'bg-slate-200 scale-100'}
                 ${!isListening ? 'cursor-pointer hover:opacity-80' : ''}
               `}
             />
@@ -2799,7 +2801,7 @@
       }
 
       return (
-        <div className="flex flex-col h-full bg-slate-50 relative p-4">
+        <div className="flex flex-col h-full bg-slate-100 relative p-4">
           <div className="flex flex-col gap-2 flex-1 min-h-0">
             <div className="flex justify-between items-center mb-1 shrink-0">
               <div className="bg-white border border-gray-200 px-2 py-0.5 rounded-md shadow-sm">
@@ -2817,7 +2819,7 @@
                   key={i}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, i)}
-                  className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 min-h-[80px] flex flex-col transition-colors hover:bg-blue-50/30 group"
+                  className="bg-white p-2 rounded-xl shadow-sm border border-slate-300 min-h-[80px] flex flex-col transition-colors hover:bg-blue-50/30 group"
                 >
                   <div className="flex justify-between items-center mb-1">
                     <div className="font-bold text-[10px] uppercase text-gray-400 tracking-wider">Group {i + 1}</div>
@@ -2975,6 +2977,8 @@
       const [history, setHistory] = useState([]);
       const [historyIndex, setHistoryIndex] = useState(-1);
       const resizeTimeout = useRef(null);
+
+      // Initialize canvas
 
       // Initialize canvas
       useEffect(() => {
@@ -5952,7 +5956,13 @@
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 100; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY }; let data = { fontSize: type === 'RANDOMIZER' ? 20 : 36 }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
+        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 100; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY };
+        let fontSize = 36;
+        if (type === 'RANDOMIZER') fontSize = 20;
+        if (type === 'GROUP_MAKER' || type === 'SEAT_PICKER') fontSize = 20; // Reduced by ~8 clicks (36 -> 20)
+        if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16; // Reduced by ~10 clicks (36 -> 16)
+
+        let data = { fontSize }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
         if (type === 'SEAT_PICKER') {
           const existing = (slides[currentSlideIndex] || []).find(w => w.type === 'SEAT_PICKER');
           if (existing) {
@@ -6217,10 +6227,26 @@
 
       if (authLoading) {
         return (
-          <div className="w-screen h-screen flex items-center justify-center bg-slate-50">
-            <div className="flex flex-col items-center gap-4">
-              <RefreshCw className="animate-spin text-blue-500" size={40} />
-              <div className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-[10px]">Loading HomeRoom...</div>
+          <div className="w-screen h-screen flex items-center justify-center bg-[#0f172a] relative overflow-hidden">
+            {/* Decorative Background for Loading */}
+            <div className="absolute inset-0 opacity-20">
+              <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+                <rect width="100%" height="100%" fill="#0f172a" />
+                <circle cx="20%" cy="20%" r="300" fill="#3b82f6" filter="blur(100px)" />
+                <circle cx="80%" cy="80%" r="300" fill="#ea580c" filter="blur(100px)" />
+              </svg>
+            </div>
+            <div className="flex flex-col items-center gap-6 z-10">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-orange-500 rounded-3xl flex items-center justify-center text-white text-4xl font-black shadow-2xl animate-pulse transform -rotate-6">
+                H
+              </div>
+              <div className="flex flex-col items-center">
+                <h2 className="text-white text-xl font-bold tracking-tight mb-2">HomeRoom Cloud</h2>
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="animate-spin text-blue-400" size={16} />
+                  <p className="text-slate-400 text-sm font-medium">Securing session...</p>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -6228,10 +6254,13 @@
 
       if (!user) {
         return (
-          <div className="w-screen h-screen bg-slate-100 flex items-center justify-center overflow-hidden">
-            {/* Simple background for login */}
-            <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
-              <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="loginGradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} /></linearGradient><linearGradient id="loginGradBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} /></linearGradient></defs><rect width="100%" height="100%" fill="#dbeafe" /><path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#loginGradOrange)" opacity="0.9" /><path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" opacity="0.5" /><path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#loginGradBlue)" opacity="0.9" /><path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" opacity="0.5" /></svg>
+          <div className="w-screen h-screen bg-[#0f172a] relative overflow-hidden">
+            <div className="absolute inset-0">
+              <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+                <rect width="100%" height="100%" fill="#0f172a" />
+                <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="#ea580c" opacity="0.1" />
+                <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="#3b82f6" opacity="0.1" />
+              </svg>
             </div>
             <AuthModal forced={true} />
           </div>

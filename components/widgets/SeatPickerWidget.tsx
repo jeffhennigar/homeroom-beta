@@ -227,6 +227,42 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster }) => {
         updateData(widget.id, { desks: newDesks });
     };
 
+    // Assuming a handleDrop function exists or needs to be created for drag-and-drop student assignment
+    // This snippet is placed where a handleDrop function might process a student being dropped onto a desk.
+    // Note: The original document does not contain a `handleDrop` function, `sourceDesk`, `updatedDesks`, `deskIndex`, or `studentId` variables.
+    // This insertion is based on the provided instruction's context, assuming these variables would be defined within such a function.
+    const handleDrop = (studentId, targetDeskId, sourceDeskId) => {
+        let updatedDesks = [...desks];
+        const sourceDesk = sourceDeskId ? updatedDesks.find(d => d.id === sourceDeskId) : null;
+        const deskIndex = updatedDesks.findIndex(d => d.id === targetDeskId);
+
+        if (deskIndex === -1) return; // Target desk not found
+
+        // Move student to new desk
+        if (sourceDesk) {
+            // If moving from another desk, clear source
+            updatedDesks = updatedDesks.map(d => d.id === sourceDesk.id ? { ...d, student: null } : d);
+        }
+
+        // Check if target desk is occupied (SWAP LOGIC)
+        const targetDeskObj = updatedDesks[deskIndex];
+        if (targetDeskObj.student) {
+            const studentToSwap = targetDeskObj.student;
+            // If we came from a desk, put the swapped student there
+            if (sourceDesk) {
+                updatedDesks = updatedDesks.map(d => d.id === sourceDesk.id ? { ...d, student: studentToSwap } : d);
+            } else {
+                // If dragging from sidebar, the swapped student goes back to sidebar (effectively removed from desk)
+                // No action needed here as they are just overwritten on the desk, effectively "kicked out"
+            }
+        }
+
+        // Place dragged student on target
+        updatedDesks[deskIndex] = { ...updatedDesks[deskIndex], student: studentId };
+
+        updateData(widget.id, { desks: updatedDesks });
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
             <div className="h-12 bg-white border-b flex items-center justify-between px-4 z-10 shrink-0">
