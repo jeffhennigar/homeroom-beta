@@ -856,7 +856,10 @@
         // Optional: keeping them might be safer for history, but for now let's clean up displayed names
         // The render logic handles this by checking isAbsent, but the desk.student property is key.
 
-        if (needsUpdate || !assignments[activeClassId]) {
+        // Check if visual desks match the calculated assignments (crucial for class switching)
+        const visualMismatch = JSON.stringify(desks.map(d => d.student)) !== JSON.stringify(currentDesks.map(d => d.student));
+
+        if (needsUpdate || !assignments[activeClassId] || visualMismatch) {
           updateData(widget.id, {
             desks: currentDesks,
             assignments: { ...assignments, [activeClassId]: newAssignments },
