@@ -803,8 +803,20 @@
       useEffect(() => {
         const allStudentNames = activeRoster.map(s => s.name);
 
-        // Get assignments for this class or create if missing (first load migration)
-        const currentAssignments = assignments[activeClassId] || {};
+        // Initial Migration: If no assignments exist for this class, but we have desks with students,
+        // assume those students belong to this class to prevent wiping/duplicating.
+        let initialAssignments = assignments[activeClassId];
+        if (!initialAssignments && desks.some(d => d.student)) {
+          initialAssignments = {};
+          desks.forEach(d => {
+            // Only carry over students that are actually in this roster
+            if (d.student && allStudentNames.includes(d.student)) {
+              initialAssignments[d.id] = d.student;
+            }
+          });
+        }
+
+        const currentAssignments = initialAssignments || {};
 
         // Map assignments to desks
         let currentDesks = desks.map(d => ({
@@ -1083,7 +1095,17 @@
           return { ...d, student: null };
         });
 
-        updateData(widget.id, { desks: newDesks });
+        // Update assignments map to match the new desk layout
+        const newAssignments = { ...assignments };
+        if (!newAssignments[activeClassId]) newAssignments[activeClassId] = {};
+
+        newDesks.forEach(d => {
+          if (d.type === 'student') {
+            newAssignments[activeClassId][d.id] = d.student;
+          }
+        });
+
+        updateData(widget.id, { desks: newDesks, assignments: newAssignments });
       };
 
       // Student Swap Logic (DnD)
