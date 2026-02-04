@@ -1062,6 +1062,7 @@
           return;
         }
 
+        const studentDesks = desks.filter(d => d.type === 'student');
         if (studentDesks.length === 0) return;
 
         // Find which desks have "out" students AND belong to current class
@@ -4150,12 +4151,27 @@
 
       const handleFile = useCallback((file) => {
         if (!file.type.startsWith('image/')) return;
+
+        // Check file size (5MB limit)
+        const MAX_SIZE_MB = 5;
+        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+          alert(`File is too large. Maximum size is ${MAX_SIZE_MB}MB.`);
+          return;
+        }
+
+        // Check limit (12 custom backgrounds max)
+        const MAX_CUSTOM_BGS = 12;
+        if (myBackgrounds.length >= MAX_CUSTOM_BGS) {
+          alert(`You can only save up to ${MAX_CUSTOM_BGS} custom backgrounds. Please delete one to add more.`);
+          return;
+        }
+
         resizeImage(file, (dataUrl) => {
           const newBg = { id: 'custom-' + Date.now(), name: file.name, type: 'image', src: dataUrl, textColor: 'text-white' };
           onAddCustom(newBg);
           onSelect(newBg, applyToAll ? 'all' : 'single');
         });
-      }, [applyToAll, onSelect, onAddCustom]);
+      }, [applyToAll, onSelect, onAddCustom, myBackgrounds]);
 
       useEffect(() => {
         const handleWindowPaste = (e) => {
