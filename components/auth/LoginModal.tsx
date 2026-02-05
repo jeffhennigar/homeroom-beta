@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, Loader2, LogIn, UserPlus, AlertCircle } from 'lucide-react';
+import { X, Mail, Lock, Loader2, LogIn, UserPlus, AlertCircle, Check } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 
 interface LoginModalProps {
@@ -15,6 +15,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, forced = false
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    const [agreeMarketing, setAgreeMarketing] = useState(true);
+    const [agreeTerms, setAgreeTerms] = useState(false);
+
+    React.useEffect(() => {
+        if (!isSignUp) setAgreeTerms(true);
+        else setAgreeTerms(false);
+    }, [isSignUp]);
 
     if (!isOpen) return null;
 
@@ -29,9 +36,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, forced = false
                 if (!email.includes('@')) {
                     throw new Error('Please enter a valid email address. HomeRoom uses emails for accounts, not usernames.');
                 }
+                if (!agreeTerms) throw new Error('Please agree to the Terms of Service and Privacy Policy to create an account.');
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
+                    options: {
+                        data: {
+                            marketing_consent: agreeMarketing
+                        }
+                    }
                 });
                 if (error) throw error;
                 setMessage('Account created! Please check your email inbox to confirm your account before signing in.');
@@ -138,9 +151,28 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, forced = false
                             </div>
                         )}
 
+                        {isSignUp && (
+                            <div className="space-y-4 py-1">
+                                <div className="flex items-start gap-3 cursor-pointer group" onClick={() => setAgreeMarketing(!agreeMarketing)}>
+                                    <div className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all ${agreeMarketing ? 'bg-blue-600 border-blue-600' : 'bg-slate-100 border-slate-200 group-hover:border-blue-400'}`}>
+                                        {agreeMarketing && <Check size={14} className="text-white" strokeWidth={3} />}
+                                    </div>
+                                    <span className="text-xs text-slate-600 font-bold leading-tight select-none">Send me classroom tips, updates, and news via email.</span>
+                                </div>
+                                <div className="flex items-start gap-3 cursor-pointer group" onClick={() => setAgreeTerms(!agreeTerms)}>
+                                    <div className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all ${agreeTerms ? 'bg-blue-600 border-blue-600' : 'bg-slate-100 border-slate-200 group-hover:border-blue-400'}`}>
+                                        {agreeTerms && <Check size={14} className="text-white" strokeWidth={3} />}
+                                    </div>
+                                    <span className="text-xs text-slate-600 font-bold leading-tight select-none">
+                                        I agree to the <a href="https://ourhomeroom.app/terms" target="_blank" className="text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>Terms of Service</a> and <a href="https://ourhomeroom.app/privacy" target="_blank" className="text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>Privacy Policy</a>.
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || (isSignUp && !agreeTerms)}
                             className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 flex items-center justify-center gap-2 group"
                         >
                             {loading ? (

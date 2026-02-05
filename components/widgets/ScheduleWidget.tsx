@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Settings, Plus, X, Copy } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const SCHEDULE_EMOJIS = ['📚', '🎨', '🏃', '🎵', '💻', '🥪', '📝', '🔬', '🗣️', '🛑', '🚌', '🏠', '📅', '⭐', '🔔'];
+const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}'];
 
 // Helper to interact with App-level state/storage for schedule template
 const getScheduleTemplate = () => {
@@ -50,7 +50,7 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
 
     const saveScheduleData = (newItems) => { const template = getScheduleTemplate(); template[today] = newItems; saveScheduleTemplate(template); setScheduleData(newItems); };
     const updateItem = (index, field, value) => { const newItems = [...scheduleData]; newItems[index] = { ...newItems[index], [field]: value }; saveScheduleData(newItems); };
-    const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' }; const newItems = [...scheduleData, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveScheduleData(newItems); };
+    const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '\u{1F4DA}', title: 'New Activity', description: '' }; const newItems = [...scheduleData, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveScheduleData(newItems); };
     const removeItem = (index) => { const newItems = scheduleData.filter((_, i) => i !== index); saveScheduleData(newItems); };
 
     const handleDragStart = (index) => { setDragIndex(index); };
@@ -95,9 +95,17 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-gray-800 bg-transparent border-none outline-none truncate" style={{ fontSize: fontSize + 'px' }} placeholder="Activity name" />
-                                    <input type="text" value={item.description || ''} onChange={(e) => updateItem(index, 'description', e.target.value)} className="w-full text-xs text-gray-500 bg-transparent border-none outline-none truncate" placeholder="Description (optional)" />
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-gray-800 bg-transparent border-none outline-none truncate" style={{ fontSize: (fontSize - 1) + 'px' }} placeholder="Activity name" />
+                                    <textarea
+                                        value={item.description || ''}
+                                        onChange={(e) => updateItem(index, 'description', e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+                                        className="w-full text-xs text-gray-500 bg-transparent border-none outline-none resize-none placeholder-gray-300 font-medium overflow-hidden"
+                                        placeholder="Add details..."
+                                        rows={1}
+                                        onInput={(e: any) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                                    />
                                 </div>
                                 <button onClick={() => removeItem(index)} className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity self-center"><X size={14} /></button>
                             </div>

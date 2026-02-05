@@ -520,7 +520,19 @@ const App: React.FC = () => {
   }, [currentSlideIndex]);
 
   const nextSlide = () => {
-    if (currentSlideIndex === slides.length - 1) setSlides(prev => [...prev, []]);
+    if (currentSlideIndex === slides.length - 1) {
+      const clockSize = WIDGET_SIZES['CLOCK'];
+      const defaultClock: Widget = {
+        id: 'clock-' + Date.now(),
+        type: 'CLOCK',
+        position: { x: 20, y: 20 },
+        size: clockSize,
+        zIndex: 1,
+        data: { fontSize: 16, style: 'standard' },
+        isMinimized: false
+      };
+      setSlides(prev => [...prev, [defaultClock]]);
+    }
     setCurrentSlideIndex(prev => prev + 1);
     setSelectedId(null);
   };

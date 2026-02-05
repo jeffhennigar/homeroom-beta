@@ -144,7 +144,7 @@
       Settings, CheckSquare, Square, RefreshCw, GripVertical, Trash2,
       Wand2, CameraOff, FlipHorizontal, X, Bold, List, ChevronLeft, ChevronRight,
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
-      RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Grid,
+      RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
       Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, Bell, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity
     } from 'lucide-react';
@@ -3598,7 +3598,7 @@
 
 
 
-    const SCHEDULE_EMOJIS = ['📚', '🎨', '🏃', '🎵', '💻', '🥪', '📝', '🔬', '🗣️', '🛑', '🚌', '🏠', '📅', '⭐', '🔔'];
+    const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}'];
 
     const ScheduleWidget = ({ widget, updateData, onOpenSettings, selectedDate, setSelectedDate, scheduleTemplate, setScheduleTemplate, scheduleOverrides, setScheduleOverrides, scheduleSettings, setScheduleSettings }) => {
       const { fontSize = 14 } = widget.data;
@@ -3690,7 +3690,7 @@
       };
 
       const updateItem = (index, field, value) => { const newItems = [...items]; newItems[index] = { ...newItems[index], [field]: value }; saveItems(newItems); };
-      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
+      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '\u{1F4DA}', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
       const removeItem = (index) => { const newItems = items.filter((_, i) => i !== index); saveItems(newItems); };
 
       const handleDragStart = (index) => { setDragIndex(index); };
@@ -3823,8 +3823,16 @@
                       {emojiPickerIndex === index && <div className="absolute left-0 top-full mt-2 z-[100] bg-white rounded-xl shadow-2xl border border-slate-100 p-2 w-56 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100" onClick={(e) => e.stopPropagation()}><div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-2xl p-2 rounded-lg hover:bg-indigo-50 transition-colors ${item.emoji === emoji ? 'bg-indigo-100' : ''}`}>{emoji}</button>))} </div></div>}
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-slate-700 bg-transparent border-none outline-none truncate placeholder-slate-300" style={{ fontSize: fontSize + 'px' }} placeholder="Activity Name" />
-                      <textarea value={item.description || ''} onChange={(e) => updateItem(index, 'description', e.target.value)} className="w-full text-xs text-slate-400 bg-transparent border-none outline-none resize-none placeholder-slate-200 font-medium overflow-hidden" placeholder="Add details..." rows={1} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
+                      <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-slate-700 bg-transparent border-none outline-none truncate placeholder-slate-300" style={{ fontSize: (fontSize - 1) + 'px' }} placeholder="Activity Name" />
+                      <textarea
+                        value={item.description || ''}
+                        onChange={(e) => updateItem(index, 'description', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+                        className="w-full text-xs text-slate-400 bg-transparent border-none outline-none resize-none placeholder-slate-200 font-medium overflow-hidden"
+                        placeholder="Add details..."
+                        rows={1}
+                        onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                      />
                     </div>
                     <button onClick={() => removeItem(index)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all self-center"><Trash2 size={16} /></button>
                   </div>
@@ -3908,6 +3916,7 @@
     // --- MISSING COMPONENTS (Restored) ---
     // (Onboarding now works with object roster)
     const OnboardingModal = ({ onComplete, onSaveRoster }) => {
+      const [storagePreference, setStoragePreference] = useState('local');
       const [text, setText] = useState(DEFAULT_NAMES.join('\n'));
       const handleSave = () => {
         const names = text.split('\n').map(n => n.trim()).filter(n => n);
@@ -3933,13 +3942,47 @@
                 className="w-full h-32 border-2 border-gray-200 rounded-xl p-4 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all custom-scrollbar resize-none font-sans"
                 placeholder="Paste names here..."
               />
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center justify-center gap-1 mx-auto"
-                >
-                  <Cloud size={14} /> Already have an account? Sign In to Sync
-                </button>
+              <div className="mt-4 space-y-4">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-slate-700">Data Storage Preference</span>
+                    <div className="flex bg-slate-200 p-1 rounded-lg gap-1 relative w-32">
+                      <div
+                        className="absolute bg-white shadow-sm rounded-md transition-all duration-300 ease-out z-0"
+                        style={{
+                          width: 'calc(50% - 4px)',
+                          height: 'calc(100% - 8px)',
+                          top: '4px',
+                          left: storagePreference === 'local' ? '4px' : 'calc(50%)'
+                        }}
+                      />
+                      <button
+                        onClick={() => setStoragePreference('local')}
+                        className={`text-[10px] font-bold px-2 py-1 rounded transition-all relative z-10 w-full ${storagePreference === 'local' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+                      >Local</button>
+                      <button
+                        onClick={() => setStoragePreference('cloud')}
+                        className={`text-[10px] font-bold px-2 py-1 rounded transition-all relative z-10 w-full ${storagePreference === 'cloud' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+                      >Cloud</button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                    {storagePreference === 'cloud'
+                      ? "Cloud storage automatically syncs your data across all devices. Requires a free account."
+                      : "Local storage keeps your data strictly on this browser. No account needed."}
+                    <br />
+                    <span className="font-semibold text-blue-600">This can be changed anytime in the Account tab.</span>
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center justify-center gap-1 mx-auto"
+                  >
+                    <Cloud size={14} /> Already have an account? Sign In to Sync
+                  </button>
+                </div>
               </div>
             </div>
             <div className="p-4 border-t bg-gray-50 flex justify-end">
@@ -3963,6 +4006,16 @@
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState(null);
       const [message, setMessage] = useState(null);
+      const [agreeMarketing, setAgreeMarketing] = useState(true); // Default to on for marketing
+      const [agreeTerms, setAgreeTerms] = useState(false);
+
+      useEffect(() => {
+        if (mode === 'login') {
+          setAgreeTerms(true); // Always true for login to allow submission
+        } else {
+          setAgreeTerms(false);
+        }
+      }, [mode]);
 
       useEffect(() => {
         const handleOpen = () => setIsOpen(true);
@@ -3983,7 +4036,16 @@
           if (mode === 'login') {
             res = await supabase.auth.signInWithPassword({ email, password });
           } else {
-            res = await supabase.auth.signUp({ email, password });
+            if (!agreeTerms) throw new Error('Please agree to the Terms of Service and Privacy Policy to create an account.');
+            res = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  marketing_consent: agreeMarketing
+                }
+              }
+            });
           }
           if (res.error) throw res.error;
 
@@ -4081,9 +4143,29 @@
                     placeholder="••••••••"
                   />
                 </div>
+
+                {mode === 'signup' && (
+                  <div className="space-y-4 py-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="flex items-start gap-3 cursor-pointer group" onClick={() => setAgreeMarketing(!agreeMarketing)}>
+                      <div className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all ${agreeMarketing ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200 group-hover:border-blue-400'}`}>
+                        {agreeMarketing && <Check size={14} className="text-white" strokeWidth={3} />}
+                      </div>
+                      <span className="text-xs text-slate-600 font-bold leading-tight select-none">Send me classroom tips, updates, and news via email.</span>
+                    </div>
+                    <div className="flex items-start gap-3 cursor-pointer group" onClick={() => setAgreeTerms(!agreeTerms)}>
+                      <div className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all ${agreeTerms ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200 group-hover:border-blue-400'}`}>
+                        {agreeTerms && <Check size={14} className="text-white" strokeWidth={3} />}
+                      </div>
+                      <span className="text-xs text-slate-600 font-bold leading-tight select-none">
+                        I agree to the <a href="https://ourhomeroom.app/terms" target="_blank" className="text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>Terms of Service</a> and <a href="https://ourhomeroom.app/privacy" target="_blank" className="text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>Privacy Policy</a>.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (mode === 'signup' && !agreeTerms)}
                   className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading ? (
@@ -4597,9 +4679,9 @@
 
       const tabs = [
         { id: 'appearance', label: 'Appearance', icon: <ImageIcon size={16} /> },
-        { id: 'roster', label: 'Rosters', icon: <User size={16} /> },
+        { id: 'roster', label: 'Rosters', icon: <Users size={16} /> },
         { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
-        { id: 'data', label: 'Data', icon: <Download size={16} /> },
+        { id: 'data', label: 'Account', icon: <User size={16} /> },
         { id: 'about', label: 'About', icon: <Info size={16} /> },
         { id: 'feedback', label: 'Feedback', icon: <Mail size={16} /> }
       ];
@@ -5111,68 +5193,99 @@
                 </div>
               )}
 
-              {/* DATA TAB */}
+              {/* ACCOUNT / DATA TAB */}
               {activeTab === 'data' && (
                 <div className="p-6">
-                  <div className={`mb-6 p-4 rounded-xl flex gap-3 border ${user ? 'bg-green-50 border-green-100' : 'bg-blue-50 border-blue-100'}`}>
-                    <div className={`shrink-0 ${user ? 'text-green-500' : 'text-blue-500'}`}>
-                      {user ? <Cloud size={20} /> : <Info size={20} />}
-                    </div>
-                    <div className={`text-sm ${user ? 'text-green-900' : 'text-blue-900'}`}>
-                      <p className="font-bold mb-1">
-                        {user ? 'Cloud Sync Active' : 'Cloud Sync Available'}
-                        {isSyncing && <span className="ml-2 text-xs font-normal animate-pulse text-green-600">(Syncing...)</span>}
-                      </p>
-                      <p className="opacity-80 leading-relaxed">
-                        {user
-                          ? `HomeRoom is automatically syncing your rosters and widgets to your account (${user.email}).`
-                          : "Sign in to sync your data across devices and never lose your rosters again!"}
-                        <span className="ml-1 text-[11px] opacity-70 italic">
-                          Note: Please check with your school's IT policy before sharing classroom data with third-party applications.
-                        </span>
-                      </p>
-                      {!user && (
+                  {user ? (
+                    <div className="mb-8 bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                          <User size={24} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Signed in as</div>
+                          <div className="text-lg font-bold text-slate-800">{user.email}</div>
+                        </div>
                         <button
-                          onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
-                          className="mt-4 px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md shadow-blue-200 active:scale-95"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                                redirectTo: window.location.origin,
+                              });
+                              if (error) throw error;
+                              alert('Password reset email sent! Please check your inbox.');
+                            } catch (e) {
+                              alert('Error: ' + e.message);
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 font-bold text-xs rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2"
                         >
-                          <Cloud size={14} /> Sign In to Sync
+                          <Lock size={14} /> Reset Password
                         </button>
-                      )}
+                      </div>
+
+                      <div className="h-px bg-slate-200/50 w-full mb-6" />
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">Cloud Sync</span>
+                          <span className="text-[11px] text-slate-500">Sync data automatically to the cloud</span>
+                        </div>
+                        <div
+                          className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${user ? 'bg-blue-500' : 'bg-gray-300'}`}
+                          title={user ? "Sync is active while signed in" : "Sign in to enable cloud sync"}
+                        >
+                          <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${user ? 'translate-x-5' : ''}`} />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mb-6 px-1">
-                    <p className="text-sm text-gray-500 opacity-80 leading-relaxed italic">
-                      For added privacy, you can choose to stay signed out and use the <strong>Export</strong> and <strong>Import</strong> tools below to manually save and restore your classroom data.
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    <button onClick={downloadData} className="w-full flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors group border border-green-200">
-                      <div className="p-3 bg-green-500 rounded-xl text-white"><Download size={20} /></div>
-                      <div className="text-left">
-                        <div className="font-bold text-gray-800">Export Data</div>
-                        <div className="text-xs text-gray-500">Download roster, widgets, and settings</div>
+                  ) : (
+                    <div className="mb-8 p-6 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
+                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm mb-4">
+                        <Cloud size={32} />
                       </div>
-                    </button>
-                    <button onClick={() => fileInputRef.current.click()} className="w-full flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors group border border-blue-200">
-                      <div className="p-3 bg-blue-500 rounded-xl text-white"><Upload size={20} /></div>
-                      <div className="text-left">
-                        <div className="font-bold text-gray-800">Import Data</div>
-                        <div className="text-xs text-gray-500">Restore from a backup file</div>
-                      </div>
-                    </button>
+                      <h3 className="text-xl font-bold text-blue-900 mb-2">Cloud Sync Available</h3>
+                      <p className="text-blue-700 text-sm mb-6 max-w-sm opacity-80">
+                        Sign in to sync your rosters and widgets across all your devices. Never lose your classroom data again.
+                      </p>
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
+                        className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95 flex items-center gap-2"
+                      >
+                        <Cloud size={20} /> Sign In to Sync
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="px-1 mb-6">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Manual Data Backup</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button onClick={downloadData} className="flex flex-col items-center gap-2 p-6 bg-green-50 hover:bg-green-100 rounded-2xl transition-all border border-green-100 group">
+                        <div className="p-3 bg-green-500 rounded-xl text-white shadow-lg group-hover:scale-110 transition-transform"><Download size={24} /></div>
+                        <div className="text-center">
+                          <div className="font-bold text-gray-800">Export</div>
+                          <div className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Save Backup</div>
+                        </div>
+                      </button>
+                      <button onClick={() => fileInputRef.current.click()} className="flex flex-col items-center gap-2 p-6 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all border border-blue-100 group">
+                        <div className="p-3 bg-blue-500 rounded-xl text-white shadow-lg group-hover:scale-110 transition-transform"><Upload size={24} /></div>
+                        <div className="text-center">
+                          <div className="font-bold text-gray-800">Import</div>
+                          <div className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Restore Data</div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Backup Settings */}
                   <div className="mt-6 border-t pt-6">
-                    <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Backup Reminders</h4>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Backup Reminders</h4>
                     <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        <div className="flex items-center gap-2">
-                          <div className={`p-2 rounded-lg ${backupEnabled ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}><Bell size={18} /></div>
+                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${backupEnabled ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}><Bell size={20} /></div>
                           <div>
-                            <div className="font-bold text-sm text-gray-800">Backup Reminders</div>
-                            <div className="text-[10px] text-gray-500">Show a prompt to backup your data</div>
+                            <div className="font-bold text-sm text-gray-800">Remind me to backup</div>
+                            <div className="text-[11px] text-slate-500">Show periodic prompts to export</div>
                           </div>
                         </div>
                         <button
@@ -5184,12 +5297,12 @@
                       </div>
 
                       {backupEnabled && (
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Clock size={18} /></div>
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2 duration-200">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Clock size={20} /></div>
                             <div>
-                              <div className="font-bold text-sm text-gray-800">Reminder Frequency</div>
-                              <div className="text-[10px] text-gray-500">How often to remind you</div>
+                              <div className="font-bold text-sm text-gray-800">Frequency</div>
+                              <div className="text-[11px] text-slate-500">Every few days</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -5199,9 +5312,9 @@
                               max="365"
                               value={backupInterval}
                               onChange={(e) => setBackupInterval(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-16 p-2 text-center font-bold border rounded-lg outline-none focus:border-indigo-500 border-gray-300"
+                              className="w-16 p-2 text-center font-bold border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:bg-white"
                             />
-                            <span className="text-sm font-bold text-gray-500">days</span>
+                            <span className="text-xs font-bold text-slate-500">days</span>
                           </div>
                         </div>
                       )}
@@ -6113,7 +6226,7 @@
       // Paste Listener
       useEffect(() => {
         const handlePaste = (e) => {
-          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
             return;
           }
           const items = e.clipboardData.items;
@@ -6175,7 +6288,23 @@
       };
       const toggleMinimize = useCallback((id) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, isMinimized: !w.isMinimized } : w)); }, [setWidgets]);
       const toggleSpotlight = useCallback((id) => { setSpotlightId(prev => prev === id ? null : id); }, []);
-      const nextSlide = () => { if (currentSlideIndex === slides.length - 1) { setSlides(prev => [...prev, []]); } setCurrentSlideIndex(prev => prev + 1); setSelectedId(null); };
+      const nextSlide = () => {
+        if (currentSlideIndex === slides.length - 1) {
+          const clockSize = WIDGET_SIZES['CLOCK'];
+          const defaultClock = {
+            id: 'clock-' + Date.now(),
+            type: 'CLOCK',
+            position: { x: 20, y: 20 },
+            size: clockSize,
+            zIndex: 1,
+            data: { style: 'standard', isGlassy: 'clear' },
+            isMinimized: false
+          };
+          setSlides(prev => [...prev, [defaultClock]]);
+        }
+        setCurrentSlideIndex(prev => prev + 1);
+        setSelectedId(null);
+      };
       const prevSlide = () => { if (currentSlideIndex > 0) { setCurrentSlideIndex(prev => prev - 1); setSelectedId(null); } };
       const deleteCurrentSlide = () => {
         if (slides.length <= 1) return;

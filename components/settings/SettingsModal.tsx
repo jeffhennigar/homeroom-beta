@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { User, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud, Terminal, ShieldCheck } from 'lucide-react';
+import { User, Users, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud, Terminal, ShieldCheck, Lock, Bell, Clock } from 'lucide-react';
 import AppearanceSettings from './AppearanceSettings';
 import TimePicker from '../TimePicker';
 import { SCHEDULE_EMOJIS } from '../../constants';
 
-import { dataService } from '../../services/dataService'; // Add Import
+import { dataService } from '../../services/dataService';
+import { supabase } from '../../services/supabaseClient';
 
 const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError }) => {
     if (!isOpen) return null;
@@ -33,10 +34,10 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
     const [testResult, setTestResult] = useState<string | null>(null);
 
     const tabs = [
-        { id: 'roster', label: 'Roster', icon: <User size={16} /> },
+        { id: 'roster', label: 'Roster', icon: <Users size={16} /> },
         { id: 'appearance', label: 'Appearance', icon: <ImageIcon size={16} /> },
         { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
-        { id: 'data', label: 'Data', icon: <Download size={16} /> },
+        { id: 'data', label: 'Account', icon: <User size={16} /> },
         { id: 'debug', label: 'Debug', icon: <Terminal size={16} /> },
         { id: 'about', label: 'About', icon: <Info size={16} /> },
         { id: 'feedback', label: 'Feedback', icon: <Mail size={16} /> }
@@ -414,100 +415,114 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                 );
             case 'data':
                 return (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {/* Cloud Sync Card */}
-                        <div className="bg-[#f5f7ff] border border-[#e0e7ff] rounded-[2rem] p-8 shadow-sm">
-                            <div className="flex gap-5 mb-6">
-                                <div className="shrink-0">
-                                    <div className="w-12 h-12 rounded-full bg-white border border-[#c7d2fe] flex items-center justify-center text-[#5c56d6] shadow-sm">
-                                        <Info size={28} />
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* Account Details Card */}
+                        {user ? (
+                            <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6">
+                                <div className="flex items-center gap-5 mb-6">
+                                    <div className="shrink-0">
+                                        <div className="w-14 h-14 rounded-full bg-white border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                                            <User size={28} />
+                                        </div>
                                     </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Signed in as</div>
+                                        <h3 className="text-xl font-bold text-slate-800 truncate">{user.email}</h3>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            if (!user?.email) return;
+                                            try {
+                                                const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                                                    redirectTo: window.location.origin,
+                                                });
+                                                if (error) throw error;
+                                                alert('Password reset email sent! Please check your inbox.');
+                                            } catch (e: any) {
+                                                alert('Error: ' + e.message);
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 active:scale-95"
+                                    >
+                                        <Lock size={14} /> Change Password
+                                    </button>
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-2xl font-bold text-[#2d3261] mb-2 tracking-tight">Cloud Sync Available</h3>
-                                    <p className="text-[#5b638f] leading-relaxed text-[15px] font-medium">
-                                        Sign in to securely sync your classroom data across all your devices. Your rosters, widgets, and settings will always be exactly where you left them.
-                                    </p>
+
+                                <div className="h-px bg-slate-200/50 w-full mb-6" />
+
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-slate-700">Cloud Sync Active</span>
+                                        <span className="text-xs text-slate-500">Your data is being backed up to the cloud</span>
+                                    </div>
+                                    <div
+                                        className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${user ? 'bg-[#5c56d6]' : 'bg-gray-300'}`}
+                                    >
+                                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${user ? 'translate-x-5' : ''}`} />
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="h-px bg-[#e0e7ff]/60 w-full mb-8" />
-
-                            <div className="flex flex-col gap-6">
-                                {!user ? (
-                                    <button
-                                        onClick={onSignIn}
-                                        className="w-fit px-8 py-4 bg-[#5c56d6] text-white font-bold text-lg rounded-2xl hover:bg-[#4a44b8] transition-all flex items-center gap-3 shadow-xl shadow-indigo-200/50 hover:scale-[1.02] active:scale-[0.98]"
-                                    >
-                                        <Cloud size={24} /> Sign In to Sync
-                                    </button>
-                                ) : (
-                                    <div className="flex items-center gap-3 bg-white px-6 py-4 rounded-2xl border border-indigo-100 shadow-sm w-fit">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[#2d3261] font-bold">Cloud Sync Active</span>
-                                            <span className="text-xs text-[#5b638f]">{user.email}</span>
-                                        </div>
-                                        {isSyncing && <RefreshCw size={14} className="text-indigo-500 animate-spin ml-2" />}
-                                    </div>
-                                )}
-
-                                <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-[#7c83ad] uppercase">
-                                    <ShieldCheck size={16} className="text-[#5c56d6]" />
-                                    Check with your school's IT policy before sharing classroom data.
+                        ) : (
+                            <div className="bg-[#f5f7ff] border border-[#e0e7ff] rounded-[2rem] p-8 shadow-sm flex flex-col items-center text-center">
+                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-[#5c56d6] shadow-sm mb-4 border border-indigo-100">
+                                    <Cloud size={32} />
                                 </div>
+                                <h3 className="text-2xl font-bold text-[#2d3261] mb-2 tracking-tight">Cloud Sync Available</h3>
+                                <p className="text-[#5b638f] leading-relaxed text-[15px] max-w-sm mb-6">
+                                    Sign in to securely sync your classroom data across all your devices. Never lose your rosters again.
+                                </p>
+                                <button
+                                    onClick={onSignIn}
+                                    className="px-8 py-4 bg-[#5c56d6] text-white font-bold text-lg rounded-2xl hover:bg-[#4a44b8] transition-all flex items-center gap-3 shadow-xl shadow-indigo-200/50 active:scale-95"
+                                >
+                                    <Cloud size={24} /> Sign In to Sync
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Export/Import Section */}
+                        <div className="pt-2">
+                            <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1 mb-4">Manual Backup</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={handleExport}
+                                    className="flex flex-col items-center gap-3 p-6 bg-white border border-slate-200 hover:border-indigo-200 hover:bg-slate-50/50 rounded-3xl transition-all group"
+                                >
+                                    <div className="p-3 bg-green-500 rounded-xl text-white shadow-lg group-hover:scale-110 transition-transform"><Download size={24} /></div>
+                                    <div className="text-center">
+                                        <div className="font-bold text-slate-800">Export File</div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400 leading-tight">Save Download</div>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const val = prompt("Paste your backup JSON here:");
+                                        if (val) {
+                                            try {
+                                                const data = JSON.parse(val);
+                                                if (data.roster) setRoster(data.roster);
+                                                if (data.background) setBackground(data.background);
+                                                if (data.scheduleTemplate) saveScheduleTemplate(data.scheduleTemplate);
+                                                alert("Data imported successfully!");
+                                            } catch (e) {
+                                                alert("Invalid JSON data.");
+                                            }
+                                        }
+                                    }}
+                                    className="flex flex-col items-center gap-3 p-6 bg-slate-800 hover:bg-slate-900 rounded-3xl transition-all group shadow-lg shadow-slate-200"
+                                >
+                                    <div className="p-3 bg-white/10 rounded-xl text-white group-hover:bg-white/20 transition-colors"><Upload size={24} /></div>
+                                    <div className="text-center">
+                                        <div className="font-bold text-white">Import File</div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400 leading-tight">Restore Data</div>
+                                    </div>
+                                </button>
                             </div>
                         </div>
 
-                        {/* Local Tools Section */}
-                        <div className="space-y-6 pt-2">
-                            <p className="text-slate-600 text-[17px] font-medium">
-                                Prefer to keep things local? You can always stay signed out and use the manual tools below.
-                            </p>
-
-                            <div className="bg-[#fcfcfc] border border-slate-100 rounded-2xl p-6">
-                                <p className="text-slate-400 italic text-[15px] leading-relaxed">
-                                    <span className="font-bold not-italic text-slate-500">Privacy Tip:</span> Use the <span className="font-bold not-italic text-slate-500 font-mono">Export</span> tool to download a backup file of your class, and the <span className="font-bold not-italic text-slate-500 font-mono">Import</span> tool to restore it on any computer.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-3">
-                                    <h4 className="text-sm font-bold text-slate-800 ml-1">Export Data</h4>
-                                    <button
-                                        onClick={handleExport}
-                                        className="w-full bg-white border-2 border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 text-slate-600 px-6 py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all group"
-                                    >
-                                        <Download size={20} className="text-slate-400 group-hover:text-[#5c56d6] transition-colors" />
-                                        Download Backup
-                                    </button>
-                                </div>
-                                <div className="space-y-3">
-                                    <h4 className="text-sm font-bold text-slate-800 ml-1">Import Data</h4>
-                                    <button
-                                        onClick={() => {
-                                            const val = prompt("Paste your backup JSON here:");
-                                            if (val) {
-                                                setImportText(val);
-                                                // Trigger the existing import logic
-                                                try {
-                                                    const data = JSON.parse(val);
-                                                    if (data.roster) setRoster(data.roster);
-                                                    if (data.background) setBackground(data.background);
-                                                    if (data.scheduleTemplate) saveScheduleTemplate(data.scheduleTemplate);
-                                                    alert("Data imported successfully!");
-                                                } catch (e) {
-                                                    alert("Invalid JSON data. Please make sure you copied the entire backup file content.");
-                                                }
-                                            }
-                                        }}
-                                        className="w-full bg-slate-800 hover:bg-black text-white px-6 py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all shadow-lg shadow-slate-200"
-                                    >
-                                        <Upload size={20} />
-                                        Restore Backup
-                                    </button>
-                                </div>
-                            </div>
+                        <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-slate-400 uppercase justify-center mt-4">
+                            <ShieldCheck size={14} className="text-indigo-400" />
+                            Data privacy is our priority
                         </div>
                     </div>
                 );
