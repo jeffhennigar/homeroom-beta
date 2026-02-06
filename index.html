@@ -4595,7 +4595,7 @@
       );
     };
 
-    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
+    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, cloudSyncEnabled, setCloudSyncEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
       const [realignDate, setRealignDate] = useState(new Date().toISOString().split('T')[0]);
       const [realignTargetDay, setRealignTargetDay] = useState(1);
       const [realignSuccess, setRealignSuccess] = useState(false);
@@ -5301,10 +5301,11 @@
                           <span className="text-[11px] text-slate-500">Sync data automatically to the cloud</span>
                         </div>
                         <div
-                          className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${user ? 'bg-blue-500' : 'bg-gray-300'}`}
-                          title={user ? "Sync is active while signed in" : "Sign in to enable cloud sync"}
+                          className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-all duration-300 ${(!user) ? 'bg-gray-200 cursor-not-allowed' : (cloudSyncEnabled ? 'bg-blue-600' : 'bg-slate-300')}`}
+                          onClick={() => user && setCloudSyncEnabled(!cloudSyncEnabled)}
+                          title={user ? (cloudSyncEnabled ? "Cloud sync is ON" : "Cloud sync is OFF") : "Sign in to enable cloud sync"}
                         >
-                          <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${user ? 'translate-x-5' : ''}`} />
+                          <div className={`w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300 ${cloudSyncEnabled && user ? 'translate-x-5' : 'translate-x-0'}`} />
                         </div>
                       </div>
                     </div>
@@ -5643,6 +5644,7 @@
       const [backupInterval, setBackupInterval] = useState(() => { try { return parseInt(localStorage.getItem('homeroom_backup_interval')) || 7; } catch { return 7; } });
       const fileInputRef = useRef(null);
       const [authLoading, setAuthLoading] = useState(true);
+      const [cloudSyncEnabled, setCloudSyncEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_cloud_sync_enabled')) ?? true; } catch { return true; } });
       const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
 
       // --- DERIVED STATE ---
@@ -5852,7 +5854,7 @@
 
       // Supabase Sync Logic
       useEffect(() => {
-        if (!user || isSyncing || !hasCheckedCloud) return;
+        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
         const syncToCloud = async () => {
           setIsSyncing(true);
           try {
@@ -6051,6 +6053,7 @@
       useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
       useEffect(() => { localStorage.setItem('homeroom_backup_interval', backupInterval); }, [backupInterval]);
+      useEffect(() => { localStorage.setItem('homeroom_cloud_sync_enabled', JSON.stringify(cloudSyncEnabled)); }, [cloudSyncEnabled]);
 
       useEffect(() => {
         saveScheduleTemplate(scheduleTemplate);
@@ -6640,6 +6643,8 @@
             }}
             backupEnabled={backupEnabled}
             setBackupEnabled={setBackupEnabled}
+            cloudSyncEnabled={cloudSyncEnabled}
+            setCloudSyncEnabled={setCloudSyncEnabled}
             backupInterval={backupInterval}
             setBackupInterval={setBackupInterval}
             scheduleTemplate={scheduleTemplate}

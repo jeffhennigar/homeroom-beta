@@ -7,7 +7,7 @@ import { SCHEDULE_EMOJIS } from '../../constants';
 import { dataService } from '../../services/dataService';
 import { supabase } from '../../services/supabaseClient';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError }) => {
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -456,9 +456,11 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                         <span className="text-xs text-slate-500">Your data is being backed up to the cloud</span>
                                     </div>
                                     <div
-                                        className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${user ? 'bg-[#5c56d6]' : 'bg-gray-300'}`}
+                                        className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-all duration-300 ${(!user) ? 'bg-gray-200 cursor-not-allowed' : (cloudSyncEnabled ? 'bg-[#5c56d6]' : 'bg-slate-300')}`}
+                                        onClick={() => user && setCloudSyncEnabled(!cloudSyncEnabled)}
+                                        title={user ? (cloudSyncEnabled ? "Cloud sync is ON" : "Cloud sync is OFF") : "Sign in to enable cloud sync"}
                                     >
-                                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${user ? 'translate-x-5' : ''}`} />
+                                        <div className={`w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300 ${cloudSyncEnabled && user ? 'translate-x-5' : 'translate-x-0'}`} />
                                     </div>
                                 </div>
                             </div>

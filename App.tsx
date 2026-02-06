@@ -131,6 +131,7 @@ const App: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_cloud_sync_enabled') ?? 'true'); } catch { return true; } });
   const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
   const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
@@ -145,6 +146,7 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
   useEffect(() => { localStorage.setItem('homeroom_schedule', JSON.stringify(activeScheduleDays)); }, [activeScheduleDays]);
   useEffect(() => { localStorage.setItem('homeroom_slides', JSON.stringify(slides)); }, [slides]);
+  useEffect(() => { localStorage.setItem('homeroom_cloud_sync_enabled', JSON.stringify(cloudSyncEnabled)); }, [cloudSyncEnabled]);
 
   useEffect(() => {
     if (allRosters.length > 0) {
@@ -306,7 +308,7 @@ const App: React.FC = () => {
 
   // Sync to Supabase on Change (Debounced)
   useEffect(() => {
-    if (!user || isSyncing || !hasCheckedCloud) return;
+    if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -331,7 +333,7 @@ const App: React.FC = () => {
   }, [user, dockOrder, background, slideBackgrounds, customBackgrounds, activeScheduleDays, isGridEnabled, clockStyle, activeRosterId, isSyncing, hasCheckedCloud]);
 
   useEffect(() => {
-    if (!user || isSyncing || !hasCheckedCloud) return;
+    if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -348,7 +350,7 @@ const App: React.FC = () => {
 
   // Sync Rosters to Supabase
   useEffect(() => {
-    if (!user || isSyncing || !hasCheckedCloud || allRosters.length === 0) return;
+    if (!user || isSyncing || !hasCheckedCloud || allRosters.length === 0 || !cloudSyncEnabled) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -790,6 +792,8 @@ const App: React.FC = () => {
         clockStyle={clockStyle}
         setClockStyle={setClockStyle}
         lastSyncError={lastSyncError}
+        cloudSyncEnabled={cloudSyncEnabled}
+        setCloudSyncEnabled={setCloudSyncEnabled}
       />
 
       {/* Top Bar */}
