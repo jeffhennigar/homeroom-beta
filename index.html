@@ -3075,7 +3075,7 @@
     const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎'];
 
     const DrawingWidget = ({ widget, updateData }) => {
-      const { color = '#000000', brushSize = 8, tool = 'pen', textItems = [], emojiItems = [] } = widget.data;
+      const { color = '#000000', brushSize = 8, tool = 'pen', textItems = [], emojiItems = [], imageItems = [], drawOffset = { x: 0, y: 0 } } = widget.data;
       const canvasRef = useRef(null);
       const ctxRef = useRef(null);
       const isDrawing = useRef(false);
@@ -3281,7 +3281,7 @@
           updateData(widget.id, { textItems: [...textItems, newText], tool: 'select' });
           setSelectedItem({ type: 'text', id: newText.id });
         } else if (tool === 'select') {
-          setSelectedItem(null);
+          // If we clicked on the background with selection tool, deselect or start moving drawing
         }
       };
 
@@ -3303,6 +3303,8 @@
           updateData(widget.id, { textItems: textItems.filter(t => t.id !== selectedItem.id) });
         } else if (selectedItem.type === 'emoji') {
           updateData(widget.id, { emojiItems: emojiItems.filter(e => e.id !== selectedItem.id) });
+        } else if (selectedItem.type === 'image') {
+          updateData(widget.id, { imageItems: imageItems.filter(img => img.id !== selectedItem.id) });
         }
         setSelectedItem(null);
       };
@@ -3327,49 +3329,52 @@
 
       // Drag/Scale/Rotate handlers for items
       const handleItemMouseDown = (e, type, id, mode = 'move') => {
-        if (tool !== 'select') return;
+        if (tool !== 'select' && type !== 'drawing') return;
         e.stopPropagation();
-        e.preventDefault(); // Prevent text selection and glitchy behavior
+        e.preventDefault();
         setSelectedItem({ type, id });
 
-        const items = type === 'text' ? textItems : emojiItems;
-        const item = items.find(i => i.id === id);
+        let item;
+        if (type === 'text') item = textItems.find(i => i.id === id);
+        else if (type === 'emoji') item = emojiItems.find(i => i.id === id);
+        else if (type === 'image') item = imageItems.find(i => i.id === id);
+        else if (type === 'drawing') item = { x: drawOffset.x, y: drawOffset.y, scale: 1, rotation: 0 };
+
         if (!item) return;
 
         const startX = e.clientX;
         const startY = e.clientY;
         const startItemX = item.x;
         const startItemY = item.y;
-        const startScale = item.scale;
-        const startRotation = item.rotation;
+        const startScale = item.scale || 1;
+        const startRotation = item.rotation || 0;
 
         const onMove = (me) => {
           const dx = me.clientX - startX;
           const dy = me.clientY - startY;
 
           if (mode === 'move') {
-            const listKey = type + 'Items';
-            const list = type === 'text' ? textItems : emojiItems;
-            updateData(widget.id, { [listKey]: list.map(i => i.id === id ? { ...i, x: startItemX + dx, y: startItemY + dy } : i) });
-          } else if (mode === 'scale') {
+            if (type === 'drawing') {
+              updateData(widget.id, { drawOffset: { x: startItemX + dx, y: startItemY + dy } });
+            } else {
+              const listKey = type + 'Items';
+              const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : imageItems);
+              updateData(widget.id, { [listKey]: list.map(i => i.id === id ? { ...i, x: startItemX + dx, y: startItemY + dy } : i) });
+            }
+          } else if (mode === 'scale' && type !== 'drawing') {
             const dist = Math.sqrt(dx * dx + dy * dy);
             const factor = 1 + (dx > 0 ? dist / 200 : -dist / 200);
-            const newScale = Math.max(0.2, Math.min(5, startScale * factor));
+            const newScale = Math.max(0.1, Math.min(10, startScale * factor));
             const listKey = type + 'Items';
-            const list = type === 'text' ? textItems : emojiItems;
+            const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : imageItems);
             updateData(widget.id, { [listKey]: list.map(i => i.id === id ? { ...i, scale: newScale } : i) });
-          } else if (mode === 'rotate') {
-            const rect = me.currentTarget.parentElement?.getBoundingClientRect() || { left: 0, top: 0, width: 0, height: 0 };
-            const centerX = item.x;
-            const centerY = item.y;
-            // Get mouse position relative to canvas
+          } else if (mode === 'rotate' && type !== 'drawing') {
             const canvasRect = canvasRef.current.getBoundingClientRect();
             const mouseX = me.clientX - canvasRect.left;
             const mouseY = me.clientY - canvasRect.top;
-
-            const angle = Math.atan2(mouseY - centerY, mouseX - centerX) * (180 / Math.PI);
+            const angle = Math.atan2(mouseY - item.y, mouseX - item.x) * (180 / Math.PI);
             const listKey = type + 'Items';
-            const list = type === 'text' ? textItems : emojiItems;
+            const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : imageItems);
             updateData(widget.id, { [listKey]: list.map(i => i.id === id ? { ...i, rotation: angle + 90 } : i) });
           }
         };
@@ -3391,34 +3396,31 @@
         const pastedImage = widget.data.pastedImage;
         const imgToLoad = pastedImage || initialImage;
 
-        if (imgToLoad && ctxRef.current) {
+        if (imgToLoad) {
           const img = new Image();
           img.onload = () => {
             const canvas = canvasRef.current;
-            const ctx = ctxRef.current;
-
-            // Center scale to fit
-            const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.9;
-            const w = img.width * scale;
-            const h = img.height * scale;
-            const x = (canvas.width - w) / 2;
-            const y = (canvas.height - h) / 2;
-
-            // No clear canvas here, just draw on top (or we could clear if it's initial)
-            ctx.drawImage(img, x, y, w, h);
-            saveToHistory();
-
-            // Clear the flag so it doesn't redraw on every render
-            const updates = {};
-            if (widget.data.initialImage) updates.initialImage = null;
-            if (widget.data.pastedImage) updates.pastedImage = null;
-            if (Object.keys(updates).length > 0) updateData(widget.id, updates);
-
+            if (!canvas) return;
+            const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.8;
+            const newImg = {
+              id: Date.now().toString(),
+              src: imgToLoad,
+              x: canvas.width / 2,
+              y: canvas.height / 2,
+              baseWidth: img.width,
+              baseHeight: img.height,
+              scale: scale,
+              rotation: 0
+            };
+            updateData(widget.id, {
+              imageItems: [...imageItems, newImg],
+              initialImage: null,
+              pastedImage: null
+            });
+            setSelectedItem({ type: 'image', id: newImg.id });
           };
           img.src = imgToLoad;
-
         }
-
       }, [widget.data.initialImage, widget.data.pastedImage]);
 
       return (
@@ -3471,19 +3473,84 @@
           )}
 
           {/* Canvas + Overlays */}
-          <div className="flex-1 relative overflow-hidden bg-white">
-            <canvas
-              ref={canvasRef}
-              className={`absolute inset-0 w-full h-full touch-none ${tool === 'pen' || tool === 'eraser' ? 'cursor-crosshair' : tool === 'text' ? 'cursor-text' : 'cursor-default'}`}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onClick={handleCanvasClick}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
-            />
+          <div className="flex-1 relative overflow-hidden bg-white" onMouseDown={(e) => tool === 'select' && setSelectedItem(null)}>
+            {/* Drawing Layer */}
+            <div
+              className="absolute inset-0 transition-shadow"
+              style={{
+                transform: `translate(${drawOffset.x}px, ${drawOffset.y}px)`,
+                width: '100%',
+                height: '100%',
+                zIndex: selectedItem?.type === 'drawing' ? 10 : 0,
+                border: (tool === 'select' && selectedItem?.type === 'drawing') ? '2px dashed #3b82f6' : 'none'
+              }}
+            >
+              <canvas
+                ref={canvasRef}
+                className={`w-full h-full touch-none ${tool === 'pen' || tool === 'eraser' ? 'cursor-crosshair' : tool === 'select' ? 'cursor-move' : tool === 'text' ? 'cursor-text' : 'cursor-default'}`}
+                onMouseDown={(e) => {
+                  if (tool === 'select') {
+                    handleItemMouseDown(e, 'drawing', 'layer');
+                  } else {
+                    startDrawing(e);
+                  }
+                }}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onClick={handleCanvasClick}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+              />
+            </div>
+
+            {/* Image Items */}
+            {imageItems.map(img => {
+              const imgScale = img.scale || 1;
+              const w = (img.baseWidth || 100) * imgScale;
+              const h = (img.baseHeight || 100) * imgScale;
+              return (
+                <div
+                  key={img.id}
+                  className="absolute"
+                  style={{ left: img.x, top: img.y, zIndex: selectedItem?.id === img.id ? 15 : 5 }}
+                >
+                  <div
+                    className="cursor-move group"
+                    style={{
+                      transform: `translate(-50%, -50%) rotate(${img.rotation}deg)`,
+                      transformOrigin: 'center',
+                      pointerEvents: tool === 'select' ? 'auto' : 'none'
+                    }}
+                    onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'move')}
+                  >
+                    <img
+                      src={img.src}
+                      alt=""
+                      className={`max-w-none shadow-sm transition-shadow ${selectedItem?.id === img.id ? 'ring-2 ring-blue-500 shadow-xl' : 'group-hover:ring-1 group-hover:ring-blue-200'}`}
+                      style={{ width: w, height: h }}
+                    />
+                    {selectedItem?.id === img.id && (
+                      <>
+                        <div
+                          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-grab shadow z-20 flex items-center justify-center -top-8 left-1/2 -translate-x-1/2"
+                          onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'rotate')}
+                          title="Rotate"
+                        >
+                          <RotateCw size={10} className="text-blue-500" />
+                        </div>
+                        <div
+                          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow z-20 -bottom-2 -right-2"
+                          onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'scale')}
+                          title="Scale"
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
 
             {/* Text Items */}
             {textItems.map(t => {
@@ -3823,7 +3890,7 @@
                       {emojiPickerIndex === index && <div className="absolute left-0 top-full mt-2 z-[100] bg-white rounded-xl shadow-2xl border border-slate-100 p-2 w-56 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100" onClick={(e) => e.stopPropagation()}><div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-2xl p-2 rounded-lg hover:bg-indigo-50 transition-colors ${item.emoji === emoji ? 'bg-indigo-100' : ''}`}>{emoji}</button>))} </div></div>}
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-slate-700 bg-transparent border-none outline-none truncate placeholder-slate-300" style={{ fontSize: (fontSize - 1) + 'px' }} placeholder="Activity Name" />
+                      <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-slate-700 bg-transparent border-none outline-none truncate placeholder-slate-300" style={{ fontSize: Math.max(10, fontSize - 10) + 'px' }} placeholder="Activity Name" />
                       <textarea
                         value={item.description || ''}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
@@ -4092,8 +4159,7 @@
             <div className="p-8 bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12" />
-              <h2 className="text-3xl font-bold mb-2">HomeRoom Cloud</h2>
-              <p className="text-blue-100 text-sm opacity-90">Sign in to sync your class across all devices.</p>
+              <h2 className="text-3xl font-bold mb-2">Sign into your Homeroom</h2>
               {!forced && <button onClick={() => setIsOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>}
             </div>
             <div className="p-8 bg-white">
@@ -5818,7 +5884,9 @@
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: dockOrder,
-              active_roster_id: activeRosterId
+              active_roster_id: activeRosterId,
+              schedule_overrides: scheduleOverrides,
+              schedule_settings: scheduleSettings
             });
             if (profileError) throw profileError;
 
@@ -5912,6 +5980,8 @@
               if (profile.dock_order) setDockOrder(profile.dock_order);
               if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
+              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
+              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
             }
 
             // 3. Update State
@@ -6239,13 +6309,7 @@
               reader.onload = (event) => {
                 const src = event.target.result;
 
-                // Logic: If DRAWING widget is selected, paste into it. Otherwise add new.
-                const selectedWidget = selectedId ? (slides[currentSlideIndex] || []).find(w => w.id === selectedId) : null;
-                if (selectedWidget && selectedWidget.type === 'DRAWING') {
-                  updateWidgetData(selectedId, { pastedImage: src });
-                } else {
-                  addWidget('DRAWING', { initialImage: src });
-                }
+                addWidget('DRAWING', { initialImage: src });
               };
               reader.readAsDataURL(blob);
               e.preventDefault();
