@@ -3216,9 +3216,13 @@
         ctx.lineJoin = 'round';
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
-        // Draw a dot for single clicks
         ctx.lineTo(pos.x + 0.1, pos.y + 0.1);
         ctx.stroke();
+
+        window.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', stopDrawing);
+        window.addEventListener('touchmove', draw, { passive: false });
+        window.addEventListener('touchend', stopDrawing);
       };
 
       const draw = (e) => {
@@ -3272,6 +3276,10 @@
           ctxRef.current.closePath();
           saveToHistory();
         }
+        window.removeEventListener('mousemove', draw);
+        window.removeEventListener('mouseup', stopDrawing);
+        window.removeEventListener('touchmove', draw);
+        window.removeEventListener('touchend', stopDrawing);
       };
 
       const handleCanvasClick = (e) => {
@@ -3495,13 +3503,8 @@
                     startDrawing(e);
                   }
                 }}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
                 onClick={handleCanvasClick}
                 onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
               />
             </div>
 
