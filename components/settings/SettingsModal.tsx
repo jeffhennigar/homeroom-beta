@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Users, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud, Terminal, ShieldCheck, Lock, Bell, Clock } from 'lucide-react';
+import { User, Users, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud, Terminal, Shield, Lock, Bell, Clock } from 'lucide-react';
 import AppearanceSettings from './AppearanceSettings';
 import TimePicker from '../TimePicker';
 import { SCHEDULE_EMOJIS } from '../../constants';
@@ -484,7 +484,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
 
                         <div className="bg-slate-50 border border-slate-100 rounded-[2rem] p-6 flex items-center gap-4">
                             <div className="bg-white p-2 rounded-xl shadow-sm text-indigo-500">
-                                <ShieldCheck size={24} />
+                                <Shield size={24} />
                             </div>
                             <p className="text-sm text-slate-500 font-medium leading-relaxed">
                                 Your privacy and data security are our top priorities. Feel free to store all your data strictly locally on this device, or use our cloud storage to sync across all your classrooms.
@@ -532,7 +532,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                         </div>
 
                         <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-slate-400 uppercase justify-center mt-4">
-                            <ShieldCheck size={14} className="text-indigo-400" />
+                            <Shield size={14} className="text-indigo-400" />
                             Data privacy is our priority
                         </div>
                     </div>

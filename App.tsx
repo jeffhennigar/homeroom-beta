@@ -4,7 +4,7 @@ import {
   Camera, Dices, ChevronDown, ChevronUp,
   ChevronLeft, ChevronRight, Plus, Settings, Youtube,
   Lock, Unlock, GripVertical, Undo2, ArrowRightSquare, Trash2, AlertTriangle, X,
-  Calendar as CalendarIcon, StickyNote, Loader2
+  Calendar as CalendarIcon, StickyNote, Loader2, Shield
 } from 'lucide-react';
 import DraggableResizable from './components/DraggableResizable';
 import TimerWidget from './components/widgets/TimerWidget';
@@ -238,7 +238,7 @@ const App: React.FC = () => {
           });
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `user_id=eq.${user.id}` }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
         if (isSyncing) return;
         const p = payload.new as any;
         if (p) {

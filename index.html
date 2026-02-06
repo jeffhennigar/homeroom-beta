@@ -112,7 +112,7 @@
       "react": "https://esm.sh/react@18.2.0",
       "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
       "react-dom": "https://esm.sh/react-dom@18.2.0",
-      "lucide-react": "https://esm.sh/lucide-react@0.292.0"
+      "lucide-react": "https://esm.sh/lucide-react@0.447.0"
     }
   }
   </script>
@@ -146,7 +146,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield
     } from 'lucide-react';
 
     const TimerIcon = Timer;
@@ -5329,7 +5329,7 @@
 
                   <div className="mb-8 p-6 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
                     <div className="bg-white p-2 rounded-lg shadow-sm text-blue-500">
-                      <ShieldCheck size={20} />
+                      <Shield size={20} />
                     </div>
                     <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
                       Your privacy and data security are our top priorities. Feel free to store all your data strictly locally on this device, or use our cloud storage to sync across all your classrooms.
@@ -5721,7 +5721,7 @@
               });
             }
           })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `user_id=eq.${user.id}` }, (payload) => {
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
             if (isSyncing) return;
             const p = payload.new;
             if (p) {
