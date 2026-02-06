@@ -95,11 +95,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, forced = false
 
                     <div className="mb-8">
                         <h2 className="text-3xl font-bold text-slate-800 mb-2">
-                            {isSignUp ? 'Create Account' : 'Welcome Back'}
+                            Sign into your Homeroom
                         </h2>
-                        <p className="text-slate-500 font-medium">
-                            {isSignUp ? 'Join HomeRoom to save your slides and rosters.' : 'Sign in to access your classroom setup.'}
-                        </p>
                     </div>
 
                     <form onSubmit={handleAuth} className="space-y-5">

@@ -377,6 +377,57 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Global Paste Listener
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const activeEntry = document.activeElement;
+      const isInput = activeEntry?.tagName === 'INPUT' || activeEntry?.tagName === 'TEXTAREA' || (activeEntry as HTMLElement)?.isContentEditable;
+      if (isInput) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (!file) continue;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const result = event.target?.result as string;
+            const img = new Image();
+            img.src = result;
+            img.onload = () => {
+              const aspect = img.width / img.height;
+              addWidget('WHITEBOARD', {
+                imageItems: [{
+                  id: Date.now().toString(),
+                  src: result,
+                  x: 0.5,
+                  y: 0.5,
+                  scale: 1,
+                  rotation: 0,
+                  width: 200,
+                  height: 200 / aspect
+                }]
+              } as any);
+            };
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+
+      const text = e.clipboardData.getData('text');
+      if (text) {
+        e.preventDefault();
+        addWidget('TEXT', { content: text });
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [currentSlideIndex]);
+
   // --- ACTIONS ---
   const handleUpdateRoster = (newRoster: Student[]) => {
     setRoster(newRoster);
@@ -414,7 +465,7 @@ const App: React.FC = () => {
   // index.html handles this by separating `updateData` to `setWidgets` but logic is similar. Note: `addToHistory` is manual in index.html for major actions.
   // Here we can use manual history.
 
-  const addWidget = (type: WidgetType) => {
+  const addWidget = (type: WidgetType, extraData: Partial<WidgetData> = {}) => {
     setHistory(h => [...h.slice(-19), slides]);
     const id = Date.now().toString();
     const size = WIDGET_SIZES[type];
@@ -425,7 +476,8 @@ const App: React.FC = () => {
 
     let fontSize = 36;
     if (type === 'RANDOMIZER' || type === 'TIMER' || type === 'VOTE' || type === 'GROUP_MAKER' || type === 'SEAT_PICKER') fontSize = 20; // Reduced by ~8 clicks (36 -> 20)
-    if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16; // Reduced by ~10 clicks (36 -> 16)
+    if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16;
+    if (type === 'SCHEDULE') fontSize = 31; // Reduced by 5 clicks (36 -> 31)
 
     let data: WidgetData = { fontSize };
     if (type === 'TIMER') data = { ...data, durationMinutes: 2, timeLeft: 120, isRunning: false };
@@ -468,6 +520,8 @@ const App: React.FC = () => {
     if (type === 'QR') data = { ...data, url: '' };
     if (type === 'AI_CHAT') data = { ...data, messages: [] };
     if (type === 'TRANSLATOR') data = { ...data, sourceText: '', translatedText: '', targetLanguage: 'Spanish' };
+
+    data = { ...data, ...extraData };
 
     const newWidget: Widget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false };
 

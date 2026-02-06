@@ -96,7 +96,7 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                    <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-gray-800 bg-transparent border-none outline-none truncate" style={{ fontSize: (fontSize - 1) + 'px' }} placeholder="Activity name" />
+                                    <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-gray-800 bg-transparent border-none outline-none truncate" style={{ fontSize: Math.max(10, fontSize - 10) + 'px' }} placeholder="Activity name" />
                                     <textarea
                                         value={item.description || ''}
                                         onChange={(e) => updateItem(index, 'description', e.target.value)}

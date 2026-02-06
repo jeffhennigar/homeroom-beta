@@ -4,7 +4,7 @@ import { MousePointer2, Edit3, Eraser, Undo2, Redo2, Type, Smile, ImageIcon, Tra
 const DRAW_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📝', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌'];
 
 const WhiteboardWidget = ({ widget, updateData }) => {
-    const { tool = 'pen', color = '#000000', size = 5, lines = [], textItems = [], emojiItems = [], imageItems = [] } = widget.data;
+    const { tool = 'pen', color = '#000000', size = 5, lines = [], textItems = [], emojiItems = [], imageItems = [], drawOffset = { x: 0, y: 0 } } = widget.data;
     const canvasRef = useRef(null);
     const isDrawing = useRef(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
@@ -55,6 +55,9 @@ const WhiteboardWidget = ({ widget, updateData }) => {
 
         // Start a new line path
         updateData(widget.id, { lines: [...lines, { points: [{ x, y, w: size }], color: tool === 'eraser' ? '#ffffff' : color, size, tool }] });
+
+        window.addEventListener('mousemove', moveDrawing);
+        window.addEventListener('mouseup', stopDrawing);
     };
 
     const moveDrawing = (e) => {
@@ -79,6 +82,8 @@ const WhiteboardWidget = ({ widget, updateData }) => {
 
     const stopDrawing = () => {
         isDrawing.current = false;
+        window.removeEventListener('mousemove', moveDrawing);
+        window.removeEventListener('mouseup', stopDrawing);
     };
 
     // Keep lines in a ref so resize observer can access latest without re-subscribing
@@ -161,8 +166,8 @@ const WhiteboardWidget = ({ widget, updateData }) => {
 
         const rect = e.target.parentElement.getBoundingClientRect();
         dragItemStart.current = {
-            startX: item ? item.x : 0.5,
-            startY: item ? item.y : 0.5,
+            startX: item ? item.x : (type === 'drawing' ? drawOffset.x : 0.5),
+            startY: item ? item.y : (type === 'drawing' ? drawOffset.y : 0.5),
             initialMx: e.clientX,
             initialMy: e.clientY,
             startScale: item ? (item.scale || 1) : 1,
@@ -211,6 +216,11 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                     updateData(widget.id, updateObj);
                 };
 
+                if (type === 'drawing') {
+                    const dx = e.clientX - startData.initialMx;
+                    const dy = e.clientY - startData.initialMy;
+                    updateData(widget.id, { drawOffset: { x: startData.startX + dx, y: startData.startY + dy } });
+                }
                 if (type === 'text') updateList(textItems, 'textItems');
                 if (type === 'emoji') updateList(emojiItems, 'emojiItems');
                 if (type === 'image') updateList(imageItems, 'imageItems');
@@ -315,9 +325,17 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                     <button onClick={clearAll} className="text-gray-400 hover:text-red-500 p-2" title="Clear All"><RotateCcw size={18} /></button>
                 </div>
             </div>
-            <div className="flex-1 relative overflow-hidden bg-white cursor-crosshair" onClick={(e) => { if (e.target === e.currentTarget && tool === 'move') setSelectedItem(null); }}>
+            <div className={`flex-1 relative overflow-hidden bg-white ${tool === 'pen' || tool === 'eraser' ? 'cursor-crosshair' : tool === 'move' ? 'cursor-move' : 'cursor-default'}`}
+                onMouseDown={(e) => {
+                    if (tool === 'move') {
+                        // Click background to select drawing layer
+                        if (e.target === e.currentTarget) {
+                            handleItemMouseDown(e, 'drawing', 'layer');
+                        }
+                    }
+                }}>
                 {/* Layers: Items Bottom, Canvas Top */}
-                <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 z-0" style={{ transform: `translate(${drawOffset.x}px, ${drawOffset.y}px)` }}>
                     {imageItems.map(img => (
                         <div key={img.id} onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id)} className={`absolute cursor-move group ${selectedItem?.id === img.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`} style={{ left: `${img.x * 100}%`, top: `${img.y * 100}%`, transform: 'translate(-50%, -50%) rotate(' + (img.rotation || 0) + 'deg)', width: (img.width || 100) * (img.scale || 1), height: (img.height || 100) * (img.scale || 1) }}>
                             <img src={img.src} draggable={false} className="w-full h-full object-contain pointer-events-none" />
@@ -371,7 +389,11 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                     })}
                 </div>
 
-                <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full touch-none z-10 ${tool === 'move' ? 'pointer-events-none' : 'pointer-events-auto cursor-crosshair'}`} onMouseDown={handleCanvasMouseDown} onMouseMove={moveDrawing} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} />
+                <canvas ref={canvasRef}
+                    className={`absolute inset-0 w-full h-full touch-none z-10 ${tool === 'move' ? 'pointer-events-none' : 'pointer-events-auto shadow-inner'}`}
+                    onMouseDown={handleCanvasMouseDown}
+                    style={{ border: (tool === 'move' && selectedItem?.type === 'drawing') ? '2px dashed #3b82f6' : 'none' }}
+                />
 
                 {showEmojiPicker && (
                     <div className="absolute top-16 left-4 z-[100] bg-white rounded-xl shadow-2xl border border-gray-200 p-3 w-72 max-h-56 overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
