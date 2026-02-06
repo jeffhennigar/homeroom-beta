@@ -482,6 +482,15 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                             </div>
                         )}
 
+                        <div className="bg-slate-50 border border-slate-100 rounded-[2rem] p-6 flex items-center gap-4">
+                            <div className="bg-white p-2 rounded-xl shadow-sm text-indigo-500">
+                                <ShieldCheck size={24} />
+                            </div>
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                                Your privacy and data security are our top priorities. Feel free to store all your data strictly locally on this device, or use our cloud storage to sync across all your classrooms.
+                            </p>
+                        </div>
+
                         {/* Export/Import Section */}
                         <div className="pt-2">
                             <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1 mb-4">Manual Backup</h4>
