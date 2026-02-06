@@ -6275,7 +6275,8 @@
         if (type === 'GROUP_MAKER') fontSize = 20;
         if (type === 'SEAT_PICKER') fontSize = 16; // Reduced by ~2 clicks
         if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16;
-        if (type === 'TIMER') fontSize = 14; // Reduced by ~11 clicks
+        if (type === 'TIMER') fontSize = 14;
+        if (type === 'SCHEDULE') fontSize = 31; // Reduced by 5 clicks
 
         let data = { fontSize }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
         if (type === 'SEAT_PICKER') {
