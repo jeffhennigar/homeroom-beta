@@ -112,7 +112,7 @@
       "react": "https://esm.sh/react@18.2.0",
       "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
       "react-dom": "https://esm.sh/react-dom@18.2.0",
-      "lucide-react": "https://esm.sh/lucide-react@0.447.0"
+      "lucide-react": "https://esm.sh/lucide-react@0.447.0?deps=react@18.2.0"
     }
   }
   </script>
@@ -5899,7 +5899,6 @@
               clock_style: clockStyle,
               dock_order: dockOrder,
               active_roster_id: activeRosterId,
-              schedule_overrides: scheduleOverrides,
               schedule_settings: scheduleSettings
             });
             if (profileError) throw profileError;
@@ -5982,7 +5981,7 @@
             }
 
             // 2.5 Process Profile (Settings, Background, Dock)
-            const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
             if (profileError && profileError.code !== 'PGRST116') console.error("Profile Fetch Error:", profileError);
 
             if (profile) {
@@ -5994,7 +5993,6 @@
               if (profile.dock_order) setDockOrder(profile.dock_order);
               if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
-              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
               if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
             }
 
