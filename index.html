@@ -4757,7 +4757,7 @@
 
       return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-[615px] h-[600px] flex flex-col overflow-hidden relative">
+          <div className="bg-white rounded-2xl shadow-2xl w-[625px] h-[600px] flex flex-col overflow-hidden relative">
             {/* Header with Tabs */}
             <div className="border-b">
               <div className="p-4 flex justify-between items-center">
@@ -6276,7 +6276,7 @@
         if (type === 'SEAT_PICKER') fontSize = 16; // Reduced by ~2 clicks
         if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16;
         if (type === 'TIMER') fontSize = 14;
-        if (type === 'SCHEDULE') fontSize = 31; // Reduced by 5 clicks
+        if (type === 'SCHEDULE') fontSize = 28; // Reduced by 8 clicks (36 -> 28)
 
         let data = { fontSize }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
         if (type === 'SEAT_PICKER') {

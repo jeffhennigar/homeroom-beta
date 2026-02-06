@@ -477,7 +477,7 @@ const App: React.FC = () => {
     let fontSize = 36;
     if (type === 'RANDOMIZER' || type === 'TIMER' || type === 'VOTE' || type === 'GROUP_MAKER' || type === 'SEAT_PICKER') fontSize = 20; // Reduced by ~8 clicks (36 -> 20)
     if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16;
-    if (type === 'SCHEDULE') fontSize = 31; // Reduced by 5 clicks (36 -> 31)
+    if (type === 'SCHEDULE') fontSize = 28; // Reduced by 8 clicks (36 -> 28)
 
     let data: WidgetData = { fontSize };
     if (type === 'TIMER') data = { ...data, durationMinutes: 2, timeLeft: 120, isRunning: false };
