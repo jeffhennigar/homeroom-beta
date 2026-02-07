@@ -132,6 +132,16 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, forced = false
                                     placeholder="••••••••"
                                 />
                             </div>
+                            <div className="flex justify-end mt-1">
+                                <a
+                                    href="https://ourhomeroom.app/signin"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                                >
+                                    Forgot Password?
+                                </a>
+                            </div>
                         </div>
 
                         {error && (
