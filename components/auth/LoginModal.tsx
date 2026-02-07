@@ -93,9 +93,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, forced = false
                         </button>
                     )}
 
-                    <div className="mb-8">
+                    <div className="mb-8 text-center">
                         <h2 className="text-3xl font-bold text-slate-800 mb-2">
-                            Sign into your Homeroom
+                            Sign into <br /> your Homeroom
                         </h2>
                     </div>
 
