@@ -6687,8 +6687,11 @@
                 Project: {window.supabaseClient?.supabaseUrl?.split('//')[1].split('.')[0] || 'Unknown'} <br />
                 Auth: {authLoading ? 'Loading...' : 'Ready'} <br />
                 User: {user ? user.id.substring(0, 8) : 'null'} <br />
-                Cookies: {document.cookie.split(';').filter(c => c.trim()).length} total <br />
-                Keys: {document.cookie.split(';').map(c => c.split('=')[0].trim()).join(', ') || '(none)'}
+                LocalStorage: {Object.keys(localStorage).filter(k => k.includes('supabase')).length} keys <br />
+                Cookies ({document.cookie.split(';').filter(c => c.trim()).length}): <br />
+                <div className="pl-2 border-l border-white/10 max-h-[60px] overflow-y-auto">
+                  {document.cookie.split(';').filter(c => c.trim()).map(c => <div key={c}>{c.split('=')[0].trim()}</div>) || '(none)'}
+                </div>
               </div>
             </div>
           </div>
