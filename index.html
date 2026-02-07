@@ -120,8 +120,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (function () {
-      const url = 'https://lguewieabkrjgsobufjd.supabase.co';
-      const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
+      const url = 'https://ypdbgixqxpozdetkapge.supabase.co';
+      const key = 'sb_publishable_eJtxz6JkotwKbuzQpPgfCQ_S-ftklk1';
 
       const CookieStorage = {
         getItem: (key) => {
@@ -130,7 +130,11 @@
             for (let i = 0; i < cookies.length; i++) {
               let cookie = cookies[i].trim();
               if (cookie.indexOf(key + '=') === 0) {
-                return decodeURIComponent(cookie.substring(key.length + 1));
+                try {
+                  return decodeURIComponent(cookie.substring(key.length + 1));
+                } catch (e) {
+                  return cookie.substring(key.length + 1);
+                }
               }
             }
           } catch (e) {
@@ -144,7 +148,8 @@
           const expires = "expires=" + d.toUTCString();
           const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
           const domain = isLocal ? '' : 'domain=.ourhomeroom.app;';
-          document.cookie = key + "=" + value + ";" + expires + ";path=/;" + domain + "SameSite=Lax;Secure";
+          const encodedValue = encodeURIComponent(value);
+          document.cookie = key + "=" + encodedValue + ";" + expires + ";path=/;" + domain + "SameSite=Lax;Secure";
         },
         removeItem: (key) => {
           const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
