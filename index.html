@@ -122,8 +122,48 @@
     (function () {
       const url = 'https://lguewieabkrjgsobufjd.supabase.co';
       const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
+
+      const CookieStorage = {
+        getItem: (key) => {
+          const name = key + "=";
+          const decodedCookie = decodeURIComponent(document.cookie);
+          const ca = decodedCookie.split(';');
+          for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') {
+              c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+              return c.substring(name.length, c.length);
+            }
+          }
+          return null;
+        },
+        setItem: (key, value) => {
+          const d = new Date();
+          d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year
+          const expires = "expires=" + d.toUTCString();
+          const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
+          const domain = isLocal ? '' : 'domain=.ourhomeroom.app;';
+          document.cookie = key + "=" + value + ";" + expires + ";path=/;" + domain + "SameSite=Lax;Secure";
+        },
+        removeItem: (key) => {
+          const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
+          const domain = isLocal ? '' : 'domain=.ourhomeroom.app;';
+          document.cookie = key + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;" + domain + "SameSite=Lax;Secure";
+        }
+      };
+
       try {
-        window.supabaseClient = window.supabase.createClient(url, key);
+        window.supabaseClient = window.supabase.createClient(url, key, {
+          auth: {
+            storage: CookieStorage,
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true,
+            storageKey: 'homeroom-auth-token',
+          }
+        });
       } catch (e) {
         console.error("Supabase Init Error:", e);
       }
@@ -6596,17 +6636,19 @@
         );
       }
 
+      useEffect(() => {
+        if (!user && !authLoading) {
+          window.location.href = 'https://ourhomeroom.app';
+        }
+      }, [user, authLoading]);
+
       if (!user) {
         return (
-          <div className="w-screen h-screen bg-[#0f172a] relative overflow-hidden">
-            <div className="absolute inset-0">
-              <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
-                <rect width="100%" height="100%" fill="#0f172a" />
-                <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="#ea580c" opacity="0.1" />
-                <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="#3b82f6" opacity="0.1" />
-              </svg>
+          <div className="w-screen h-screen bg-[#0f172a] relative overflow-hidden flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-white font-medium">Redirecting to login...</p>
             </div>
-            <AuthModal forced={true} />
           </div>
         );
       }
@@ -6623,7 +6665,7 @@
           <AuthModal />
           {showSettingsModal && <SettingsModal
             user={user}
-            onSignOut={async () => { await supabase.auth.signOut(); window.location.reload(); }}
+            onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://ourhomeroom.app'; }}
             isSyncing={isSyncing}
             lastSyncError={lastSyncError}
             roster={roster}
