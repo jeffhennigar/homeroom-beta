@@ -147,8 +147,8 @@ const App = () => {
                     .single();
 
                 if (profileError || profile?.pro_status !== 'pro') {
-                    console.log('Access denied: Basic or missing profile, redirecting to pricing');
-                    window.location.href = 'https://ourhomeroom.app/pricing';
+                    console.log('Access denied: Basic or missing profile, redirecting to free');
+                    window.location.href = 'https://free.ourhomeroom.app';
                     return;
                 }
 
