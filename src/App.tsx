@@ -20,6 +20,8 @@ import QRCodeWidget from './components/widgets/QRCodeWidget';
 import YouTubeWidget from './components/widgets/YouTubeWidget';
 import SettingsModal from './components/settings/SettingsModal';
 import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
+import { supabase } from './services/supabaseClient';
+
 
 // ... (rest of imports)
 
@@ -123,6 +125,44 @@ const App = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showGrid, setShowGrid] = useState(false);
     const [dockEditMode, setDockEditMode] = useState(false);
+    const [isCheckingPro, setIsCheckingPro] = useState(true);
+
+    // Access Control Gating
+    useEffect(() => {
+        const checkAccess = async () => {
+            try {
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+                if (!user || userError) {
+                    console.log('No user session found, redirecting to signin');
+                    window.location.href = 'https://ourhomeroom.app/signin';
+                    return;
+                }
+
+                // Check pro status from profiles table
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('pro_status')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileError || profile?.pro_status !== 'pro') {
+                    console.log('Access denied: Basic or missing profile, redirecting to pricing');
+                    window.location.href = 'https://ourhomeroom.app/pricing';
+                    return;
+                }
+
+                // Access granted
+                setIsCheckingPro(false);
+            } catch (err) {
+                console.error('Core auth error:', err);
+                window.location.href = 'https://ourhomeroom.app/signin';
+            }
+        };
+
+        checkAccess();
+    }, []);
+
 
     // Onboarding
     const [showOnboarding, setShowOnboarding] = useState(false);
@@ -255,8 +295,21 @@ const App = () => {
         }
     };
 
+    if (isCheckingPro) {
+        return (
+            <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+                <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex flex-col items-center">
+                    <h2 className="text-xl font-bold text-slate-800">Homeroom Pro</h2>
+                    <p className="text-slate-500 font-medium">Verifying your active subscription...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`w-screen h-screen overflow-hidden relative ${bgStyle.preview || ''}`} style={bgStyle}>
+
             {/* Grid Overlay */}
             {showGrid && (
                 <div className="absolute inset-0 pointer-events-none z-0"

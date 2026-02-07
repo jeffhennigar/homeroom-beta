@@ -11,16 +11,23 @@ interface GroupMakerWidgetProps {
   widget: any;
   updateData: (id: string, data: any) => void;
   roster: Student[];
+  allRosters?: any[];
+  activeRosterId?: string;
 }
 
-const GroupMakerWidget: React.FC<GroupMakerWidgetProps> = ({ widget, updateData, roster }) => {
-  const { groups = [], fontSize = 16, groupCount = 4 } = widget.data;
+const GroupMakerWidget: React.FC<GroupMakerWidgetProps> = ({ widget, updateData, roster, allRosters = [], activeRosterId }) => {
+  const { groups = [], fontSize = 16, groupCount = 4, rosterId } = widget.data;
   const containerRef = useRef<HTMLDivElement>(null);
   const [columns, setColumns] = useState(4);
   const dragItem = useRef<string | null>(null);
   const dragSourceGroup = useRef<number | null>(null);
 
-  const activeStudents = roster.filter(s => s.active);
+  // Determine Effective Roster
+  const effectiveRoster = rosterId
+    ? (allRosters.find(r => r.id === rosterId)?.roster || [])
+    : roster;
+
+  const activeStudents = effectiveRoster.filter(s => s.active);
   const count = activeStudents.length;
   const scaledFS = (fontSize / 16) * 14;
 
@@ -150,6 +157,18 @@ const GroupMakerWidget: React.FC<GroupMakerWidgetProps> = ({ widget, updateData,
             <span className="text-xs font-bold text-slate-500 uppercase">Groups</span>
             <span className="text-sm font-black text-slate-700">{groupCount}</span>
           </div>
+          <div className="mb-2">
+            <select
+              value={rosterId || ""}
+              onChange={(e) => updateData(widget.id, { rosterId: e.target.value || undefined })}
+              className="w-full bg-white border border-gray-300 text-gray-700 text-xs py-1 px-1 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Global ({allRosters.find(r => r.id === activeRosterId)?.name || 'Default'})</option>
+              {allRosters.map(r => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
           <input
             type="range" min="2" max="12" value={groupCount}
             onChange={e => updateData(widget.id, { groupCount: Number(e.target.value) })}
@@ -179,6 +198,7 @@ const GroupMakerWidget: React.FC<GroupMakerWidgetProps> = ({ widget, updateData,
           <div className="bg-white border border-gray-200 px-2 py-0.5 rounded-md shadow-sm">
             <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Present: </span>
             <span className="text-xs font-bold text-blue-600">{count}</span>
+            {rosterId && <span className="ml-1 text-[8px] text-gray-400">({allRosters.find(r => r.id === rosterId)?.name})</span>}
           </div>
           <button onClick={() => updateData(widget.id, { groups: [] })} className="text-[10px] font-bold text-slate-400 hover:text-red-500 underline transition-colors">
             Reset

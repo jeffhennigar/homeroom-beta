@@ -127,7 +127,7 @@ const App: React.FC = () => {
   const [redoStack, setRedoStack] = useState<Widget[][][]>([]);
 
   // Auth State
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>({ id: 'mock-user', email: 'mock@test.com' });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -663,7 +663,7 @@ const App: React.FC = () => {
   };
 
   const renderWidgetContent = (widget: Widget) => {
-    const props = { widget, updateData: updateWidgetData, roster, onUpdateRoster: handleUpdateRoster };
+    const props = { widget, updateData: updateWidgetData, roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId };
     switch (widget.type) {
       case 'TIMER': return <TimerWidget {...props} />;
       case 'RANDOMIZER': return <RandomizerWidget {...props} />;

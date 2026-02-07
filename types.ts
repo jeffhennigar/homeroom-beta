@@ -38,6 +38,8 @@ export interface Student {
 
 export interface WidgetData {
   fontSize?: number;
+  // Roster Sync
+  rosterId?: string;
   // Timer
   durationMinutes?: number;
   timeLeft?: number;

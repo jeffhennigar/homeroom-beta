@@ -8,7 +8,7 @@ const DESK_COLORS = {
     yellow: 'bg-yellow-50 border-yellow-400'
 };
 
-const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster }) => {
+const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRosters = [], activeRosterId }) => {
     const { desks = [], isEditing = false, snapToGrid = 0, fontSize = 16 } = widget.data;
     const containerRef = useRef(null);
 
@@ -23,9 +23,14 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster }) => {
     const dragStartMouse = useRef({ x: 0, y: 0 });
     const initialDeskPositions = useRef({});
 
+    // Determine Effective Roster
+    const effectiveRoster = widget.data.rosterId
+        ? (allRosters.find(r => r.id === widget.data.rosterId)?.roster || [])
+        : roster;
+
     // Roster Sync
     useEffect(() => {
-        const allStudentNames = roster.map(s => s.name);
+        const allStudentNames = effectiveRoster.map(s => s.name);
         let currentDesks = Array.isArray(desks) ? [...desks] : [];
         let needsUpdate = false;
 
@@ -46,9 +51,36 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster }) => {
             }
         }
         if (needsUpdate) updateData(widget.id, { desks: currentDesks });
-    }, [roster, widget.id]);
+    }, [effectiveRoster, widget.id]);
 
-    const toggleAbsence = (studentName, e) => { if (e) { e.preventDefault(); e.stopPropagation(); } if (!studentName || !onUpdateRoster) return; const updated = roster.map(s => s.name === studentName ? { ...s, active: !s.active } : s); onUpdateRoster(updated); };
+    const toggleAbsence = (studentName, e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (!studentName) return;
+
+        // If tied to a specific roster, update THAT roster
+        if (widget.data.rosterId) {
+            // We can't update a specific roster via onUpdateRoster easily if it expects the *current* global roster.
+            // But onUpdateRoster in App.tsx just setsRoster and updates allRosters if active matches.
+            // We might need a new onUpdateSpecificRoster prop or handle it here via dataService if we were deep in it.
+            // For now, let's disable toggling absence for non-active rosters OR just assume we only toggle if it matches global?
+            // Actually App.tsx 'handleUpdateRoster' updates 'roster' state and 'allRosters' state.
+            // If we are editing a non-active roster, we need a way to save it. 
+            // Let's defer absence toggling for non-active rosters for now or assume it only works for active.
+            // Wait, if I click "OUT" on a student on Slide 2 (Class B), and Class A is active... what happens?
+            // It calls `toggleAbsence`.
+            // `onUpdateRoster` logic:
+            // const handleUpdateRoster = (newRoster) => { setRoster(newRoster); ... }
+            // It sets the GLOBAL roster. This is bad if we are viewing Class B.
+            // We should only call onUpdateRoster if effectiveRoster === globalRoster.
+            if (widget.data.rosterId && widget.data.rosterId !== activeRosterId) {
+                alert("Please switch to this class in Settings to mark attendance.");
+                return;
+            }
+        }
+
+        const updated = effectiveRoster.map(s => s.name === studentName ? { ...s, active: !s.active } : s);
+        onUpdateRoster(updated);
+    };
 
     const handleMouseDown = (e, deskId) => {
         if (!isEditing) return;
@@ -286,32 +318,46 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster }) => {
                         <button onClick={() => updateData(widget.id, { isEditing: true })} className="px-3 py-1 bg-white border border-gray-300 text-gray-600 rounded text-xs font-bold hover:bg-gray-50 flex items-center gap-1"><Edit3 size={12} /> Edit</button>
                     </>)}
                 </div>
-            </div>
-            <div ref={containerRef} className={`flex-1 relative overflow-hidden ${isEditing ? "bg-slate-100" : "bg-slate-50"}`} style={{ backgroundImage: isEditing ? "radial-gradient(#cbd5e1 1px, transparent 1px)" : "none", backgroundSize: `${Math.max(20, snapToGrid || 20)}px ${Math.max(20, snapToGrid || 20)}px` }} onMouseDown={handleBgMouseDown}>
-                {desks.map(desk => {
-                    const isAbsent = desk.student && roster.find(s => s.name === desk.student && !s.active);
-                    const scale = fontSize / 16;
-                    const deskW = (desk.type === 'teacher' ? 154 : 110) * scale;
-                    const deskH = (desk.type === 'teacher' ? 80 : 60) * scale;
-                    const styleClass = desk.type === "teacher" ? `bg-slate-800 border-slate-600 text-white shadow-lg rounded-md` : `${DESK_COLORS[desk.color || "blue"]} rounded-lg`;
-                    const isSelected = selectedDeskIds.includes(desk.id);
-                    return (<div key={desk.id} onContextMenu={(e) => toggleAbsence(desk.student, e)} className={`absolute shadow-sm border-2 flex items-center justify-center transition-shadow ${isEditing ? "cursor-move hover:shadow-md" : "cursor-pointer"} ${styleClass} ${isAbsent ? "opacity-60" : ""} ${isSelected ? "ring-2 ring-blue-500 ring-offset-2 z-10" : ""}`} style={{ left: desk.x, top: desk.y, width: deskW, height: deskH, transform: `rotate(${desk.rotation || 0}deg)`, fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px' }} onMouseDown={(e) => handleMouseDown(e, desk.id)} >
-                        {isAbsent && <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full z-30 shadow-sm">OUT</div>}
-                        {isEditing && (<>
-                            <button onClick={(e) => { e.stopPropagation(); removeDesk(desk.id); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600 w-5 h-5 flex items-center justify-center z-20"><X size={12} strokeWidth={3} /></button>
-                            <div onMouseDown={(e) => handleRotateMouseDown(e, desk.id)} className="absolute -top-3 -left-3 bg-blue-500 text-white rounded-full p-1 shadow-sm hover:bg-blue-600 w-6 h-6 flex items-center justify-center z-20 cursor-grab active:cursor-grabbing"><RotateCw size={14} strokeWidth={2.5} /></div>
-                        </>)}
-                        {desk.type === "teacher" ? <div className="flex flex-col items-center opacity-80"><Briefcase size={16} className="mb-0.5" /><span className="text-[8px] uppercase font-bold tracking-widest">Teacher</span></div> : (desk.student ? <span className={`font-bold text-center px-0.5 truncate w-full ${isAbsent ? 'text-slate-400 line-through' : 'text-slate-800'}`} style={{ fontSize: 'inherit' }}>{desk.student}</span> : <span className={`italic text-[10px] ${desk.color === "yellow" ? "text-yellow-700/50" : "text-slate-300"}`}>Empty</span>)}
-                        {desk.type !== "teacher" && <div className={`absolute -bottom-1 w-8 h-1 rounded-full ${desk.color === "yellow" ? "bg-yellow-200" : "bg-slate-200"}`} />}
-                    </div>);
-                })}
-
-                {/* Selection Box Visual */}
-                {isSelecting && selectionBox && (
-                    <div className="absolute border border-blue-500 bg-blue-500/10 pointer-events-none z-50" style={{ left: selectionBox.x, top: selectionBox.y, width: selectionBox.w, height: selectionBox.h }} />
+                {isEditing && (
+                    <div className="absolute top-12 right-4 z-20">
+                        <select
+                            value={widget.data.rosterId || ""}
+                            onChange={(e) => updateData(widget.id, { rosterId: e.target.value || undefined })}
+                            className="bg-white border border-gray-300 text-gray-700 text-xs font-bold py-1 px-2 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Use Global Class ({allRosters.find(r => r.id === activeRosterId)?.name || 'Default'})</option>
+                            {allRosters.map(r => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 )}
+                <div ref={containerRef} className={`flex-1 relative overflow-hidden ${isEditing ? "bg-slate-100" : "bg-slate-50"}`} style={{ backgroundImage: isEditing ? "radial-gradient(#cbd5e1 1px, transparent 1px)" : "none", backgroundSize: `${Math.max(20, snapToGrid || 20)}px ${Math.max(20, snapToGrid || 20)}px` }} onMouseDown={handleBgMouseDown}>
+                    {desks.map(desk => {
+                        const isAbsent = desk.student && effectiveRoster.find(s => s.name === desk.student && !s.active);
+                        const scale = fontSize / 16;
+                        const deskW = (desk.type === 'teacher' ? 154 : 110) * scale;
+                        const deskH = (desk.type === 'teacher' ? 80 : 60) * scale;
+                        const styleClass = desk.type === "teacher" ? `bg-slate-800 border-slate-600 text-white shadow-lg rounded-md` : `${DESK_COLORS[desk.color || "blue"]} rounded-lg`;
+                        const isSelected = selectedDeskIds.includes(desk.id);
+                        return (<div key={desk.id} onContextMenu={(e) => toggleAbsence(desk.student, e)} className={`absolute shadow-sm border-2 flex items-center justify-center transition-shadow ${isEditing ? "cursor-move hover:shadow-md" : "cursor-pointer"} ${styleClass} ${isAbsent ? "opacity-60" : ""} ${isSelected ? "ring-2 ring-blue-500 ring-offset-2 z-10" : ""}`} style={{ left: desk.x, top: desk.y, width: deskW, height: deskH, transform: `rotate(${desk.rotation || 0}deg)`, fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px' }} onMouseDown={(e) => handleMouseDown(e, desk.id)} >
+                            {isAbsent && <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full z-30 shadow-sm">OUT</div>}
+                            {isEditing && (<>
+                                <button onClick={(e) => { e.stopPropagation(); removeDesk(desk.id); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600 w-5 h-5 flex items-center justify-center z-20"><X size={12} strokeWidth={3} /></button>
+                                <div onMouseDown={(e) => handleRotateMouseDown(e, desk.id)} className="absolute -top-3 -left-3 bg-blue-500 text-white rounded-full p-1 shadow-sm hover:bg-blue-600 w-6 h-6 flex items-center justify-center z-20 cursor-grab active:cursor-grabbing"><RotateCw size={14} strokeWidth={2.5} /></div>
+                            </>)}
+                            {desk.type === "teacher" ? <div className="flex flex-col items-center opacity-80"><Briefcase size={16} className="mb-0.5" /><span className="text-[8px] uppercase font-bold tracking-widest">Teacher</span></div> : (desk.student ? <span className={`font-bold text-center px-0.5 truncate w-full ${isAbsent ? 'text-slate-400 line-through' : 'text-slate-800'}`} style={{ fontSize: 'inherit' }}>{desk.student}</span> : <span className={`italic text-[10px] ${desk.color === "yellow" ? "text-yellow-700/50" : "text-slate-300"}`}>Empty</span>)}
+                            {desk.type !== "teacher" && <div className={`absolute -bottom-1 w-8 h-1 rounded-full ${desk.color === "yellow" ? "bg-yellow-200" : "bg-slate-200"}`} />}
+                        </div>);
+                    })}
+
+                    {/* Selection Box Visual */}
+                    {isSelecting && selectionBox && (
+                        <div className="absolute border border-blue-500 bg-blue-500/10 pointer-events-none z-50" style={{ left: selectionBox.x, top: selectionBox.y, width: selectionBox.w, height: selectionBox.h }} />
+                    )}
+                </div>
             </div>
-        </div>);
+            );
 };
 
-export default SeatPickerWidget;
+            export default SeatPickerWidget;
