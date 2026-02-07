@@ -5730,10 +5730,17 @@
         });
       };
 
-
-
-
       // --- EFFECTS ---
+
+      // Global Redirection Logic (MUST BE AT TOP LEVEL)
+      useEffect(() => {
+        if (!user && !authLoading) {
+          const timer = setTimeout(() => {
+            window.location.href = 'https://ourhomeroom.app';
+          }, 2000);
+          return () => clearTimeout(timer);
+        }
+      }, [user, authLoading]);
 
       // Auth state listener
       useEffect(() => {
@@ -6655,15 +6662,6 @@
           </div>
         );
       }
-
-      useEffect(() => {
-        if (!user && !authLoading) {
-          const timer = setTimeout(() => {
-            window.location.href = 'https://ourhomeroom.app';
-          }, 2000);
-          return () => clearTimeout(timer);
-        }
-      }, [user, authLoading]);
 
       if (!user) {
         return (
