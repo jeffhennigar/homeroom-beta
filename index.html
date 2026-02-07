@@ -6684,8 +6684,9 @@
               <div className="text-[10px] text-slate-400 font-mono bg-black/50 p-3 rounded-lg mt-4 text-left border border-white/10" style={{ color: '#94a3b8', background: 'rgba(0,0,0,0.6)', maxWidth: '300px' }}>
                 <div className="font-bold border-b border-white/10 mb-1 pb-1 text-blue-400">Auth Diagnostics</div>
                 Host: {window.location.hostname} <br />
-                User: {user ? user.id.substring(0, 8) : 'null'} <br />
+                Project: {window.supabaseClient?.supabaseUrl?.split('//')[1].split('.')[0] || 'Unknown'} <br />
                 Auth: {authLoading ? 'Loading...' : 'Ready'} <br />
+                User: {user ? user.id.substring(0, 8) : 'null'} <br />
                 Cookies: {document.cookie.split(';').filter(c => c.trim()).length} total <br />
                 Keys: {document.cookie.split(';').map(c => c.split('=')[0].trim()).join(', ') || '(none)'}
               </div>
