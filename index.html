@@ -150,15 +150,24 @@
               const parsed = JSON.parse(value);
               // If it looks like a Supabase session, strip to essentials
               if (parsed.access_token && parsed.refresh_token) {
+                // IMPORTANT: Must keep user object for _emitInitialSession to work
+                let minUser = parsed.user;
+                if (minUser && typeof minUser === 'object') {
+                  // optimization: remove large identities array to save space
+                  const { identities, ...rest } = minUser;
+                  minUser = rest;
+                }
+
                 const stripped = {
                   access_token: parsed.access_token,
                   refresh_token: parsed.refresh_token,
                   expires_at: parsed.expires_at,
                   expires_in: parsed.expires_in,
-                  token_type: parsed.token_type || 'bearer'
+                  token_type: parsed.token_type || 'bearer',
+                  user: minUser
                 };
                 processedValue = JSON.stringify(stripped);
-                console.log('CookieStorage v2.7: Stripped session from', value.length, 'to', processedValue.length, 'bytes');
+                console.log('CookieStorage v2.8: Stripped session (keeping user) from', value.length, 'to', processedValue.length, 'bytes');
               }
             }
           } catch (e) {
