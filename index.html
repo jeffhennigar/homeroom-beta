@@ -1325,7 +1325,7 @@
 
 
 
-    const TextWidget = ({ widget, updateData, isGlassy, chromeless }) => {
+    const TextWidget = ({ widget, updateData, isGlassy, chromeless, isSelected }) => {
       const data = widget.data || {};
       const { items = [], content = "", mode = 'text', fontSize = 16, color = 'yellow', textColor = 'inherit', fontFamily = 'Poppins', listTitle = "" } = data;
       const [newItemText, setNewItemText] = useState("");
@@ -6026,8 +6026,8 @@
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: dockOrder,
-              active_roster_id: activeRosterId,
-              schedule_settings: scheduleSettings
+              active_roster_id: activeRosterId
+              // schedule_settings: scheduleSettings // Removed due to schema mismatch causing 400 error
             });
             if (profileError) throw profileError;
 
