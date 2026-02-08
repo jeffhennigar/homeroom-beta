@@ -5976,7 +5976,6 @@
         const syncToCloud = async () => {
           setIsSyncing(true);
           try {
-            /*
             // 1. Sync Slides (Iterative Manual Upsert + Cleanup)
             // Cleanup orphans first (slides that exist beyond current index)
             const { error: cleanupError } = await supabase.from('slides').delete().eq('user_id', user.id).gt('slide_index', slides.length - 1);
@@ -6027,7 +6026,6 @@
 
             // If we get here, sync was successful
             setLastSyncError(null);
-            */
 
           } catch (e) {
             console.error("Sync Exception:", e);
@@ -6123,19 +6121,16 @@
             console.log("Updating State with:", { newAllRosters, activeId, loadedSlides });
 
             // FIX: Ensure 'default' roster gets a real UUID immediately (Migration)
-            /* Migration Disabled
-            // FIX: Ensure 'default' roster gets a real UUID immediately (Migration)
-             if (activeId === 'default') {
-               const defaultIdx = newAllRosters.findIndex(r => r.id === 'default');
-               if (defaultIdx !== -1) {
-                 const newUUID = 'roster-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-                 console.log("Migrated default roster to UUID:", newUUID);
-                 // Clone and update
-                 newAllRosters[defaultIdx] = { ...newAllRosters[defaultIdx], id: newUUID };
-                 activeId = newUUID;
-               }
-             }
-             */
+            if (activeId === 'default') {
+              const defaultIdx = newAllRosters.findIndex(r => r.id === 'default');
+              if (defaultIdx !== -1) {
+                const newUUID = 'roster-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                console.log("Migrated default roster to UUID:", newUUID);
+                // Clone and update
+                newAllRosters[defaultIdx] = { ...newAllRosters[defaultIdx], id: newUUID };
+                activeId = newUUID;
+              }
+            }
 
             // Force Update - Even if cloud data is "empty", we must override local if we are in a fresh session
             if (newAllRosters.length > 0) {
