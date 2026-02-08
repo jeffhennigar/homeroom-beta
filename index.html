@@ -143,16 +143,38 @@
           const host = window.location.hostname;
           const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
 
+          // v2.7: Strip large session data to essential tokens only
+          let processedValue = value;
+          try {
+            if (value && value.length > 3000) {
+              const parsed = JSON.parse(value);
+              // If it looks like a Supabase session, strip to essentials
+              if (parsed.access_token && parsed.refresh_token) {
+                const stripped = {
+                  access_token: parsed.access_token,
+                  refresh_token: parsed.refresh_token,
+                  expires_at: parsed.expires_at,
+                  expires_in: parsed.expires_in,
+                  token_type: parsed.token_type || 'bearer'
+                };
+                processedValue = JSON.stringify(stripped);
+                console.log('CookieStorage v2.7: Stripped session from', value.length, 'to', processedValue.length, 'bytes');
+              }
+            }
+          } catch (e) {
+            // Not JSON, use original value
+          }
+
           // Aggressive Clear
           document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
 
-          let cookieStr = `${key}=${encodeURIComponent(value)}; ${expires}; path=/; SameSite=Lax; Secure`;
+          let cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; SameSite=Lax; Secure`;
           if (!isLocal && host.includes('ourhomeroom.app')) {
-            // v2.6: Use leading dot for explicit cross-subdomain sharing
-            cookieStr = `${key}=${encodeURIComponent(value)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+            // v2.7: Use leading dot for explicit cross-subdomain sharing
+            cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
           }
           document.cookie = cookieStr;
-          console.log('CookieStorage v2.6 Set:', key);
+          console.log('CookieStorage v2.7 Set:', key, 'size:', processedValue.length);
         },
         removeItem: (key) => {
           const host = window.location.hostname;

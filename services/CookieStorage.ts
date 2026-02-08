@@ -18,12 +18,33 @@ export const CookieStorage = {
         const d = new Date();
         d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year
         const expires = d.toUTCString();
-        // Default to strict for localhost, lax/domain for production
         const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
         const domain = isLocal ? '' : 'domain=.ourhomeroom.app; ';
         const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-        document.cookie = `${key}=${value}; expires=${expires}; path=/; ${domain}SameSite=Lax${secure}`;
-        console.log('[CookieStorage v2.6] Set cookie:', key, 'domain:', domain);
+
+        // v2.7: Strip large session data to essential tokens only (cookie size limit ~4KB)
+        let processedValue = value;
+        try {
+            if (value && value.length > 3000) {
+                const parsed = JSON.parse(value);
+                if (parsed.access_token && parsed.refresh_token) {
+                    const stripped = {
+                        access_token: parsed.access_token,
+                        refresh_token: parsed.refresh_token,
+                        expires_at: parsed.expires_at,
+                        expires_in: parsed.expires_in,
+                        token_type: parsed.token_type || 'bearer'
+                    };
+                    processedValue = JSON.stringify(stripped);
+                    console.log('[CookieStorage v2.7] Stripped session from', value.length, 'to', processedValue.length, 'bytes');
+                }
+            }
+        } catch (e) {
+            // Not JSON, use original value
+        }
+
+        document.cookie = `${key}=${encodeURIComponent(processedValue)}; expires=${expires}; path=/; ${domain}SameSite=Lax${secure}`;
+        console.log('[CookieStorage v2.7] Set cookie:', key, 'size:', processedValue.length);
     },
     removeItem: (key: string): void => {
         const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
