@@ -23,6 +23,7 @@ export const CookieStorage = {
         const domain = isLocal ? '' : 'domain=.ourhomeroom.app; ';
         const secure = window.location.protocol === 'https:' ? '; Secure' : '';
         document.cookie = `${key}=${value}; expires=${expires}; path=/; ${domain}SameSite=Lax${secure}`;
+        console.log('[CookieStorage v2.6] Set cookie:', key, 'domain:', domain);
     },
     removeItem: (key: string): void => {
         const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
