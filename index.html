@@ -5967,15 +5967,27 @@
         const syncToCloud = async () => {
           setIsSyncing(true);
           try {
-            // 1. Sync Slides (BATCH ALL)
-            const slidesToSync = slides.map((widgets, idx) => ({
-              user_id: user.id,
-              slide_index: idx,
-              widgets: widgets
-            }));
-            const { error: slideError } = await supabase.from('slides').upsert(slidesToSync);
+            // 1. Sync Slides (Iterative Manual Upsert + Cleanup)
+            // Cleanup orphans first (slides that exist beyond current index)
+            const { error: cleanupError } = await supabase.from('slides').delete().eq('user_id', user.id).gt('slide_index', slides.length - 1);
+            if (cleanupError) console.error("Slide cleanup error:", cleanupError);
 
-            if (slideError) throw slideError;
+            for (let idx = 0; idx < slides.length; idx++) {
+              const widgets = slides[idx];
+              const { data: existing } = await supabase.from('slides').select('id').match({ user_id: user.id, slide_index: idx }).maybeSingle();
+              let slideError;
+
+              if (existing) {
+                ({ error: slideError } = await supabase.from('slides').update({ widgets }).match({ user_id: user.id, slide_index: idx }));
+              } else {
+                ({ error: slideError } = await supabase.from('slides').insert({
+                  user_id: user.id,
+                  slide_index: idx,
+                  widgets: widgets
+                }));
+              }
+              if (slideError) throw slideError;
+            }
 
             // 2. Sync Active Roster
             const activeRoster = allRosters.find(r => r.id === activeRosterId);
@@ -6098,6 +6110,18 @@
 
             // 3. Update State
             console.log("Updating State with:", { newAllRosters, activeId, loadedSlides });
+
+            // FIX: Ensure 'default' roster gets a real UUID immediately (Migration)
+            if (activeId === 'default') {
+              const defaultIdx = newAllRosters.findIndex(r => r.id === 'default');
+              if (defaultIdx !== -1) {
+                const newUUID = 'roster-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                console.log("Migrated default roster to UUID:", newUUID);
+                // Clone and update
+                newAllRosters[defaultIdx] = { ...newAllRosters[defaultIdx], id: newUUID };
+                activeId = newUUID;
+              }
+            }
 
             // Force Update - Even if cloud data is "empty", we must override local if we are in a fresh session
             if (newAllRosters.length > 0) {
