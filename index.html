@@ -148,8 +148,8 @@
 
           let cookieStr = `${key}=${encodeURIComponent(value)}; ${expires}; path=/; SameSite=Lax; Secure`;
           if (!isLocal && host.includes('ourhomeroom.app')) {
-            // v2.5: Remove leading dot for consistency
-            cookieStr = `${key}=${encodeURIComponent(value)}; ${expires}; path=/; domain=ourhomeroom.app; SameSite=Lax; Secure`;
+            // v2.6: Use leading dot for explicit cross-subdomain sharing
+            cookieStr = `${key}=${encodeURIComponent(value)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
           }
           document.cookie = cookieStr;
           console.log('CookieStorage v2.5 Set:', key);
@@ -159,7 +159,7 @@
           const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
           document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
           if (!isLocal && host.includes('ourhomeroom.app')) {
-            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=ourhomeroom.app; SameSite=Lax; Secure`;
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
           }
         }
       };
