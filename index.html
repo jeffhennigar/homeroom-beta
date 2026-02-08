@@ -5860,7 +5860,14 @@
       };
 
       const handleAddRoster = (name) => {
-        const newRoster = { id: Date.now().toString(), name: name, roster: [], slides: [[]] };
+        const generateUUID = () => {
+          if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        };
+        const newRoster = { id: generateUUID(), name: name, roster: [], slides: [[]] };
         setAllRosters(prev => [...prev, newRoster]);
         handleSetActiveRoster(newRoster.id);
       };
@@ -6120,16 +6127,31 @@
             // 3. Update State
             console.log("Updating State with:", { newAllRosters, activeId, loadedSlides });
 
-            // FIX: Ensure 'default' roster gets a real UUID immediately (Migration)
-            if (activeId === 'default') {
-              const defaultIdx = newAllRosters.findIndex(r => r.id === 'default');
-              if (defaultIdx !== -1) {
-                const newUUID = 'roster-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-                console.log("Migrated default roster to UUID:", newUUID);
-                // Clone and update
-                newAllRosters[defaultIdx] = { ...newAllRosters[defaultIdx], id: newUUID };
-                activeId = newUUID;
+            // FIX: Ensure all roster IDs are valid UUIDs (Migration)
+            const isValidUUID = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+            const generateUUID = () => {
+              if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+              return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+              });
+            };
+
+            let migratedAny = false;
+            newAllRosters = newAllRosters.map(r => {
+              if (!isValidUUID(r.id)) {
+                const oldId = r.id;
+                const newId = generateUUID();
+                console.log(`Migrating roster "${r.name}" ID: ${oldId} -> ${newId}`);
+                if (activeId === oldId) activeId = newId;
+                migratedAny = true;
+                return { ...r, id: newId };
               }
+              return r;
+            });
+
+            if (migratedAny) {
+              console.log("Roster migration complete. Syncing updated IDs...");
             }
 
             // Force Update - Even if cloud data is "empty", we must override local if we are in a fresh session
