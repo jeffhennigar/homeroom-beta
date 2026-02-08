@@ -17,15 +17,17 @@ export const CookieStorage = {
     setItem: (key: string, value: string): void => {
         const d = new Date();
         d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year
-        const expires = "expires=" + d.toUTCString();
+        const expires = d.toUTCString();
         // Default to strict for localhost, lax/domain for production
         const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
-        const domain = isLocal ? '' : 'domain=.ourhomeroom.app;';
-        document.cookie = key + "=" + value + ";" + expires + ";path=/;" + domain + "SameSite=Lax;Secure";
+        const domain = isLocal ? '' : 'domain=.ourhomeroom.app; ';
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${key}=${value}; expires=${expires}; path=/; ${domain}SameSite=Lax${secure}`;
     },
     removeItem: (key: string): void => {
         const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
-        const domain = isLocal ? '' : 'domain=.ourhomeroom.app;';
-        document.cookie = key + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;" + domain + "SameSite=Lax;Secure";
+        const domain = isLocal ? '' : 'domain=.ourhomeroom.app; ';
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; ${domain}SameSite=Lax${secure}`;
     }
 };
