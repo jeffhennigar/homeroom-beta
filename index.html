@@ -125,39 +125,43 @@
 
       const CookieStorage = {
         getItem: (key) => {
-          try {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-              let cookie = cookies[i].trim();
-              if (cookie.indexOf(key + '=') === 0) {
-                try {
-                  return decodeURIComponent(cookie.substring(key.length + 1));
-                } catch (e) {
-                  return cookie.substring(key.length + 1);
-                }
-              }
+          const name = key + "=";
+          const ca = document.cookie.split(';');
+          for (let i = 0; i < ca.length; i++) {
+            let c = ca[i].trim();
+            if (c.indexOf(name) === 0) {
+              try { return decodeURIComponent(c.substring(name.length)); }
+              catch (e) { return c.substring(name.length); }
             }
-          } catch (e) {
-            console.error("Cookie read error:", e);
           }
           return null;
         },
         setItem: (key, value) => {
           const d = new Date();
-          d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year
+          d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
           const expires = "expires=" + d.toUTCString();
-          const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
-          const domain = isLocal ? '' : 'domain=.ourhomeroom.app;';
+          const host = window.location.hostname;
+          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
           const encodedValue = encodeURIComponent(value);
-          document.cookie = key + "=" + encodedValue + ";" + expires + ";path=/;" + domain + "SameSite=Lax;Secure";
+
+          // Clear host-only
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+
+          if (!isLocal && host.includes('ourhomeroom.app')) {
+            document.cookie = `${key}=${encodedValue}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+          } else {
+            document.cookie = `${key}=${encodedValue}; ${expires}; path=/; SameSite=Lax; Secure`;
+          }
         },
         removeItem: (key) => {
-          const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
-          const domain = isLocal ? '' : 'domain=.ourhomeroom.app;';
-          document.cookie = key + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;" + domain + "SameSite=Lax;Secure";
+          const host = window.location.hostname;
+          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+          if (!isLocal && host.includes('ourhomeroom.app')) {
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+          }
         }
       };
-
       try {
         window.supabaseClient = window.supabase.createClient(url, key, {
           auth: {
