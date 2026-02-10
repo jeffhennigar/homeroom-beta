@@ -2927,7 +2927,7 @@
       const count = activeStudents.length;
       const scaledFS = (fontSize / 16) * 14;
 
-      // Responsive column calculation with Debounce
+      // Responsive column calculation — prefer balanced rows
       useEffect(() => {
         if (!containerRef.current) return;
 
@@ -2937,9 +2937,23 @@
             if (timeoutId) clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
               const width = entry.contentRect.width;
-              // Adjusted: 120px min width for higher density (user expects 3-6 cols)
-              const newCols = Math.max(1, Math.min(8, Math.floor(width / 120)));
-              setColumns(newCols);
+              const maxCols = Math.max(1, Math.min(8, Math.floor(width / 120)));
+              const numGroups = groups.length;
+
+              if (numGroups <= 1) { setColumns(Math.max(1, maxCols)); return; }
+
+              // Pick the column count (from 1..maxCols) that yields the most balanced rows.
+              // "balanced" = last row has the same number of items as every other row (remainder == 0),
+              // or, failing that, the largest remainder (fewest empty cells in the last row).
+              let bestCols = maxCols;
+              let bestScore = -1; // higher is better
+              for (let c = 1; c <= maxCols; c++) {
+                const remainder = numGroups % c;
+                // Perfect fit scores highest; otherwise score by how full the last row is
+                const score = remainder === 0 ? c + 1000 : remainder;
+                if (score > bestScore) { bestScore = score; bestCols = c; }
+              }
+              setColumns(bestCols);
             }, 50);
           }
         });
@@ -2948,7 +2962,7 @@
           observer.disconnect();
           if (timeoutId) clearTimeout(timeoutId);
         };
-      }, [groups]); // Re-run when groups are generated/reset
+      }, [groups]);
 
       const createGroups = (countNeeded) => {
         const shuffled = [...activeStudents].sort(() => Math.random() - 0.5);
