@@ -2934,12 +2934,11 @@
         let timeoutId;
         const observer = new ResizeObserver((entries) => {
           for (let entry of entries) {
-            // Debounce the column update to prevent rapid flickering
             if (timeoutId) clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
               const width = entry.contentRect.width;
-              // Adjusted: 140px min width for better density
-              const newCols = Math.max(1, Math.min(8, Math.floor(width / 140)));
+              // Adjusted: 120px min width for higher density (user expects 3-6 cols)
+              const newCols = Math.max(1, Math.min(8, Math.floor(width / 120)));
               setColumns(newCols);
             }, 50);
           }
@@ -2949,7 +2948,7 @@
           observer.disconnect();
           if (timeoutId) clearTimeout(timeoutId);
         };
-      }, []);
+      }, [groups]); // Re-run when groups are generated/reset
 
       const createGroups = (countNeeded) => {
         const shuffled = [...activeStudents].sort(() => Math.random() - 0.5);
