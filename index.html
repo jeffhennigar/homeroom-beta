@@ -2885,8 +2885,21 @@
             <Settings size={16} />
           </button>
 
-          <div className="absolute top-2 left-2 text-[10px] font-bold text-black/40 uppercase tracking-wider">
-            {pickedCount}/{totalCount}
+          <div className="absolute top-2 left-2 flex items-center gap-2 z-20">
+            <div className="text-[10px] font-bold text-black/40 uppercase tracking-wider">
+              {pickedCount}/{totalCount}
+            </div>
+            <select
+              className="text-[10px] font-bold border rounded bg-white/50 backdrop-blur-sm px-1 py-0.5 outline-none focus:bg-white transition-colors"
+              value={activeClassId}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setActiveClassId(newId);
+                updateData(widget.id, { activeClassId: newId, pickedStudents: [] });
+              }}
+            >
+              {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+            </select>
           </div>
 
           <div className="flex-1 flex items-center justify-center w-full">
@@ -3018,17 +3031,36 @@
             <p className="text-slate-500 text-xs max-w-[200px] mb-6">Instantly split {count} students into random groups.</p>
 
             <div className="w-full max-w-[240px] bg-slate-50 p-3 rounded-xl border border-slate-100 mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-slate-500 uppercase">Groups</span>
-                <span className="text-sm font-black text-slate-700">{groupCount}</span>
-              </div>
-              <input
-                type="range" min="2" max="20" value={groupCount}
-                onChange={e => updateData(widget.id, { groupCount: Number(e.target.value) })}
-                className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="text-[10px] text-slate-400 mt-2 text-right">
-                ~{Math.ceil(count / groupCount)} students per group
+              <div className="flex flex-col gap-3 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Class Roster</span>
+                  <select
+                    className="text-[10px] font-bold border rounded bg-white px-1 py-0.5"
+                    value={activeClassId}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setActiveClassId(newId);
+                      updateData(widget.id, { activeClassId: newId, groups: [] });
+                    }}
+                  >
+                    {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+                  </select>
+                </div>
+                <div className="h-px bg-slate-200/50" />
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Groups</span>
+                    <span className="text-sm font-black text-slate-700">{groupCount}</span>
+                  </div>
+                  <input
+                    type="range" min="2" max="20" value={groupCount}
+                    onChange={e => updateData(widget.id, { groupCount: Number(e.target.value) })}
+                    className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="text-[10px] text-slate-400 mt-2 text-right">
+                    ~{Math.ceil(count / groupCount)} students per group
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -5665,6 +5697,7 @@
       const [user, setUser] = useState(null);
       const [isSyncing, setIsSyncing] = useState(false);
       const [lastSyncError, setLastSyncError] = useState(null);
+      const [profileLastModified, setProfileLastModified] = useState(null);
 
       // --- STATE DECLARATIONS ---
       const [allRosters, setAllRosters] = useState(() => {
@@ -5822,12 +5855,19 @@
 
         const channel = supabase.channel(`realtime:${user.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` }, (payload) => {
-            if (isSyncing) return; // Ignore our own changes
+            if (isSyncing) return;
             const updatedSlide = payload.new;
             if (updatedSlide && updatedSlide.slide_index !== undefined) {
+              // Ignore if this is just an echo of our own change
+              const currentSlide = slides[updatedSlide.slide_index];
+              if (currentSlide && updatedSlide.last_modified && currentSlide._last_modified === updatedSlide.last_modified) return;
+
               setSlides(prev => {
                 const next = [...prev];
-                next[updatedSlide.slide_index] = updatedSlide.widgets;
+                const widgets = updatedSlide.widgets || [];
+                // Attach temporary last_modified to the local state for comparison
+                widgets._last_modified = updatedSlide.last_modified;
+                next[updatedSlide.slide_index] = widgets;
                 return next;
               });
             }
@@ -5837,31 +5877,55 @@
             const updatedRoster = payload.new;
             if (updatedRoster) {
               setAllRosters(prev => {
-                const existingIdx = prev.findIndex(r => r.name === updatedRoster.name);
+                const existingIdx = prev.findIndex(r => r.id === updatedRoster.id || (r.name === updatedRoster.name && !r.id.includes('-')));
                 if (existingIdx !== -1) {
+                  const existing = prev[existingIdx];
+                  if (updatedRoster.last_modified && existing._last_modified === updatedRoster.last_modified) return prev;
+
                   const next = [...prev];
-                  next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster };
+                  next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster, id: updatedRoster.id, _last_modified: updatedRoster.last_modified };
                   return next;
                 } else {
-                  return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster }];
+                  return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster, _last_modified: updatedRoster.last_modified }];
                 }
               });
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
             if (isSyncing) return;
-            const p = payload.new;
-            if (p) {
-              if (p.background) setBackground(p.background);
-              if (p.grid_enabled !== undefined) setIsGridEnabled(p.grid_enabled);
-              if (p.clock_style) setClockStyle(p.clock_style);
-              if (p.schedule) setScheduleTemplate(p.schedule);
+            const profile = payload.new;
+            if (profile) {
+              // Simple check for profile updates - maybe less critical than slides/rosters but good for consistency
+              if (profile.last_modified && profileLastModified === profile.last_modified) return;
+
+              if (profile.background) setBackground(profile.background);
+              if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
+              if (profile.clock_style) setClockStyle(profile.clock_style);
+              if (profile.schedule) setScheduleTemplate(profile.schedule);
+              if (profile.dock_order) {
+                const order = profile.dock_order;
+                if (Array.isArray(order)) {
+                  const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+                  const allDefaults = [...mainDefaults, ...drawerDefaults];
+                  setDockOrder({
+                    main: mainDefaults.filter(id => order.includes(id)),
+                    drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                  });
+                } else {
+                  setDockOrder(order);
+                }
+              }
+              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
+              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              if (profile.last_modified) setProfileLastModified(profile.last_modified);
             }
           })
           .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-      }, [user, isSyncing]);
+      }, [user, isSyncing, profileLastModified]);
 
       // --- MANAGEMENT FUNCTIONS ---
       const handleSetActiveRoster = (id) => {
@@ -6001,42 +6065,32 @@
         const syncToCloud = async () => {
           setIsSyncing(true);
           try {
-            // 1. Sync Slides (Iterative Manual Upsert + Cleanup)
-            // Cleanup orphans first (slides that exist beyond current index)
+            // 1. Sync Slides
             const { error: cleanupError } = await supabase.from('slides').delete().eq('user_id', user.id).gt('slide_index', slides.length - 1);
             if (cleanupError) console.error("Slide cleanup error:", cleanupError);
 
             for (let idx = 0; idx < slides.length; idx++) {
               const widgets = slides[idx];
+              const last_modified = Date.now();
+              widgets._last_modified = last_modified;
+
               const { data: existing } = await supabase.from('slides').select('id').match({ user_id: user.id, slide_index: idx }).maybeSingle();
               let slideError;
+              const payload = { widgets, last_modified };
 
               if (existing) {
-                ({ error: slideError } = await supabase.from('slides').update({ widgets }).match({ user_id: user.id, slide_index: idx }));
+                ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx }));
               } else {
-                ({ error: slideError } = await supabase.from('slides').insert({
-                  user_id: user.id,
-                  slide_index: idx,
-                  widgets: widgets
-                }));
+                ({ error: slideError } = await supabase.from('slides').insert({ user_id: user.id, slide_index: idx, ...payload }));
               }
               if (slideError) throw slideError;
             }
 
-            // 2. Sync Active Roster
-            const activeRoster = allRosters.find(r => r.id === activeRosterId);
-            if (activeRoster) {
-              const { error: rosterError } = await supabase.from('rosters').upsert({
-                id: activeRoster.id, // CRITICAL: Must sync ID to link with profile
-                user_id: user.id,
-                name: activeRoster.name,
-                roster: activeRoster.roster
-              });
-              if (rosterError) throw rosterError;
-            }
-            // 3. Sync Profile (Settings, Background, etc.)
-            const { error: profileError } = await supabase.from('profiles').upsert({
-              id: user.id,
+            // 2. Sync Profile
+            const last_modified = Date.now();
+            setProfileLastModified(last_modified);
+
+            const profilePayload = {
               background,
               slide_backgrounds: slideBackgrounds,
               my_backgrounds: customBackgrounds,
@@ -6044,26 +6098,28 @@
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
-              active_roster_id: activeRosterId
-              // schedule_settings: scheduleSettings // Removed due to schema mismatch causing 400 error
-            });
+              active_roster_id: activeRosterId,
+              last_modified
+            };
+
+            const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, ...profilePayload });
             if (profileError) throw profileError;
 
-            // If we get here, sync was successful
             setLastSyncError(null);
-
           } catch (e) {
             console.error("Sync Exception:", e);
             setLastSyncError(e.message || "Unknown Sync Error");
-          } finally { setIsSyncing(false); }
+          } finally {
+            setIsSyncing(false);
+          }
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, isGridEnabled, clockStyle, dockOrder]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, isGridEnabled, clockStyle, dockOrder, cloudSyncEnabled]);
 
       // Supabase Data Loading
       useEffect(() => {
-        if (!user) return;
+        if (!user || hasCheckedCloud) return;
         const loadFromCloud = async () => {
           setIsSyncing(true);
           try {
@@ -6217,7 +6273,7 @@
         // Wait for Supabase auth to fully stabilize
         const t = setTimeout(loadFromCloud, 500);
         return () => clearTimeout(t);
-      }, [user]);
+      }, [user, hasCheckedCloud]);
 
       // Force Re-render on Roster Change (Safety Net)
       useEffect(() => {
@@ -6823,7 +6879,14 @@
             onDeleteRoster={handleDeleteRoster}
             onRenameRoster={handleRenameRoster}
             onClose={() => { setShowSettingsModal(false); setEditingWidgetId(null); }}
-            onSave={(newRoster) => { setRoster(newRoster); }}
+            onSave={(newRoster) => {
+              setRoster(newRoster);
+              setAllRosters(prev => prev.map(r => r.id === activeRosterId ? { ...r, roster: newRoster } : r));
+              // Force immediate persistence for roster
+              try {
+                localStorage.setItem('homeroom_roster', JSON.stringify(newRoster));
+              } catch (e) { }
+            }}
             downloadData={downloadData}
             fileInputRef={fileInputRef}
             initialTab={settingsInitialTab}
