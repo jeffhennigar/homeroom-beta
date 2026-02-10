@@ -453,15 +453,31 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return INIT_DOCK_ORDER;
-        // Merge in any new widgets that might have been added
-        const allSavedWidgets = [...(saved.main || []), ...(saved.drawer || [])];
-        const missingWidgets = INIT_DOCK_ORDER.filter(w => !allSavedWidgets.includes(w));
-        if (missingWidgets.length > 0) {
-          return { main: [...(saved.main || []), ...missingWidgets], drawer: saved.drawer || [] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+
+        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+        const allDefaults = [...mainDefaults, ...drawerDefaults];
+
+        // If it's a flat array (from Supabase or old storage)
+        if (Array.isArray(saved)) {
+          return {
+            main: mainDefaults.filter(id => saved.includes(id)),
+            drawer: [...drawerDefaults.filter(id => saved.includes(id)), ...saved.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !saved.includes(id))]
+          };
         }
-        return saved;
-      } catch (e) { return INIT_DOCK_ORDER; }
+
+        // If it's already an object
+        if (saved && saved.main && saved.drawer) {
+          const currentIds = [...saved.main, ...saved.drawer];
+          const missing = allDefaults.filter(id => !currentIds.includes(id));
+          return { ...saved, drawer: [...saved.drawer, ...missing] };
+        }
+
+        return { main: mainDefaults, drawer: drawerDefaults };
+      } catch (e) {
+        return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+      }
     };
     const saveDockOrder = (order) => { try { localStorage.setItem(DOCK_ORDER_KEY, JSON.stringify(order)); } catch (e) { } };
 
@@ -2775,12 +2791,15 @@
       );
     };
 
-    const RandomizerWidget = ({ widget, updateData, roster }) => {
-      const { currentName, isAnimating, fontSize = 16, pickedStudents = [], bgColor = '#e0e7ff' } = widget.data;
+    const RandomizerWidget = ({ widget, updateData, roster, allRosters }) => {
+      const { currentName, isAnimating, fontSize = 16, pickedStudents = [], bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
+      const [activeClassId, setActiveClassId] = useState(savedActiveClassId || (allRosters?.length > 0 ? allRosters[0].id : null));
+      const currentRoster = allRosters?.find(r => r.id === activeClassId)?.roster || roster || [];
+
       const [showSettings, setShowSettings] = useState(false);
       const steps = useRef(0);
       const intervalRef = useRef(null);
-      const activeStudents = roster.filter(s => s.active);
+      const activeStudents = currentRoster.filter(s => s.active);
       const unpickedStudents = activeStudents.filter(s => !pickedStudents.includes(s.name));
 
       useEffect(() => {
@@ -2818,6 +2837,20 @@
               <button onClick={() => setShowSettings(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} /></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Class Roster</label>
+                <select
+                  className="w-full text-xs border rounded p-1 mb-3 bg-white"
+                  value={activeClassId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setActiveClassId(newId);
+                    updateData(widget.id, { activeClassId: newId, pickedStudents: [] });
+                  }}
+                >
+                  {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+                </select>
+              </div>
               <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Background Color</label>
                 <div className="flex gap-2 flex-wrap">
@@ -2867,14 +2900,17 @@
       );
     };
 
-    const GroupMakerWidget = ({ widget, updateData, roster }) => {
-      const { groups = [], fontSize = 16, groupCount = 4 } = widget.data;
+    const GroupMakerWidget = ({ widget, updateData, roster, allRosters }) => {
+      const { groups = [], fontSize = 16, groupCount = 4, activeClassId: savedActiveClassId } = widget.data;
+      const [activeClassId, setActiveClassId] = useState(savedActiveClassId || (allRosters?.length > 0 ? allRosters[0].id : null));
+      const currentRoster = allRosters?.find(r => r.id === activeClassId)?.roster || roster || [];
+
       const containerRef = useRef(null);
       const [columns, setColumns] = useState(4);
       const dragItem = useRef(null);
       const dragSourceGroup = useRef(null);
 
-      const activeStudents = roster.filter(s => s.active);
+      const activeStudents = currentRoster.filter(s => s.active);
       const count = activeStudents.length;
       const scaledFS = (fontSize / 16) * 14;
 
@@ -3010,7 +3046,19 @@
       return (
         <div className="flex flex-col h-full bg-slate-100 relative p-4">
           <div className="flex flex-col gap-2 flex-1 min-h-0">
-            <div className="flex justify-between items-center mb-1 shrink-0">
+            <div className="flex justify-between items-center mb-1 shrink-0 gap-2">
+              <select
+                className="text-[10px] font-bold border rounded bg-white px-1 py-0.5"
+                value={activeClassId}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setActiveClassId(newId);
+                  updateData(widget.id, { activeClassId: newId, groups: [] });
+                }}
+              >
+                {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+              </select>
+
               <div className="bg-white border border-gray-200 px-2 py-0.5 rounded-md shadow-sm">
                 <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Present: </span>
                 <span className="text-xs font-bold text-blue-600">{count}</span>
@@ -5348,9 +5396,9 @@
                     <p className="text-gray-500 text-sm text-center">A classroom management tool by <span className="font-semibold text-teal-600">EduLoop</span></p>
                   </div>
                   <div className="space-y-2">
-                    <a href="mailto:jeffhennigar@gmail.com" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-blue-50 rounded-xl transition-colors group">
+                    <a href="mailto:info@ourhomeroom.app" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-blue-50 rounded-xl transition-colors group">
                       <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Mail size={16} /></div>
-                      <div><div className="text-xs text-gray-400">Contact</div><div className="text-sm font-semibold text-gray-700 group-hover:text-blue-600">jeffhennigar@gmail.com</div></div>
+                      <div><div className="text-xs text-gray-400">Contact</div><div className="text-sm font-semibold text-gray-700 group-hover:text-blue-600">info@ourhomeroom.app</div></div>
                     </a>
                     <a href="https://www.teacherspayteachers.com/store/effortless-edtech" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-green-50 rounded-xl transition-colors group">
                       <div className="p-2 bg-green-100 rounded-lg text-green-600"><ExternalLink size={16} /></div>
@@ -6025,7 +6073,7 @@
               schedule: scheduleTemplate,
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
-              dock_order: dockOrder,
+              dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
               active_roster_id: activeRosterId
               // schedule_settings: scheduleSettings // Removed due to schema mismatch causing 400 error
             });
@@ -6118,7 +6166,20 @@
               if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
               if (profile.clock_style) setClockStyle(profile.clock_style);
               if (profile.schedule) setScheduleTemplate(profile.schedule);
-              if (profile.dock_order) setDockOrder(profile.dock_order);
+              if (profile.dock_order) {
+                const order = profile.dock_order;
+                if (Array.isArray(order)) {
+                  const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+                  const allDefaults = [...mainDefaults, ...drawerDefaults];
+                  setDockOrder({
+                    main: mainDefaults.filter(id => order.includes(id)),
+                    drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                  });
+                } else {
+                  setDockOrder(order);
+                }
+              }
               if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
               if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
