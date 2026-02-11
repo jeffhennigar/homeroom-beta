@@ -3950,7 +3950,7 @@
       };
 
       const updateItem = (index, field, value) => { const newItems = [...items]; newItems[index] = { ...newItems[index], [field]: value }; saveItems(newItems); };
-      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '\u{1F4DA}', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
+      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
       const removeItem = (index) => { const newItems = items.filter((_, i) => i !== index); saveItems(newItems); };
 
       const handleDragStart = (index) => { setDragIndex(index); };
@@ -4914,7 +4914,7 @@
       };
 
       const addScheduleItem = (day) => {
-        const newItem = { id: Date.now().toString(), time: '09:00', emoji: 'ðŸ“š', title: 'New Activity', description: '' };
+        const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' };
         setScheduleTemplate(prev => ({ ...prev, [day]: [...(prev[day] || []), newItem] }));
       };
 
@@ -5932,6 +5932,7 @@
               if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
               if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
               if (profile.last_modified) setProfileLastModified(profile.last_modified);
             }
           })
@@ -6099,7 +6100,28 @@
               if (slideError) throw slideError;
             }
 
-            // 2. Sync Profile
+            // 2. Sync ALL Rosters
+            const rosterIds = allRosters.map(r => r.id);
+            for (const r of allRosters) {
+              const rosterPayload = {
+                id: r.id,
+                user_id: user.id,
+                name: r.name,
+                roster: r.roster || [],
+                last_modified: Date.now()
+              };
+              const { error: rosterError } = await supabase.from('rosters').upsert(rosterPayload);
+              if (rosterError) console.error('Roster sync error:', rosterError);
+            }
+            // Clean up deleted rosters from cloud
+            if (rosterIds.length > 0) {
+              const { error: cleanupErr } = await supabase.from('rosters').delete()
+                .eq('user_id', user.id)
+                .not('id', 'in', `(${rosterIds.join(',')})`);
+              if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
+            }
+
+            // 3. Sync Profile
             const last_modified = Date.now();
             setProfileLastModified(last_modified);
 
@@ -6108,6 +6130,7 @@
               slide_backgrounds: slideBackgrounds,
               my_backgrounds: customBackgrounds,
               schedule: scheduleTemplate,
+              schedule_overrides: scheduleOverrides,
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
@@ -6128,7 +6151,7 @@
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, isGridEnabled, clockStyle, dockOrder, cloudSyncEnabled]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, dockOrder, cloudSyncEnabled]);
 
       // Supabase Data Loading
       useEffect(() => {
@@ -6222,6 +6245,7 @@
               if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
               if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
             }
 
             // 3. Update State
