@@ -271,6 +271,7 @@
       document.body.appendChild(errDiv);
     };
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 
 <body>
@@ -289,7 +290,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle
     } from 'lucide-react';
 
     const TimerIcon = Timer;
@@ -432,7 +433,7 @@
       orange: { bg: '#fff7ed', border: '#ea580c' }
     };
 
-    const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'OVERLAY_TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'DRAWING', 'YOUTUBE', 'CALENDAR'];
+    const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'OVERLAY_TEXT', 'MARBLE_JAR', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'DRAWING', 'YOUTUBE', 'CALENDAR'];
     const TrafficLightIcon = () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="7" y="2" width="10" height="20" rx="4" />
@@ -458,7 +459,8 @@
       DRAWING: { label: 'Drawing', icon: <Pencil /> },
       SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
       YOUTUBE: { label: 'Embed', icon: <Youtube /> },
-      CALENDAR: { label: 'Calendar', icon: <Calendar /> }
+      CALENDAR: { label: 'Calendar', icon: <Calendar /> },
+      MARBLE_JAR: { label: 'Goals', icon: <Circle /> }
     };
 
     const WindowIcon = ({ size = 16 }) => (
@@ -513,9 +515,9 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
 
-        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR'];
         const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
 
@@ -592,7 +594,8 @@
       SCHEDULE: { width: 380, height: 500 },
       YOUTUBE: { width: 480, height: 360 },
       CALENDAR: { width: 300, height: 320 },
-      OVERLAY_TEXT: { width: 500, height: 120 }
+      OVERLAY_TEXT: { width: 500, height: 120 },
+      MARBLE_JAR: { width: 400, height: 500 }
     };
 
     // --- COMPONENTS ---
@@ -1964,7 +1967,7 @@
 
     const GRID_SIZE = 20;
     const HEADER_HEIGHT = 40;
-    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'QR Code', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock' };
+    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'QR Code', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
 
     // --- UTILS ---
     const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass }) => {
@@ -2555,7 +2558,144 @@
       );
     };
 
+    const MarbleJarWidget = ({ widget, updateData }) => {
+      const containerRef = useRef(null);
+      const canvasRef = useRef(null);
+      const engineRef = useRef(null);
+      const { goal = 'Classroom Goal', marbles = 0 } = widget.data || {};
 
+      useEffect(() => {
+        if (!containerRef.current || !canvasRef.current) return;
+
+        const { Engine, Render, Runner, Bodies, Composite } = Matter;
+
+        const engine = Engine.create();
+        engineRef.current = engine;
+
+        const render = Render.create({
+          canvas: canvasRef.current,
+          engine: engine,
+          options: {
+            width: containerRef.current.clientWidth,
+            height: containerRef.current.clientHeight,
+            wireframes: false,
+            background: 'transparent',
+            pixelRatio: window.devicePixelRatio || 1
+          }
+        });
+
+        // Jar Boundaries
+        const thickness = 60;
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
+
+        const ground = Bodies.rectangle(width / 2, height + thickness / 2 - 10, width, thickness, { isStatic: true, render: { visible: false } });
+        const leftWall = Bodies.rectangle(-thickness / 2 + 10, height / 2, thickness, height, { isStatic: true, render: { visible: false } });
+        const rightWall = Bodies.rectangle(width + thickness / 2 - 10, height / 2, thickness, height, { isStatic: true, render: { visible: false } });
+
+        Composite.add(engine.world, [ground, leftWall, rightWall]);
+
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+        Render.run(render);
+
+        // Initial Load: Spawn current marble count
+        for (let i = 0; i < marbles; i++) {
+          const x = (width / 2) + (Math.random() * 100 - 50);
+          const y = (height / 2) + (Math.random() * 100 - 50);
+          spawnMarble(engine, x, y);
+        }
+
+        const handleResize = () => {
+          if (containerRef.current) {
+            render.options.width = containerRef.current.clientWidth;
+            render.options.height = containerRef.current.clientHeight;
+            canvasRef.current.width = containerRef.current.clientWidth;
+            canvasRef.current.height = containerRef.current.clientHeight;
+          }
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          Render.stop(render);
+          Runner.stop(runner);
+          Engine.clear(engine);
+          render.canvas.remove();
+          render.canvas = null;
+          render.context = null;
+          render.textures = {};
+        };
+      }, []);
+
+      const spawnMarble = (engine, x, y) => {
+        const { Bodies, Composite } = Matter;
+        const radius = 10 + Math.random() * 5;
+        const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        const marble = Bodies.circle(x, y, radius, {
+          restitution: 0.6,
+          friction: 0.1,
+          render: {
+            fillStyle: color,
+            strokeStyle: 'rgba(255,255,255,0.5)',
+            lineWidth: 2
+          }
+        });
+
+        Composite.add(engine.world, marble);
+      };
+
+      const handleAddMarble = () => {
+        if (engineRef.current && containerRef.current) {
+          const width = containerRef.current.clientWidth;
+          spawnMarble(engineRef.current, width / 2 + (Math.random() * 20 - 10), -50);
+          updateData(widget.id, { marbles: marbles + 1 });
+
+          const clink = new Audio('https://cdn.freesound.org/previews/66/66717_931655-lq.mp3');
+          clink.volume = 0.5;
+          clink.play().catch(e => console.log("Audio play failed", e));
+        }
+      };
+
+      return (
+        <div ref={containerRef} className="w-full h-full flex flex-col relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/5 via-transparent to-white/10 z-10" />
+          <div className="absolute top-0 left-0 right-0 h-4 bg-white/20 backdrop-blur-md rounded-t-2xl z-20" />
+
+          <div className="p-6 z-30 flex flex-col items-center">
+            <input
+              type="text"
+              value={goal}
+              onChange={(e) => updateData(widget.id, { goal: e.target.value })}
+              className="bg-transparent text-center text-2xl font-black text-white placeholder-white/40 border-b-2 border-transparent focus:border-white/30 focus:outline-none w-full transition-all drop-shadow-lg"
+              placeholder="Set Your Goal..."
+            />
+            <div className="mt-3 px-4 py-1.5 bg-indigo-500/30 backdrop-blur-md rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/20 animate-pulse shadow-lg">
+              {marbles} Marbles Collected
+            </div>
+          </div>
+
+          <canvas ref={canvasRef} className="absolute inset-0 z-0 opacity-90" />
+
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center z-40">
+            <button
+              onClick={handleAddMarble}
+              className="group relative flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-400 to-indigo-600 text-white rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_35px_rgba(59,130,246,0.7)] hover:scale-110 active:scale-90 transition-all duration-300"
+            >
+              <Plus size={40} className="group-hover:rotate-90 transition-transform duration-500" />
+              <div className="absolute -top-14 scale-0 group-hover:scale-100 bg-white/95 backdrop-blur-sm text-indigo-900 text-[11px] font-black px-3 py-1.5 rounded-xl transition-all duration-300 whitespace-nowrap shadow-xl border border-white">
+                ADD MARBLE ✨
+              </div>
+            </button>
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-blue-500/10 to-transparent pointer-events-none z-10" />
+        </div>
+      );
+    };
 
     const TimerWidget = ({ widget, updateData }) => {
       const data = widget.data || {};
@@ -6827,7 +6967,7 @@
           }
         }
 
-        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] }; if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false }; if (type === 'WEBCAM') data = { ...data, isMirrored: true, isActive: true }; if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false }; if (type === 'TRAFFIC') data = { ...data, activeLight: null }; if (type === 'QR') data = { ...data, url: '' }; if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] }; if (type === 'DRAWING') { startY += 80; position.y = startY; data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null }; } if (type === 'SCHEDULE') { const template = getScheduleTemplate(); const today = DAYS_OF_WEEK[new Date().getDay()]; data = { ...data, items: template[today] || [] }; } if (type === 'YOUTUBE') { data = { ...data, youtubeUrl: '' }; } if (type === 'CLOCK') { data = { ...data, style: 'standard', isGlassy: 'clear' }; } if (type === 'CALENDAR') { data = { ...data, isGlassy: true }; } data = { ...data, ...extraData }; const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false }; setWidgets(prev => [...prev, newWidget]); setMaxZIndex(prev => prev + 1); setSelectedId(id);
+        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] }; if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false }; if (type === 'WEBCAM') data = { ...data, isMirrored: true, isActive: true }; if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false }; if (type === 'TRAFFIC') data = { ...data, activeLight: null }; if (type === 'QR') data = { ...data, url: '' }; if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] }; if (type === 'DRAWING') { startY += 80; position.y = startY; data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null }; } if (type === 'SCHEDULE') { const template = getScheduleTemplate(); const today = DAYS_OF_WEEK[new Date().getDay()]; data = { ...data, items: template[today] || [] }; } if (type === 'YOUTUBE') { data = { ...data, youtubeUrl: '' }; } if (type === 'CLOCK') { data = { ...data, style: 'standard', isGlassy: 'clear' }; } if (type === 'CALENDAR') { data = { ...data, isGlassy: true }; } if (type === 'MARBLE_JAR') { data = { ...data, goal: 'Classroom Goal', marbles: 0 }; } data = { ...data, ...extraData }; const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false }; setWidgets(prev => [...prev, newWidget]); setMaxZIndex(prev => prev + 1); setSelectedId(id);
       };
       // Paste Listener
       useEffect(() => {
@@ -7091,6 +7231,7 @@
           case 'YOUTUBE': return <YouTubeWidget {...props} />;
           case 'CALENDAR': return <CalendarWidget {...props} selectedDate={selectedDate} onSelectDate={setSelectedDate} isGlassy={props.extraProps.isGlassy} />;
           case 'CLOCK': return <ClockWidget {...props} isGlassy={props.extraProps.isGlassy} />;
+          case 'MARBLE_JAR': return <MarbleJarWidget {...props} />;
           default: return null;
         }
       };
