@@ -2074,7 +2074,7 @@
       const [showResults, setShowResults] = useState(true);
 
       useEffect(() => {
-        if (!process.env && !window.supabaseClient) return; // Guard for no key
+        if (!window.supabaseClient) return; // Guard for no key
         if (!isActive) return;
 
         const channel = window.supabaseClient.channel(`exit_ticket:${sessionId}`);
