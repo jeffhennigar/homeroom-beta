@@ -1,18 +1,65 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HomeRoom</title>
+  <title>HomeRoom Pro</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=VT323&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            indigo: {
+              50: 'var(--accent-50)',
+              100: 'var(--accent-100)',
+              200: 'var(--accent-200)',
+              300: 'var(--accent-300)',
+              400: 'var(--accent-400)',
+              500: 'var(--accent-500)',
+              600: 'var(--accent-600)',
+              700: 'var(--accent-700)',
+              800: 'var(--accent-800)',
+              900: 'var(--accent-900)',
+            },
+            purple: {
+              50: 'var(--accent-50)',
+              100: 'var(--accent-100)',
+              200: 'var(--accent-200)',
+              300: 'var(--accent-300)',
+              400: 'var(--accent-400)',
+              500: 'var(--accent-500)',
+              600: 'var(--accent-600)',
+              700: 'var(--accent-700)',
+              800: 'var(--accent-800)',
+              900: 'var(--accent-900)',
+            },
+            blue: {
+              50: 'var(--accent-50)',
+              100: 'var(--accent-100)',
+              200: 'var(--accent-200)',
+              300: 'var(--accent-300)',
+              400: 'var(--accent-400)',
+              500: 'var(--accent-500)',
+              600: 'var(--accent-600)',
+              700: 'var(--accent-700)',
+              800: 'var(--accent-800)',
+              900: 'var(--accent-900)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Lexend:wght@300;400;500;600;700;800&family=VT323&family=Oswald:wght@500;700&family=Caveat:wght@400;700&family=Bangers&display=swap"
+    rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
+      font-family: 'Lexend', 'Poppins', sans-serif;
       overflow: hidden;
     }
 
@@ -106,83 +153,130 @@
   <!-- Babel for JSX (Pinned stable version) -->
   <script src="https://unpkg.com/@babel/standalone@7.25.9/babel.min.js"></script>
   <!-- Import Map -->
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    (function () {
-      const url = 'https://lguewieabkrjgsobufjd.supabase.co';
-      const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
-
-      window.CookieStorage = {
-        getItem: (key) => {
-          const name = key + "=";
-          const ca = document.cookie.split(';');
-          for (let i = 0; i < ca.length; i++) {
-            let c = ca[i].trim();
-            if (c.indexOf(name) === 0) {
-              try { return decodeURIComponent(c.substring(name.length)); }
-              catch (e) { return c.substring(name.length); }
-            }
-          }
-          return null;
-        },
-        setItem: (key, value) => {
-          const d = new Date();
-          d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
-          const expires = "expires=" + d.toUTCString();
-          const host = window.location.hostname;
-          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-
-          // Aggressive Clear
-          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
-
-          let cookieStr = `${key}=${encodeURIComponent(value)}; ${expires}; path=/; SameSite=Lax; Secure`;
-          if (!isLocal && host.includes('ourhomeroom.app')) {
-            // v2.6: Use leading dot for explicit cross-subdomain sharing
-            cookieStr = `${key}=${encodeURIComponent(value)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
-          }
-          document.cookie = cookieStr;
-          console.log('CookieStorage v2.6 Set:', key);
-        },
-        removeItem: (key) => {
-          const host = window.location.hostname;
-          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
-          if (!isLocal && host.includes('ourhomeroom.app')) {
-            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
-          }
-        }
-      };
-      try {
-        window.supabaseClient = window.supabase.createClient(url, key, {
-          auth: {
-            storage: window.CookieStorage,
-            autoRefreshToken: true,
-            persistSession: true,
-            detectSessionInUrl: true,
-            storageKey: 'homeroom-auth-token',
-          }
-        });
-      } catch (e) {
-        console.error("Supabase Init Error:", e);
-      }
-    })();
-  </script>
-</head>
-
-<body>
-  <div id="root"></div>
-
   <script type="importmap">
   {
     "imports": {
       "react": "https://esm.sh/react@18.2.0",
       "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
       "react-dom": "https://esm.sh/react-dom@18.2.0",
-      "lucide-react": "https://esm.sh/lucide-react@0.447.0"
+      "lucide-react": "https://esm.sh/lucide-react@0.447.0?deps=react@18.2.0"
     }
   }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+      (function () {
+        const url = 'https://lguewieabkrjgsobufjd.supabase.co';
+        const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
+
+        window.CookieStorage = {
+          getItem: (key) => {
+            const name = key + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+              let c = ca[i].trim();
+              if (c.indexOf(name) === 0) {
+                try { return decodeURIComponent(c.substring(name.length)); }
+                catch (e) { return c.substring(name.length); }
+              }
+            }
+            return null;
+          },
+          setItem: (key, value) => {
+            const d = new Date();
+            d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + d.toUTCString();
+            const host = window.location.hostname;
+            const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+
+            // v2.7: Strip large session data to essential tokens only
+            let processedValue = value;
+            try {
+              if (value && value.length > 3000) {
+                const parsed = JSON.parse(value);
+                // If it looks like a Supabase session, strip to essentials
+                if (parsed.access_token && parsed.refresh_token) {
+                  // IMPORTANT: Must keep user object for _emitInitialSession to work
+                  let minUser = parsed.user;
+                  if (minUser && typeof minUser === 'object') {
+                    // optimization: remove large identities array to save space
+                    const { identities, ...rest } = minUser;
+                    minUser = rest;
+                  }
+
+                  const stripped = {
+                    access_token: parsed.access_token,
+                    refresh_token: parsed.refresh_token,
+                    expires_at: parsed.expires_at,
+                    expires_in: parsed.expires_in,
+                    token_type: parsed.token_type || 'bearer',
+                    user: minUser
+                  };
+                  processedValue = JSON.stringify(stripped);
+                  console.log('CookieStorage v2.8: Stripped session (keeping user) from', value.length, 'to', processedValue.length, 'bytes');
+                }
+              }
+            } catch (e) {
+              // Not JSON, use original value
+            }
+
+            // Aggressive Clear
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+
+            let cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; SameSite=Lax; Secure`;
+            if (!isLocal && host.includes('ourhomeroom.app')) {
+              // v2.7: Use leading dot for explicit cross-subdomain sharing
+              cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+            }
+            document.cookie = cookieStr;
+            console.log('CookieStorage v2.7 Set:', key, 'size:', processedValue.length);
+          },
+          removeItem: (key) => {
+            const host = window.location.hostname;
+            const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+            if (!isLocal && host.includes('ourhomeroom.app')) {
+              document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+            }
+          }
+        };
+        try {
+          window.supabaseClient = window.supabase.createClient(url, key, {
+            auth: {
+              storage: window.CookieStorage,
+              autoRefreshToken: true,
+              persistSession: true,
+              detectSessionInUrl: true,
+              storageKey: 'homeroom-auth-token',
+            }
+          });
+        } catch (e) {
+          console.error("Supabase Init Error:", e);
+        }
+      })();
+  </script>
+  <script>
+    // Global error trapping for white screen debugging
+    window.onerror = function (msg, url, line, col, error) {
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:red;color:white;z-index:999999;padding:10px;font-family:monospace;font-size:12px;';
+      errDiv.innerHTML = '<strong>GLOBAL ERROR:</strong> ' + msg + ' <br/> at ' + url + ':' + line + ':' + col;
+      document.body.appendChild(errDiv);
+      return false;
+    };
+    window.onunhandledrejection = function (event) {
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'position:fixed;top:40px;left:0;width:100%;background:orange;color:white;z-index:999999;padding:10px;font-family:monospace;font-size:12px;';
+      errDiv.innerHTML = '<strong>PROMISE REJECTION:</strong> ' + (event.reason ? event.reason.message || event.reason : 'Unknown rejection');
+      document.body.appendChild(errDiv);
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+
   <script type="text/babel" data-presets="react" data-type="module">
     import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
     import { createRoot } from 'react-dom/client';
@@ -196,7 +290,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle
     } from 'lucide-react';
 
     const TimerIcon = Timer;
@@ -237,12 +331,24 @@
       }
     };
 
-    // --- CONSTANTS ---
+    const THEME_COLORS = {
+      indigo: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+      blue: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+      emerald: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 500: '#10b981', 600: '#059669', 700: '#047857' },
+      teal: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
+      orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' },
+      red: { 50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
+      pink: { 50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 500: '#ec4899', 600: '#db2777', 700: '#be185d' },
+      purple: { 50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce' },
+      amber: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 500: '#f59e0b', 600: '#d97706', 700: '#b45309' },
+      slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 500: '#64748b', 600: '#475569', 700: '#334155' }
+    };
+
     const DEFAULT_NAMES = [];
 
     // --- SHARED EDITOR CONSTANTS ---
     const EDITOR_SWATCHES = ['#000000', '#475569', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#ffffff'];
-    const EDITOR_FONTS = ['Poppins', 'Arial', 'Georgia', 'Impact', 'Caveat', 'Bangers', 'Courier New', 'VT323', 'Oswald'];
+    const EDITOR_FONTS = ['Lexend', 'Poppins', 'Arial', 'Georgia', 'Impact', 'Caveat', 'Bangers', 'Courier New', 'VT323', 'Oswald'];
 
     const FloatingFormattingToolbar = ({
       pos,
@@ -280,7 +386,7 @@
           <div className="relative">
             <button onClick={(e) => { e.stopPropagation(); setShowFontColorMenu(!showFontColorMenu); setShowFontMenu(false); }} className={`p-1.5 rounded transition-all ${showFontColorMenu ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Text Color"><Palette size={16} /></button>
             {showFontColorMenu && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white p-2 rounded-xl shadow-xl flex gap-1 z-50 border border-slate-100 animate-in fade-in slide-in-from-bottom-1">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white p-2 rounded-xl shadow-xl flex gap-1 z-50 border border-slate-200 animate-in fade-in slide-in-from-bottom-1">
                 {EDITOR_SWATCHES.map(s => (
                   <button key={s} onClick={() => { exec('foreColor', s); setShowFontColorMenu(false); }} className="w-5 h-5 rounded-full border border-slate-200 shadow-sm hover:scale-125 transition-transform" style={{ backgroundColor: s }} />
                 ))}
@@ -291,7 +397,7 @@
           <div className="relative">
             <button onClick={(e) => { e.stopPropagation(); setShowFontMenu(!showFontMenu); setShowFontColorMenu(false); }} className={`p-1.5 rounded transition-all ${showFontMenu ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Font Family"><Type size={16} /></button>
             {showFontMenu && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white p-2 rounded-xl shadow-xl flex flex-col gap-1 z-50 border border-slate-100 animate-in fade-in slide-in-from-bottom-1 w-36 max-h-48 overflow-y-auto custom-scrollbar">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white p-2 rounded-xl shadow-xl flex flex-col gap-1 z-50 border border-slate-200 animate-in fade-in slide-in-from-bottom-1 w-36 max-h-48 overflow-y-auto custom-scrollbar">
                 {EDITOR_FONTS.map(f => (
                   <button key={f} onClick={() => { updateData(widgetId, { fontFamily: f }); setShowFontMenu(false); }} className={`px-3 py-1.5 text-xs text-left hover:bg-slate-100 rounded-lg font-medium ${fontFamily === f ? 'text-indigo-600 bg-indigo-50' : 'text-slate-700'}`} style={{ fontFamily: f }}>{f}</button>
                 ))}
@@ -319,13 +425,15 @@
 
 
     const DESK_COLORS = {
-      blue: 'bg-blue-50 border-blue-400',
-      red: 'bg-red-50 border-red-400',
-      green: 'bg-green-50 border-green-400',
-      yellow: 'bg-yellow-50 border-yellow-400'
+      blue: { bg: '#eff6ff', border: '#2563eb' },
+      red: { bg: '#fef2f2', border: '#dc2626' },
+      green: { bg: '#ecfdf5', border: '#059669' },
+      yellow: { bg: '#fefce8', border: '#eab308' },
+      purple: { bg: '#faf5ff', border: '#9333ea' },
+      orange: { bg: '#fff7ed', border: '#ea580c' }
     };
 
-    const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'OVERLAY_TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'DRAWING', 'YOUTUBE', 'CALENDAR'];
+    const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'OVERLAY_TEXT', 'MARBLE_JAR', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'DRAWING', 'YOUTUBE', 'CALENDAR'];
     const TrafficLightIcon = () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="7" y="2" width="10" height="20" rx="4" />
@@ -351,7 +459,9 @@
       DRAWING: { label: 'Drawing', icon: <Pencil /> },
       SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
       YOUTUBE: { label: 'Embed', icon: <Youtube /> },
-      CALENDAR: { label: 'Calendar', icon: <Calendar /> }
+      CALENDAR: { label: 'Calendar', icon: <Calendar /> },
+      MARBLE_JAR: { label: 'Goals', icon: <Circle /> },
+      SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> }
     };
 
     const WindowIcon = ({ size = 16 }) => (
@@ -365,12 +475,12 @@
     // --- BACKGROUND PRESETS (UPDATED) ---
     const BACKGROUNDS = [
       { id: 'default', name: 'Original', type: 'preset', preview: 'bg-gradient-to-br from-blue-200 to-orange-200', style: {}, textColor: 'text-slate-800' },
+      { id: 'strata', name: 'Strata', type: 'image', src: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTkyMCAxMDgwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNkMmQ2ZDEiLz48cGF0aCBkPSJNMCwxMDgwIEM0ODAsMTA4MCA5NjAsODAwIDE5MjAsOTAwIEwxOTIwLDEwODAgTDAsMTA4MCBaIiBmaWxsPSIjYThhYTk3Ii8+PHBhdGggZD0iTTAsMTA4MCBDNDgwLDEwODAgOTYwLDYwMCAxOTIwLDcwMCBMMTkyMCwxMDgwIEwwLDEwODAgWiIgZmlsbD0iIzc0N2M3OCIvPjxwYXRoIGQ9Ik0wLDEwODAgQzQ4MCwxMDgwIDk2MCw0MDAgMTkyMCw1MDAgTDE5MjAsMTA4MCBMLDEwODAgWiIgZmlsbD0iIzQ4NWM4YSIvPjxwYXRoIGQ9Ik0wLDEwODAgQzQ4MCwxMDgwIDk2MCwyMDAgMTkyMCwzMDAgTDE5MjAsMTA4MCBMLDEwODAgWiIgZmlsbD0iIzI5M2I0NyIvPjwvc3ZnPg==', textColor: 'text-slate-800' },
       { id: 'forest', name: 'Forest', type: 'image', src: 'https://images.unsplash.com/photo-1622572860925-daa5e4219d53?q=80&w=1674&auto=format&fit=crop', textColor: 'text-white' },
       { id: 'ocean', name: 'Ocean', type: 'image', src: 'https://images.unsplash.com/photo-1439405326854-014607f694d7?auto=format&fit=crop&w=1920&q=80', textColor: 'text-white' },
-      { id: 'sunset', name: 'Sunset', type: 'image', src: 'https://images.unsplash.com/photo-1503803548695-c2a7b4a5b875?q=80&w=1770&auto=format&fit=crop', textColor: 'text-white' },
       { id: 'galaxy', name: 'Galaxy', type: 'image', src: 'https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=1750&auto=format&fit=crop', textColor: 'text-white' },
-      { id: 'puppy', name: 'Puppy', type: 'image', src: 'https://images.unsplash.com/photo-1591160690555-5debfba289f0?auto=format&fit=crop&w=1920&q=80', textColor: 'text-white' },
-      { id: 'kitten', name: 'Kitten', type: 'image', src: 'https://images.unsplash.com/photo-1595433707802-6b2626ef1c91?auto=format&fit=crop&w=1920&q=80', textColor: 'text-white' },
+      { id: 'puppy', name: 'Puppy', type: 'image', src: 'https://images.unsplash.com/photo-1618359057154-e21ae64350b6?q=80&w=1920&auto=format&fit=crop', textColor: 'text-white' },
+      { id: 'kitten', name: 'Kitten', type: 'image', src: 'https://images.unsplash.com/photo-1560114928-40f1f1eb26a0?q=80&w=1920&auto=format&fit=crop', textColor: 'text-white' },
       { id: 'aurora', name: 'Aurora', type: 'image', src: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=1920&q=80', textColor: 'text-white' },
     ];
 
@@ -384,7 +494,7 @@
     ];
 
     // --- STORAGE SERVICE ---
-    const ROSTER_STORAGE_KEY = 'homeroom_roster_v2';
+    const ROSTER_STORAGE_KEY = 'homeroom_roster_pro';
     const DOCK_ORDER_KEY = 'homeroom_dock_order';
     const BG_STORAGE_KEY = 'homeroom_background';
     const WIDGETS_STORAGE_KEY = 'homeroom_widgets';
@@ -406,15 +516,37 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return INIT_DOCK_ORDER;
-        // Merge in any new widgets that might have been added
-        const allSavedWidgets = [...(saved.main || []), ...(saved.drawer || [])];
-        const missingWidgets = INIT_DOCK_ORDER.filter(w => !allSavedWidgets.includes(w));
-        if (missingWidgets.length > 0) {
-          return { main: [...(saved.main || []), ...missingWidgets], drawer: saved.drawer || [] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+
+        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR', 'SOUNDBOARD'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+        const allDefaults = [...mainDefaults, ...drawerDefaults];
+
+        // If it's a flat array (from Supabase or old storage)
+        if (Array.isArray(saved)) {
+          return {
+            main: mainDefaults.filter(id => saved.includes(id)),
+            drawer: [...drawerDefaults.filter(id => saved.includes(id)), ...saved.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !saved.includes(id))]
+          };
         }
-        return saved;
-      } catch (e) { return INIT_DOCK_ORDER; }
+
+        // If it's already an object
+        if (saved && saved.main && saved.drawer) {
+          const currentIds = [...saved.main, ...saved.drawer];
+          const missing = allDefaults.filter(id => !currentIds.includes(id));
+
+          // Force inject missing new widgets (MARBLE_JAR, SOUNDBOARD)
+          if (missing.length > 0) {
+            return { ...saved, drawer: [...saved.drawer, ...missing] };
+          }
+
+          return saved;
+        }
+
+        return { main: mainDefaults, drawer: drawerDefaults };
+      } catch (e) {
+        return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+      }
     };
     const saveDockOrder = (order) => { try { localStorage.setItem(DOCK_ORDER_KEY, JSON.stringify(order)); } catch (e) { } };
 
@@ -452,24 +584,24 @@
     };
 
     const WIDGET_SIZES = {
-
       TIMER: { width: 280, height: 340 },
-      CLOCK: { width: 400, height: 220 },
+      CLOCK: { width: 340, height: 260 },
       RANDOMIZER: { width: 250, height: 250 },
       GROUP_MAKER: { width: 900, height: 550 },
       SEAT_PICKER: { width: 900, height: 530 },
       TEXT: { width: 300, height: 300 },
+      OVERLAY_TEXT: { width: 500, height: 120 },
       WEBCAM: { width: 320, height: 240 },
       DICE: { width: 300, height: 320 },
       TRAFFIC: { width: 220, height: 360 },
       QR: { width: 250, height: 280 },
       VOTE: { width: 400, height: 350 },
       DRAWING: { width: 900, height: 550 },
-
       SCHEDULE: { width: 380, height: 500 },
       YOUTUBE: { width: 480, height: 360 },
-      CALENDAR: { width: 300, height: 320 },
-      OVERLAY_TEXT: { width: 500, height: 120 }
+      CALENDAR: { width: 320, height: 380 },
+      MARBLE_JAR: { width: 400, height: 500 },
+      SOUNDBOARD: { width: 600, height: 500 }
     };
 
     // --- COMPONENTS ---
@@ -950,7 +1082,7 @@
         if (!studentName || !onUpdateRoster) return;
         // Update the SPECIFIC roster
         const newRoster = activeRoster.map(s => s.name === studentName ? { ...s, active: !s.active } : s);
-        onUpdateRoster(newRoster);
+        onUpdateRoster(newRoster, activeClassId);
       };
 
       const handleMouseDown = (e, deskId) => {
@@ -1215,12 +1347,19 @@
             <div className="flex gap-2 items-center">
               {isEditing ? (<>
                 <div className="flex items-center gap-2 mr-2">
-                  <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { snapToGrid: snapToGrid > 0 ? 0 : 10 }); }} className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors mr-2 ${snapToGrid > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                  <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { snapToGrid: snapToGrid > 0 ? 0 : 20 }); }} className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors mr-2 ${snapToGrid > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
                     Snap: {snapToGrid > 0 ? 'On' : 'Off'}
                   </button>
                   <div className="w-px h-6 bg-gray-200" />
                   <div className="flex bg-gray-100 rounded-lg p-0.5">
-                    {["blue", "red", "green", "yellow"].map(c => (<button key={c} onClick={(e) => { e.stopPropagation(); handleColorClick(c); }} className={`w-6 h-6 rounded border m-0.5 hover:scale-110 transition-transform ${DESK_COLORS[c].split(" ")[0]} ${DESK_COLORS[c].split(" ")[1]}`} />))}
+                    {["blue", "red", "green", "yellow", "purple", "orange"].map(c => (
+                      <button
+                        key={c}
+                        onClick={(e) => { e.stopPropagation(); handleColorClick(c); }}
+                        className="w-6 h-6 rounded border m-0.5 hover:scale-110 transition-transform"
+                        style={{ backgroundColor: DESK_COLORS[c].bg, borderColor: DESK_COLORS[c].border }}
+                      />
+                    ))}
                     <button onClick={(e) => { e.stopPropagation(); addTeacher(); }} className="px-2 h-6 rounded bg-slate-600 text-[10px] m-0.5 text-white font-bold flex items-center gap-1 hover:scale-105 transition-transform"><Briefcase size={10} /> Teacher</button>
                     {selectedDeskIds.length > 0 && (
                       <>
@@ -1230,7 +1369,7 @@
                     )}
                   </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { isEditing: false }); setSelectedDeskIds([]); }} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold shadow hover:bg-green-700">Done</button>
+                <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { isEditing: false }); setSelectedDeskIds([]); }} className="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-bold shadow hover:bg-emerald-700">Done</button>
               </>) : (<>
                 <button onClick={shuffleSeats} className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-bold shadow hover:bg-indigo-700 flex items-center gap-1"><Shuffle size={12} /> Shuffle</button>
                 <button onClick={() => updateData(widget.id, { isEditing: true })} className="px-3 py-1 bg-white border border-gray-300 text-gray-600 rounded text-xs font-bold hover:bg-gray-50 flex items-center gap-1"><Edit3 size={12} /> Edit</button>
@@ -1241,9 +1380,15 @@
             {desks.map(desk => {
               const isAbsent = desk.student && activeRoster.find(s => s.name === desk.student && !s.active);
               const scale = fontSize / 16;
-              const deskW = (desk.type === 'teacher' ? 154 : 110) * scale;
-              const deskH = (desk.type === 'teacher' ? 80 : 60) * scale;
-              const styleClass = desk.type === "teacher" ? "bg-slate-800 border-slate-600 text-white shadow-lg rounded-md" : `${DESK_COLORS[desk.color || "blue"]} rounded-lg`;
+              let deskW = (desk.type === 'teacher' ? 154 : 110) * scale;
+              let deskH = (desk.type === 'teacher' ? 80 : 60) * scale;
+
+              // Logic Fix: Round dimensions to snapToGrid when editing to prevent gaps/overlaps
+              if (isEditing && snapToGrid > 0) {
+                deskW = Math.round(deskW / snapToGrid) * snapToGrid;
+                deskH = Math.round(deskH / snapToGrid) * snapToGrid;
+              }
+              const styleClass = desk.type === "teacher" ? "bg-slate-800 border-slate-600 text-white shadow-lg rounded-md" : "rounded-lg";
               const isSelected = selectedDeskIds.includes(desk.id);
               return (<div
                 key={desk.id}
@@ -1253,7 +1398,16 @@
                 onDrop={(e) => handleStudentDrop(e, desk.id)}
                 onContextMenu={(e) => toggleAbsence(desk.student, e)}
                 className={`absolute shadow-sm border-2 flex items-center justify-center transition-shadow ${isEditing ? "cursor-move hover:shadow-md" : "cursor-pointer"} ${styleClass} ${isAbsent ? "opacity-60" : ""} ${isSelected ? "ring-2 ring-blue-500 ring-offset-2 z-10" : ""}`}
-                style={{ left: desk.x, top: desk.y, width: deskW, height: deskH, transform: `rotate(${desk.rotation || 0}deg)`, fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px' }}
+                style={{
+                  left: desk.x,
+                  top: desk.y,
+                  width: deskW,
+                  height: deskH,
+                  transform: `rotate(${desk.rotation || 0}deg)`,
+                  fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px',
+                  backgroundColor: desk.type === "teacher" ? undefined : DESK_COLORS[desk.color || "blue"]?.bg,
+                  borderColor: desk.type === "teacher" ? undefined : DESK_COLORS[desk.color || "blue"]?.border
+                }}
                 onMouseDown={(e) => handleMouseDown(e, desk.id)}
               >
                 {isAbsent && <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full z-30 shadow-sm pointer-events-none">OUT</div>}
@@ -1263,7 +1417,7 @@
                 </>)}
                 {/* Fix text selection on name */}
                 {desk.type === "teacher" ? <div className="flex flex-col items-center opacity-80 select-none"><Briefcase size={16} className="mb-0.5" /><span className="text-[8px] uppercase font-bold tracking-widest">Teacher</span></div> : (desk.student ? <span className={`font-bold text-center px-0.5 truncate w-full select-none ${isAbsent ? 'text-slate-400 line-through' : 'text-slate-800'}`} style={{ fontSize: 'inherit' }}>{desk.student}</span> : <span className={`italic text-[10px] select-none ${desk.color === "yellow" ? "text-yellow-700/50" : "text-slate-300"}`}>Empty</span>)}
-                {desk.type !== "teacher" && <div className={`absolute -bottom-1 w-8 h-1 rounded-full ${desk.color === "yellow" ? "bg-yellow-200" : "bg-slate-200"}`} />}
+                {desk.type !== "teacher" && <div className={`absolute -bottom-1 w-8 h-1 rounded-full ${desk.color === "yellow" ? "bg-amber-200" : "bg-slate-200"}`} />}
               </div>);
             })}
 
@@ -1278,9 +1432,9 @@
 
 
 
-    const TextWidget = ({ widget, updateData, isGlassy, chromeless }) => {
+    const TextWidget = ({ widget, updateData, isGlassy, chromeless, isSelected }) => {
       const data = widget.data || {};
-      const { items = [], content = "", mode = 'text', fontSize = 16, color = 'yellow', textColor = 'inherit', fontFamily = 'Poppins', listTitle = "" } = data;
+      const { items = [], content = "", mode = 'text', fontSize = 12, color = 'yellow', textColor = 'inherit', fontFamily = 'Poppins', listTitle = "" } = data;
       const [newItemText, setNewItemText] = useState("");
       const editorRef = useRef(null);
       const [formats, setFormats] = useState({ bold: false, italic: false, underline: false });
@@ -1412,7 +1566,7 @@
               <>
                 <div
                   ref={editorRef}
-                  className="w-full h-full p-4 outline-none overflow-auto custom-scrollbar leading-relaxed text-lg"
+                  className="w-full h-full p-4 outline-none overflow-auto custom-scrollbar leading-relaxed"
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => updateData(widget.id, { content: e.currentTarget.innerHTML })}
@@ -1819,7 +1973,7 @@
 
     const GRID_SIZE = 20;
     const HEADER_HEIGHT = 40;
-    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'QR Code', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock' };
+    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'QR Code', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
 
     // --- UTILS ---
     const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass }) => {
@@ -1958,24 +2112,24 @@
 
       const getWidgetStyleClass = () => {
         let base = 'rounded-2xl ';
-        if (isGlassy === 'glass') return base + 'bg-white/40 backdrop-blur-xl border-white/20 shadow-xl';
+        if (isGlassy === 'glass') return base + 'bg-white/40 backdrop-blur-xl border-white/40 shadow-xl';
         if (isGlassy === 'clear') return base + 'bg-transparent border-0 shadow-none';
-        if (isGlassy === 'solid') return base + 'bg-white shadow-xl border-gray-100';
+        if (isGlassy === 'solid') return base + 'bg-white shadow-xl border-gray-300';
 
         if (chromeless) return base + 'bg-transparent border-0 shadow-none transition-colors duration-200';
-        return base + 'bg-white shadow-xl border-gray-100'; // default solid
+        return base + 'bg-white shadow-xl border-gray-300'; // default solid
       };
 
       const borderClass = (isSelected)
         ? 'ring-2 ring-blue-500 shadow-2xl z-[10001]'
         : (chromeless && (isGlassy === 'clear' || isGlassy === 'glass' || !isGlassy))
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
-          : 'border-2 border-gray-100';
+          : 'border-2 border-gray-300';
 
       return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} ${chromeless ? 'overflow-visible' : 'overflow-hidden'} pointer-events-auto ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.05] shadow-[0_0_150px_rgba(255,255,255,0.6),0_0_40px_rgba(255,255,255,0.4)] ring-4 ring-white/50 z-[10000] brightness-[1.02]' : ''}`}
         style={{ left: position.x, top: position.y, width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
-        {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-100 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
+        {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
           <div className="flex items-center gap-1 z-10">
             {onFontSizeChange && (<><button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(-2); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"><Minus size={14} strokeWidth={3} /></button> <button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(2); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"><Plus size={14} strokeWidth={3} /></button></>)}
           </div>
@@ -2082,7 +2236,7 @@
         }
       }, []);
 
-      const fontSize = (widget.data.fontSize || 16) * (fontScale || 1);
+      const fontSize = (widget.data.fontSize || 12) * (fontScale || 1);
 
       const exec = (command, value = null) => {
         editorRef.current?.focus();
@@ -2300,7 +2454,7 @@
       );
 
       const renderStandard = () => (
-        <div className="flex flex-col items-start gap-0 w-full h-full justify-center px-[5cqw]">
+        <div className="flex flex-col items-start gap-0 w-full h-full justify-center">
           <div className={`font-bold tracking-tight ${textColor} drop-shadow-md`} style={{ fontVariantNumeric: 'tabular-nums', lineHeight: 0.85, fontSize: 'min(22cqw, 70cqh)' }}>{timeString}</div>
           {showDate && <div className={`font-medium tracking-wide uppercase opacity-90 mt-[2cqh] ${textColor}`} style={{ fontSize: 'min(5cqw, 15cqh)' }}>{dateString}</div>}
         </div>
@@ -2410,7 +2564,440 @@
       );
     };
 
+    const MARBLE_THEMES = {
+      classic: { name: 'Classic', items: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'], type: 'color' },
+      sports: { name: 'Sports', items: ['⚽', '🏀', '🏈', '⚾', '🎾'], type: 'emoji' },
+      minecraft: { name: 'Minecraft', items: ['🟩', '💎', '🧱', '🧟', '🔵'], type: 'emoji' },
+      space: { name: 'Space', items: ['🚀', '🪐', '🌑', '👽', '🌠'], type: 'emoji' },
+      nature: { name: 'Nature', items: ['🌸', '🌿', '🍄', '🦋', '🐜'], type: 'emoji' },
+      animals: { name: 'Animals', items: ['🐶', '🐱', '🦊', '🦁', '🐼'], type: 'emoji' },
+      candy: { name: 'Candy', items: ['🍬', '🍭', '🍩', '🍫', '🍪'], type: 'emoji' }
+    };
 
+    const MARBLE_SOUNDS = {
+      clink: { name: 'Clink', url: 'https://cdn.freesound.org/previews/66/66717_931655-lq.mp3' },
+      pop: { name: 'Pop', url: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' },
+      wood: { name: 'Wood', url: 'https://assets.mixkit.co/active_storage/sfx/1041/1041-preview.mp3' },
+      metal: { name: 'Metal', url: 'https://assets.mixkit.co/active_storage/sfx/1044/1044-preview.mp3' }
+    };
+
+    const JAR_COLORS = {
+      standard: { bg: 'bg-white/10', border: 'border-white/20' },
+      gold: { bg: 'bg-yellow-500/10', border: 'border-yellow-400/30' },
+      night: { bg: 'bg-indigo-900/20', border: 'border-indigo-400/30' },
+      forest: { bg: 'bg-emerald-900/10', border: 'border-emerald-400/30' },
+      rose: { bg: 'bg-rose-500/10', border: 'border-rose-400/30' }
+    };
+
+    const MarbleJarWidget = ({ widget, updateData }) => {
+      const containerRef = useRef(null);
+      const canvasRef = useRef(null);
+      const engineRef = useRef(null);
+      const [showSettings, setShowSettings] = useState(false);
+      const {
+        title = 'Classroom Goal',
+        marbles = 0,
+        goalCount = 50,
+        theme = 'classic',
+        sound = 'clink',
+        jarColor = 'standard'
+      } = widget.data || {};
+
+      // Dynamic radius based on goalCount
+      const marbleRadius = Math.max(10, Math.min(40, 180 / Math.sqrt(goalCount)));
+
+      useEffect(() => {
+        if (!containerRef.current || !canvasRef.current) return;
+
+        const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
+
+        const engine = Engine.create();
+        engineRef.current = engine;
+
+        const render = Render.create({
+          canvas: canvasRef.current,
+          engine: engine,
+          options: {
+            width: containerRef.current.clientWidth,
+            height: containerRef.current.clientHeight,
+            wireframes: false,
+            background: 'transparent',
+            pixelRatio: window.devicePixelRatio || 1
+          }
+        });
+
+        // Custom render for emojis
+        Events.on(render, 'afterRender', () => {
+          const context = render.context;
+          const themeData = MARBLE_THEMES[theme];
+          if (themeData && themeData.type === 'emoji') {
+            const bodies = Composite.allBodies(engine.world);
+            context.font = `${marbleRadius * 2}px serif`;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+
+            bodies.forEach(body => {
+              if (body.label === 'marble' && body.render.emoji && !body.render.emoji.startsWith('#')) {
+                const { x, y } = body.position;
+                context.save();
+                context.translate(x, y);
+                context.rotate(body.angle);
+                context.fillText(body.render.emoji, 0, 0);
+                context.restore();
+              }
+            });
+          }
+        });
+
+        // Jar Boundaries
+        const thickness = 60;
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
+
+        const ground = Bodies.rectangle(width / 2, height + thickness / 2 - 10, width, thickness, { isStatic: true, render: { visible: false } });
+        const leftWall = Bodies.rectangle(-thickness / 2 + 10, height / 2, thickness, height, { isStatic: true, render: { visible: false } });
+        const rightWall = Bodies.rectangle(width + thickness / 2 - 10, height / 2, thickness, height, { isStatic: true, render: { visible: false } });
+
+        Composite.add(engine.world, [ground, leftWall, rightWall]);
+
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+        Render.run(render);
+
+        // Initial Load: Spawn current marble count
+        for (let i = 0; i < marbles; i++) {
+          const x = (width * 0.2) + (Math.random() * width * 0.6);
+          const y = (height * 0.2) + (Math.random() * height * 0.4);
+          spawnMarble(engine, x, y);
+        }
+
+        const handleResize = () => {
+          if (containerRef.current) {
+            render.options.width = containerRef.current.clientWidth;
+            render.options.height = containerRef.current.clientHeight;
+            canvasRef.current.width = containerRef.current.clientWidth;
+            canvasRef.current.height = containerRef.current.clientHeight;
+          }
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          Render.stop(render);
+          Runner.stop(runner);
+          Engine.clear(engine);
+          if (render.canvas) render.canvas.remove();
+        };
+      }, [theme, goalCount]); // Re-init on theme/goal change to redraw
+
+      const spawnMarble = (engine, x, y) => {
+        const { Bodies, Composite } = Matter;
+        const themeData = MARBLE_THEMES[theme];
+        const item = themeData.items[Math.floor(Math.random() * themeData.items.length)];
+
+        const marble = Bodies.circle(x, y, marbleRadius, {
+          restitution: 0.5,
+          friction: 0.1,
+          label: 'marble',
+          render: {
+            visible: themeData.type === 'color',
+            fillStyle: themeData.type === 'color' ? item : 'transparent',
+            strokeStyle: themeData.type === 'color' ? 'rgba(255,255,255,0.4)' : 'transparent',
+            lineWidth: 2,
+            emoji: item
+          }
+        });
+
+        Composite.add(engine.world, marble);
+      };
+
+      const handleAddMarble = () => {
+        if (engineRef.current && containerRef.current) {
+          const width = containerRef.current.clientWidth;
+          spawnMarble(engineRef.current, width / 2 + (Math.random() * 20 - 10), -50);
+          updateData(widget.id, { marbles: marbles + 1 });
+
+          const soundEffect = new Audio(MARBLE_SOUNDS[sound].url);
+          soundEffect.volume = 0.5;
+          soundEffect.play().catch(e => console.log("Audio play failed", e));
+        }
+      };
+
+      return (
+        <div ref={containerRef} className={`w-full h-full flex flex-col relative overflow-hidden backdrop-blur-xl border ${JAR_COLORS[jarColor].bg} ${JAR_COLORS[jarColor].border} rounded-2xl shadow-2xl`}>
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/5 via-transparent to-white/10 z-10" />
+
+          {/* Top Bar with Settings Toggle */}
+          <div className="absolute top-0 left-0 right-0 h-10 flex items-center justify-between px-3 bg-white/10 backdrop-blur-md rounded-t-2xl z-30">
+            <div className="w-6" /> {/* Placeholder */}
+            <div className="h-1 w-12 bg-white/20 rounded-full" />
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-1.5 hover:bg-white/20 rounded-lg text-white/70 hover:text-white transition-all"
+            >
+              <Settings size={16} className={showSettings ? 'rotate-90' : ''} />
+            </button>
+          </div>
+
+          <div className="p-6 pt-12 z-20 flex flex-col items-center">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => updateData(widget.id, { title: e.target.value })}
+              className="bg-transparent text-center text-2xl font-black text-white placeholder-white/40 border-b-2 border-transparent focus:border-white/30 focus:outline-none w-full transition-all drop-shadow-lg"
+              placeholder="Set Your Goal..."
+            />
+            <div className="mt-3 flex flex-col items-center gap-1">
+              <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-white uppercase tracking-widest border border-white/10 shadow-lg">
+                <span className="text-white/60">Collected:</span> {marbles} / <span className="text-blue-300">{goalCount}</span>
+              </div>
+              <div className="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (marbles / goalCount) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <canvas ref={canvasRef} className="absolute inset-0 z-0 opacity-90" />
+
+          {/* Add Marble Button */}
+          {!showSettings && (
+            <div className="absolute bottom-8 left-0 right-0 flex justify-center z-40">
+              <button
+                onClick={handleAddMarble}
+                className="group relative flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-400 to-indigo-600 text-white rounded-full shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_35px_rgba(59,130,246,0.5)] hover:scale-110 active:scale-95 transition-all duration-300"
+              >
+                <div className="text-3xl transform group-hover:rotate-12 transition-transform">
+                  {MARBLE_THEMES[theme].items[0]}
+                </div>
+                <div className="absolute -top-10 scale-0 group-hover:scale-100 bg-white/95 backdrop-blur-sm text-indigo-900 text-[10px] font-black px-3 py-1.5 rounded-xl transition-all duration-300 whitespace-nowrap shadow-xl border border-white">
+                  DROP ONE ✨
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* Settings Overlay */}
+          {showSettings && (
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl z-50 p-6 pt-14 animate-in fade-in slide-in-from-bottom-4 duration-300 overflow-y-auto custom-scrollbar">
+              <h3 className="text-white text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Settings size={14} /> Widget Settings
+              </h3>
+
+              {/* Goal Adjust */}
+              <div className="mb-6">
+                <label className="text-[10px] text-white/50 font-bold uppercase mb-2 block tracking-wider">Class Goal</label>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => updateData(widget.id, { goalCount: Math.max(10, goalCount - 10) })}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all active:scale-90"
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <div className="flex-1 text-center text-3xl font-black text-white tabular-nums">{goalCount}</div>
+                  <button
+                    onClick={() => updateData(widget.id, { goalCount: Math.min(200, goalCount + 10) })}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all active:scale-90"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Theme Selection */}
+              <div className="mb-6">
+                <label className="text-[10px] text-white/50 font-bold uppercase mb-2 block tracking-wider">Marble Theme</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.entries(MARBLE_THEMES).map(([id, t]) => (
+                    <button
+                      key={id}
+                      onClick={() => updateData(widget.id, { theme: id })}
+                      className={`p-2 rounded-xl border transition-all flex flex-col items-center gap-1 ${theme === id ? 'bg-blue-600 border-blue-400 scale-105' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                    >
+                      <span className="text-lg">{t.items[0]}</span>
+                      <span className="text-[8px] font-bold text-white/70">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sound Selection */}
+              <div className="mb-6">
+                <label className="text-[10px] text-white/50 font-bold uppercase mb-2 block tracking-wider">Collision Sound</label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(MARBLE_SOUNDS).map(([id, s]) => (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        updateData(widget.id, { sound: id });
+                        new Audio(s.url).play();
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${sound === id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Jar Color Selection */}
+              <div className="mb-8">
+                <label className="text-[10px] text-white/50 font-bold uppercase mb-2 block tracking-wider">Jar Tint</label>
+                <div className="flex gap-3">
+                  {Object.entries(JAR_COLORS).map(([id, color]) => (
+                    <button
+                      key={id}
+                      onClick={() => updateData(widget.id, { jarColor: id })}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${jarColor === id ? 'border-white scale-125 shadow-lg' : 'border-transparent opacity-50'}`}
+                      style={{ background: id === 'standard' ? 'rgba(255,255,255,0.2)' : id === 'gold' ? '#fbbf24' : id === 'night' ? '#312e81' : id === 'forest' ? '#064e3b' : '#be123c' }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowSettings(false)}
+                className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
+              >
+                Close Settings
+              </button>
+            </div>
+          )}
+
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-blue-500/10 to-transparent pointer-events-none z-10" />
+        </div>
+      );
+    };
+
+    const SOUND_ASSETS = {
+      transitions: [
+        { id: 'bell', name: 'Bell', icon: '🔔', url: 'https://cdn.freesound.org/previews/339/339810_5121236-lq.mp3' },
+        { id: 'chime', name: 'Chime', icon: '✨', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' },
+        { id: 'countdown', name: 'Countdown', icon: '⏱️', url: 'https://cdn.freesound.org/previews/254/254316_4062622-lq.mp3' },
+        { id: 'whistle', name: 'Whistle', icon: '🗣️', url: 'https://cdn.freesound.org/previews/458/458398_9345624-lq.mp3' },
+        { id: 'gong', name: 'Gong', icon: '🧘', url: 'https://cdn.freesound.org/previews/56/56314_76146-lq.mp3' }
+      ],
+      celebrations: [
+        { id: 'applause', name: 'Applause', icon: '👏', url: 'https://cdn.freesound.org/previews/60/60789_728424-lq.mp3' },
+        { id: 'fanfare', name: 'Fanfare', icon: '🎺', url: 'https://cdn.freesound.org/previews/270/270528_4486188-lq.mp3' },
+        { id: 'cheer', name: 'Cheer', icon: '🎉', url: 'https://cdn.freesound.org/previews/333/333404_5260872-lq.mp3' },
+        { id: 'levelup', name: 'Level Up', icon: '⬆️', url: 'https://cdn.freesound.org/previews/341/341629_5858296-lq.mp3' },
+        { id: 'magic', name: 'Magic', icon: '🪄', url: 'https://cdn.freesound.org/previews/467/467972_9961300-lq.mp3' }
+      ],
+      fun: [
+        { id: 'airhorn', name: 'Air Horn', icon: '📢', url: 'https://cdn.freesound.org/previews/366/366103_6687400-lq.mp3' },
+        { id: 'laugh', name: 'Laugh', icon: '😂', url: 'https://cdn.freesound.org/previews/155/155319_2577717-lq.mp3' },
+        { id: 'cricket', name: 'Cricket', icon: '🦗', url: 'https://cdn.freesound.org/previews/121/121511_2195640-lq.mp3' },
+        { id: 'drumroll', name: 'Drum Roll', icon: '🥁', url: 'https://cdn.freesound.org/previews/469/469344_9961300-lq.mp3' },
+        { id: 'boing', name: 'Boing', icon: '🌀', url: 'https://cdn.freesound.org/previews/415/415510_8139525-lq.mp3' }
+      ],
+      focus: [
+        { id: 'rain', name: 'Rain', icon: '🌧️', url: 'https://cdn.freesound.org/previews/531/531947_7694833-lq.mp3', loop: true },
+        { id: 'piano', name: 'Piano', icon: '🎹', url: 'https://cdn.freesound.org/previews/610/610787_12908482-lq.mp3', loop: true },
+        { id: 'forest', name: 'Forest', icon: '🌲', url: 'https://cdn.freesound.org/previews/573/573577_12716336-lq.mp3', loop: true },
+        { id: 'lofi', name: 'Lo-Fi', icon: '🎧', url: 'https://cdn.freesound.org/previews/558/558836_2595059-lq.mp3', loop: true }
+      ]
+    };
+
+    const SoundboardWidget = ({ widget, updateData }) => {
+      const [activeTab, setActiveTab] = useState('transitions');
+      const [playing, setPlaying] = useState({});
+
+      useEffect(() => {
+        return () => {
+          Object.values(playing).forEach(audio => {
+            audio.pause();
+            audio.currentTime = 0;
+          });
+        };
+      }, [playing]);
+
+      const playSound = (sound) => {
+        if (sound.loop) {
+          if (playing[sound.id]) {
+            playing[sound.id].pause();
+            const newPlaying = { ...playing };
+            delete newPlaying[sound.id];
+            setPlaying(newPlaying);
+            return;
+          }
+        }
+
+        const audio = new Audio(sound.url);
+        audio.volume = 1.0;
+        audio.loop = sound.loop || false;
+
+        audio.play().catch(e => console.error("Play error:", e));
+
+        if (sound.loop) {
+          setPlaying(prev => ({ ...prev, [sound.id]: audio }));
+        } else {
+          const id = sound.id + Math.random();
+          setPlaying(prev => ({ ...prev, [id]: audio }));
+          audio.onended = () => {
+            setPlaying(prev => {
+              const next = { ...prev };
+              delete next[id];
+              return next;
+            });
+          };
+        }
+      };
+
+      const stopAll = () => {
+        Object.values(playing).forEach(audio => {
+          audio.pause();
+          audio.currentTime = 0;
+        });
+        setPlaying({});
+      };
+
+      return (
+        <div className="w-full h-full flex flex-col bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="flex bg-white/5 p-1 gap-1">
+            {Object.keys(SOUND_ASSETS).map(key => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === key ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/10 text-white/50'}`}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 p-4 grid grid-cols-3 gap-3 overflow-y-auto custom-scrollbar content-start">
+            {SOUND_ASSETS[activeTab].map(sound => {
+              const isActive = sound.loop ? !!playing[sound.id] : false;
+              return (
+                <button
+                  key={sound.id}
+                  onClick={() => playSound(sound)}
+                  className={`relative group rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 aspect-square
+                        ${isActive ? 'border-indigo-500 bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.5)] animate-pulse' : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'}
+                    `}
+                >
+                  <div className="text-3xl filter drop-shadow-md transition-transform group-hover:scale-110">{sound.icon}</div>
+                  <div className="text-[10px] font-bold text-white/80 uppercase tracking-widest text-center leading-tight">{sound.name}</div>
+                  {isActive && <div className="absolute inset-0 border-2 border-indigo-400 rounded-2xl animate-ping opacity-20" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {Object.keys(playing).length > 0 && (
+            <div className="p-3 bg-red-500/10 border-t border-red-500/20 flex justify-center animate-in slide-in-from-bottom-2">
+              <button onClick={stopAll} className="flex items-center gap-2 px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                <Square size={12} fill="currentColor" /> Stop All Sounds
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    };
 
     const TimerWidget = ({ widget, updateData }) => {
       const data = widget.data || {};
@@ -2660,12 +3247,12 @@
                   )}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="font-bold text-slate-700 bg-white/80 px-2 rounded-lg backdrop-blur-sm shadow-sm" style={{ fontSize: (fontSize * 1.5) + 'px' }}>{formatTime(timeLeft)}</span>
+                  <span className="font-bold text-slate-700 bg-white/80 px-2 rounded-lg backdrop-blur-sm shadow-sm tracking-tight" style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 1.5) + 'px' }}>{formatTime(timeLeft)}</span>
                 </div>
               </div>
             ) : mode === 'digital' ? (
               <div className="flex flex-col items-center">
-                <div className={`font-black text-slate-800 tracking-widest mb-4 font-sans`} style={{ fontSize: (fontSize * 4) + 'px' }}>{formatTime(timeLeft)}</div>
+                <div className={`font-bold text-slate-800 tracking-tight mb-4`} style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 4) + 'px' }}>{formatTime(timeLeft)}</div>
                 {!isRunning && (
                   <div className="flex flex-col items-center gap-2">
                     <div className="flex gap-2 items-center mt-2">
@@ -2707,7 +3294,7 @@
             ) : (
               /* Stopwatch Mode */
               <div className="flex flex-col items-center">
-                <div className="font-black text-slate-800 tracking-widest font-mono" style={{ fontSize: (fontSize * 3) + 'px' }}>
+                <div className="font-bold text-slate-800 tracking-tight" style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 3) + 'px' }}>
                   {formatStopwatch(elapsed)}
                 </div>
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Stopwatch</div>
@@ -2728,12 +3315,15 @@
       );
     };
 
-    const RandomizerWidget = ({ widget, updateData, roster }) => {
-      const { currentName, isAnimating, fontSize = 16, pickedStudents = [], bgColor = '#e0e7ff' } = widget.data;
+    const RandomizerWidget = ({ widget, updateData, roster, allRosters }) => {
+      const { currentName, isAnimating, fontSize = 16, pickedStudents = [], bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
+      const [activeClassId, setActiveClassId] = useState(savedActiveClassId || (allRosters?.length > 0 ? allRosters[0].id : null));
+      const currentRoster = allRosters?.find(r => r.id === activeClassId)?.roster || roster || [];
+
       const [showSettings, setShowSettings] = useState(false);
       const steps = useRef(0);
       const intervalRef = useRef(null);
-      const activeStudents = roster.filter(s => s.active);
+      const activeStudents = currentRoster.filter(s => s.active);
       const unpickedStudents = activeStudents.filter(s => !pickedStudents.includes(s.name));
 
       useEffect(() => {
@@ -2772,6 +3362,20 @@
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
               <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Class Roster</label>
+                <select
+                  className="w-full text-xs border rounded p-1 mb-3 bg-white"
+                  value={activeClassId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setActiveClassId(newId);
+                    updateData(widget.id, { activeClassId: newId, pickedStudents: [] });
+                  }}
+                >
+                  {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Background Color</label>
                 <div className="flex gap-2 flex-wrap">
                   {['#e0e7ff', '#fee2e2', '#dcfce7', '#fef9c3', '#f3e8ff', '#ffffff'].map(c => (
@@ -2805,8 +3409,21 @@
             <Settings size={16} />
           </button>
 
-          <div className="absolute top-2 left-2 text-[10px] font-bold text-black/40 uppercase tracking-wider">
-            {pickedCount}/{totalCount}
+          <div className="absolute top-2 left-2 flex items-center gap-2 z-20">
+            <div className="text-[10px] font-bold text-black/40 uppercase tracking-wider">
+              {pickedCount}/{totalCount}
+            </div>
+            <select
+              className="text-[10px] font-bold border rounded bg-white/50 backdrop-blur-sm px-1 py-0.5 outline-none focus:bg-white transition-colors"
+              value={activeClassId}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setActiveClassId(newId);
+                updateData(widget.id, { activeClassId: newId, pickedStudents: [] });
+              }}
+            >
+              {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+            </select>
           </div>
 
           <div className="flex-1 flex items-center justify-center w-full">
@@ -2820,31 +3437,47 @@
       );
     };
 
-    const GroupMakerWidget = ({ widget, updateData, roster }) => {
-      const { groups = [], fontSize = 16, groupCount = 4 } = widget.data;
+    const GroupMakerWidget = ({ widget, updateData, roster, allRosters }) => {
+      const { groups = [], fontSize = 16, groupCount = 4, activeClassId: savedActiveClassId } = widget.data;
+      const [activeClassId, setActiveClassId] = useState(savedActiveClassId || (allRosters?.length > 0 ? allRosters[0].id : null));
+      const currentRoster = allRosters?.find(r => r.id === activeClassId)?.roster || roster || [];
+
       const containerRef = useRef(null);
       const [columns, setColumns] = useState(4);
       const dragItem = useRef(null);
       const dragSourceGroup = useRef(null);
 
-      const activeStudents = roster.filter(s => s.active);
+      const activeStudents = currentRoster.filter(s => s.active);
       const count = activeStudents.length;
       const scaledFS = (fontSize / 16) * 14;
 
-      // Responsive column calculation with Debounce
+      // Responsive column calculation — prefer balanced rows
       useEffect(() => {
         if (!containerRef.current) return;
 
         let timeoutId;
         const observer = new ResizeObserver((entries) => {
           for (let entry of entries) {
-            // Debounce the column update to prevent rapid flickering
             if (timeoutId) clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
               const width = entry.contentRect.width;
-              // Adjusted: 140px min width for better density
-              const newCols = Math.max(1, Math.min(8, Math.floor(width / 140)));
-              setColumns(newCols);
+              const maxCols = Math.max(1, Math.min(8, Math.floor(width / 120)));
+              const numGroups = groups.length;
+
+              if (numGroups <= 1) { setColumns(Math.max(1, maxCols)); return; }
+
+              // Pick the column count (from 1..maxCols) that yields the most balanced rows.
+              // "balanced" = last row has the same number of items as every other row (remainder == 0),
+              // or, failing that, the largest remainder (fewest empty cells in the last row).
+              let bestCols = maxCols;
+              let bestScore = -1; // higher is better
+              for (let c = 1; c <= maxCols; c++) {
+                const remainder = numGroups % c;
+                // Perfect fit scores highest; otherwise score by how full the last row is
+                const score = remainder === 0 ? c + 1000 : remainder;
+                if (score > bestScore) { bestScore = score; bestCols = c; }
+              }
+              setColumns(bestCols);
             }, 50);
           }
         });
@@ -2853,7 +3486,7 @@
           observer.disconnect();
           if (timeoutId) clearTimeout(timeoutId);
         };
-      }, []);
+      }, [groups]);
 
       const createGroups = (countNeeded) => {
         const shuffled = [...activeStudents].sort(() => Math.random() - 0.5);
@@ -2934,18 +3567,37 @@
             <h3 className="font-bold text-lg text-slate-800 mb-2">Group Maker</h3>
             <p className="text-slate-500 text-xs max-w-[200px] mb-6">Instantly split {count} students into random groups.</p>
 
-            <div className="w-full max-w-[240px] bg-slate-50 p-3 rounded-xl border border-slate-100 mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-slate-500 uppercase">Groups</span>
-                <span className="text-sm font-black text-slate-700">{groupCount}</span>
-              </div>
-              <input
-                type="range" min="2" max="20" value={groupCount}
-                onChange={e => updateData(widget.id, { groupCount: Number(e.target.value) })}
-                className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="text-[10px] text-slate-400 mt-2 text-right">
-                ~{Math.ceil(count / groupCount)} students per group
+            <div className="w-full max-w-[240px] bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4">
+              <div className="flex flex-col gap-3 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Class Roster</span>
+                  <select
+                    className="text-[10px] font-bold border rounded bg-white px-1 py-0.5"
+                    value={activeClassId}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setActiveClassId(newId);
+                      updateData(widget.id, { activeClassId: newId, groups: [] });
+                    }}
+                  >
+                    {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+                  </select>
+                </div>
+                <div className="h-px bg-slate-200/50" />
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Groups</span>
+                    <span className="text-sm font-black text-slate-700">{groupCount}</span>
+                  </div>
+                  <input
+                    type="range" min="2" max="20" value={groupCount}
+                    onChange={e => updateData(widget.id, { groupCount: Number(e.target.value) })}
+                    className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="text-[10px] text-slate-400 mt-2 text-right">
+                    ~{Math.ceil(count / groupCount)} students per group
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2963,7 +3615,19 @@
       return (
         <div className="flex flex-col h-full bg-slate-100 relative p-4">
           <div className="flex flex-col gap-2 flex-1 min-h-0">
-            <div className="flex justify-between items-center mb-1 shrink-0">
+            <div className="flex justify-between items-center mb-1 shrink-0 gap-2">
+              <select
+                className="text-[10px] font-bold border rounded bg-white px-1 py-0.5"
+                value={activeClassId}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setActiveClassId(newId);
+                  updateData(widget.id, { activeClassId: newId, groups: [] });
+                }}
+              >
+                {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
+              </select>
+
               <div className="bg-white border border-gray-200 px-2 py-0.5 rounded-md shadow-sm">
                 <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Present: </span>
                 <span className="text-xs font-bold text-blue-600">{count}</span>
@@ -2979,7 +3643,7 @@
                   key={i}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, i)}
-                  className="bg-white p-2 rounded-xl shadow-sm border border-slate-300 min-h-[80px] flex flex-col transition-colors hover:bg-blue-50/30 group"
+                  className="bg-white p-2 rounded-xl shadow-sm border border-slate-400 min-h-[80px] flex flex-col transition-colors hover:bg-blue-50/30 group"
                 >
                   <div className="flex justify-between items-center mb-1">
                     <div className="font-bold text-[10px] uppercase text-gray-400 tracking-wider">Group {i + 1}</div>
@@ -3810,7 +4474,7 @@
       };
 
       const updateItem = (index, field, value) => { const newItems = [...items]; newItems[index] = { ...newItems[index], [field]: value }; saveItems(newItems); };
-      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '\u{1F4DA}', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
+      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
       const removeItem = (index) => { const newItems = items.filter((_, i) => i !== index); saveItems(newItems); };
 
       const handleDragStart = (index) => { setDragIndex(index); };
@@ -4212,7 +4876,7 @@
             <div className="p-8 bg-gradient-to-br from-blue-600 to-indigo-700 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12" />
-              <h2 className="text-3xl font-bold mb-2">Sign into your Homeroom</h2>
+              <h2 className="text-3xl font-bold mb-2 text-center">Sign into<br />your Homeroom</h2>
               {!forced && <button onClick={() => setIsOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>}
             </div>
             <div className="p-8 bg-white">
@@ -4261,6 +4925,11 @@
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 focus:bg-white transition-all font-medium text-gray-800"
                     placeholder="••••••••"
                   />
+                  {mode === 'login' && (
+                    <div className="flex justify-end mt-2">
+                      <a href="https://ourhomeroom.app/signin" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline">Forgot password?</a>
+                    </div>
+                  )}
                 </div>
 
                 {mode === 'signup' && (
@@ -4309,10 +4978,10 @@
       );
     };
 
-    const AppearanceSettings = ({ currentBg, onSelect, isGridEnabled, onToggleGrid, myBackgrounds, onAddCustom, onDeleteCustom, clockStyle, setClockStyle, showDate, setShowDate, isGlassy, setIsGlassy }) => {
+    const AppearanceSettings = ({ currentBg, onSelect, isGridEnabled, onToggleGrid, myBackgrounds, onAddCustom, onDeleteCustom, clockStyle, setClockStyle, showDate, setShowDate, isGlassy, setIsGlassy, accentColor, setAccentColor }) => {
       const [customUrl, setCustomUrl] = useState('');
       const [dragActive, setDragActive] = useState(false);
-      const [applyToAll, setApplyToAll] = useState(true);
+      const [applyToAll, setApplyToAll] = useState(false);
       const fileInputRef = useRef(null);
 
       const handleDrag = (e) => {
@@ -4360,8 +5029,8 @@
           return;
         }
 
-        // Check limit (12 custom backgrounds max)
-        const MAX_CUSTOM_BGS = 12;
+        // Check limit (10 custom backgrounds max)
+        const MAX_CUSTOM_BGS = 10;
         if (myBackgrounds.length >= MAX_CUSTOM_BGS) {
           alert(`You can only save up to ${MAX_CUSTOM_BGS} custom backgrounds. Please delete one to add more.`);
           return;
@@ -4370,7 +5039,7 @@
         resizeImage(file, (dataUrl) => {
           const newBg = { id: 'custom-' + Date.now(), name: file.name, type: 'image', src: dataUrl, textColor: 'text-white' };
           onAddCustom(newBg);
-          onSelect(newBg, applyToAll ? 'all' : 'single');
+          onSelect(newBg, 'single');
         });
       }, [applyToAll, onSelect, onAddCustom, myBackgrounds]);
 
@@ -4398,13 +5067,150 @@
           onDeleteCustom(id);
           // Ensure it's deselected if current
           if (currentBg && currentBg.id === id) {
-            onSelect(BACKGROUNDS[0], 'all');
+            onSelect(BACKGROUNDS[0], 'single');
           }
         }
       };
 
       return (
         <div className="flex flex-col h-full overflow-y-auto custom-scrollbar p-4">
+          <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Palette size={18} /></div>
+              <div className="font-bold text-xs text-gray-800">Widget Color</div>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {Object.entries(THEME_COLORS).map(([id, colors]) => (
+                <button
+                  key={id}
+                  onClick={() => setAccentColor(id)}
+                  className={`w-9 h-9 rounded-full border-2 transition-all hover:scale-110 active:scale-95 flex items-center justify-center ${accentColor === id ? 'border-gray-800 ring-2 ring-gray-200' : 'border-white shadow-sm'}`}
+                  style={{ backgroundColor: colors[600] }}
+                  title={id.charAt(0).toUpperCase() + id.slice(1)}
+                >
+                  {accentColor === id && <Check size={16} className="text-white" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-1">
+            {/* Custom / My Backgrounds */}
+            {myBackgrounds.length > 0 && (
+              <>
+                <div className="text-xs font-bold text-gray-500 uppercase mb-2">My Backgrounds</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  {myBackgrounds.map(bg => (
+                    <button key={bg.id} onClick={() => { onSelect(bg, 'single'); }} className={`relative group rounded-xl overflow-hidden aspect-video border-2 transition-all active:scale-95 shadow-sm hover:shadow-md ${currentBg?.id === bg.id ? 'border-purple-600 ring-2 ring-purple-100' : 'border-transparent hover:border-gray-200'}`}>
+                      <img src={bg.src} alt={bg.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white font-bold tracking-wide shadow-sm truncate px-2">{bg.name}</span>
+                      </div>
+                      {currentBg?.id === bg.id && <div className="absolute top-2 right-2 bg-purple-600 text-white p-1 rounded-full shadow-lg"><Check size={12} /></div>}
+                      <div onClick={(e) => onDeleteCustomClick(e, bg.id)} className="absolute top-1 right-1 bg-white/90 text-red-500 p-1.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all shadow-md border border-red-100 z-20" title="Delete"><Trash2 size={14} /></div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center justify-between">
+              <span>Background Presets</span>
+              <div className="flex items-center gap-2 cursor-pointer bg-gray-100 px-3 py-1.5 rounded-lg transition-colors hover:bg-gray-200" onClick={() => onToggleGrid(!isGridEnabled)}>
+                <span className="text-[10px] font-bold text-gray-600">Snap to Grid</span>
+                <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${isGridEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                  <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${isGridEnabled ? 'translate-x-4' : ''}`} />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {BACKGROUNDS.map(bg => (
+                <button key={bg.id} onClick={() => { onSelect(bg, 'single'); }} className={`relative group rounded-xl overflow-hidden aspect-video border-2 transition-all active:scale-95 shadow-sm hover:shadow-md ${currentBg?.id === bg.id ? 'border-purple-600 ring-2 ring-purple-100' : 'border-transparent hover:border-gray-200'}`}>
+                  {bg.id === 'default' ? (
+                    <div className="w-full h-full">
+                      <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="thumbGradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} /></linearGradient>
+                          <linearGradient id="thumbGradBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} /></linearGradient>
+                        </defs>
+                        <rect width="100%" height="100%" fill="#dbeafe" />
+                        <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#thumbGradOrange)" />
+                        <path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" />
+                        <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#thumbGradBlue)" />
+                        <path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" />
+                      </svg>
+                    </div>
+                  ) : bg.type === 'preset' ? (
+                    <div className={`w-full h-full ${bg.preview}`}></div>
+                  ) : (
+                    <img src={bg.src} alt={bg.name} className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white font-bold tracking-wide shadow-sm">{bg.name}</span>
+                  </div>
+                  {currentBg?.id === bg.id && <div className="absolute top-2 right-2 bg-purple-600 text-white p-1 rounded-full shadow-lg"><Check size={12} /></div>}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 mt-6">
+              {/* Upload Area */}
+              <div
+                className={`flex-1 relative border-2 border-dashed rounded-xl p-4 transition-all flex items-center gap-3 cursor-pointer group hover:border-blue-400 hover:bg-blue-50 ${dragActive ? 'border-blue-500 bg-blue-50 scale-[1.02]' : 'border-gray-300 bg-gray-50'}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && handleFile(e.target.files[0])} />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${dragActive ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 shadow-sm group-hover:scale-110'}`}>
+                  {dragActive ? <Download size={20} className="animate-bounce" /> : <UploadCloud size={20} />}
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-gray-700 font-bold mb-1 truncate">
+                    <span className="text-blue-600 hover:underline">Upload</span> or drag/drop
+                  </p>
+                  <p className="text-[10px] text-gray-400">SVG, PNG, JPG or GIF</p>
+                </div>
+                <div className="absolute top-1 right-1">
+                  <div className="bg-white/80 backdrop-blur px-1.5 py-0.5 rounded-[4px] text-[8px] font-bold text-gray-400 uppercase border border-gray-100 italic">Paste Support</div>
+                </div>
+              </div>
+
+              {/* URL Input Area */}
+              <div className="flex-1 flex flex-col justify-center bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <div className="text-[10px] font-bold text-gray-400 uppercase mb-2">Or Paste Image URL</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition-all font-medium"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && customUrl) {
+                        const newBg = { id: 'custom-url-' + Date.now(), name: 'Custom URL', type: 'image', src: customUrl, textColor: 'text-white' };
+                        onAddCustom(newBg);
+                        onSelect(newBg, 'single');
+                        setCustomUrl('');
+                      }
+                    }}
+                  />
+                  {customUrl && (
+                    <button onClick={() => {
+                      const newBg = { id: 'custom-url-' + Date.now(), name: 'Custom URL', type: 'image', src: customUrl, textColor: 'text-white' };
+                      onAddCustom(newBg);
+                      onSelect(newBg, 'single');
+                      setCustomUrl('');
+                    }} className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow-sm transition-colors"><Check size={18} /></button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="mb-6 space-y-3">
             <div className="p-3 bg-gray-50 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
@@ -4479,130 +5285,6 @@
                 ))}
               </div>
             </div>
-
-
-          </div>
-
-          <div className="p-1">
-            {/* Custom / My Backgrounds */}
-            {myBackgrounds.length > 0 && (
-              <>
-                <div className="text-xs font-bold text-gray-500 uppercase mb-2">My Backgrounds</div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  {myBackgrounds.map(bg => (
-                    <button key={bg.id} onClick={() => { onSelect(bg, applyToAll ? 'all' : 'single'); }} className={`relative group rounded-xl overflow-hidden aspect-video border-2 transition-all active:scale-95 shadow-sm hover:shadow-md ${currentBg?.id === bg.id ? 'border-purple-600 ring-2 ring-purple-100' : 'border-transparent hover:border-gray-200'}`}>
-                      <img src={bg.src} alt={bg.name} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="text-white font-bold tracking-wide shadow-sm truncate px-2">{bg.name}</span>
-                      </div>
-                      {currentBg?.id === bg.id && <div className="absolute top-2 left-2 bg-purple-600 text-white p-1 rounded-full shadow-lg"><Check size={12} /></div>}
-                      <div onClick={(e) => onDeleteCustomClick(e, bg.id)} className="absolute top-1 right-1 bg-white/90 text-red-500 p-1.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all shadow-md border border-red-100 z-20" title="Delete"><Trash2 size={14} /></div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center justify-between">
-              <span>Background Presets</span>
-              <div className="flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 px-2 py-1 rounded-lg transition-colors border border-gray-200" onClick={() => onToggleGrid(!isGridEnabled)}>
-                <span className="text-[10px] font-bold text-gray-600">Snap to Grid</span>
-                <div className={`w-7 h-3.5 rounded-full p-0.5 transition-colors ${isGridEnabled ? 'bg-indigo-500' : 'bg-gray-300'}`}>
-                  <div className={`w-2.5 h-2.5 bg-white rounded-full shadow-sm transition-transform ${isGridEnabled ? 'translate-x-3.5' : ''}`} />
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {BACKGROUNDS.map(bg => (
-                <button key={bg.id} onClick={() => { onSelect(bg, applyToAll ? 'all' : 'single'); }} className={`relative group rounded-xl overflow-hidden aspect-video border-2 transition-all active:scale-95 shadow-sm hover:shadow-md ${currentBg?.id === bg.id ? 'border-purple-600 ring-2 ring-purple-100' : 'border-transparent hover:border-gray-200'}`}>
-                  {bg.id === 'default' ? (
-                    <div className="w-full h-full">
-                      <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <linearGradient id="thumbGradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} /></linearGradient>
-                          <linearGradient id="thumbGradBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} /></linearGradient>
-                        </defs>
-                        <rect width="100%" height="100%" fill="#dbeafe" />
-                        <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#thumbGradOrange)" />
-                        <path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" />
-                        <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#thumbGradBlue)" />
-                        <path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" />
-                      </svg>
-                    </div>
-                  ) : bg.type === 'preset' ? (
-                    <div className={`w-full h-full ${bg.preview}`}></div>
-                  ) : (
-                    <img src={bg.src} alt={bg.name} className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-white font-bold tracking-wide shadow-sm">{bg.name}</span>
-                  </div>
-                  {currentBg?.id === bg.id && <div className="absolute top-2 right-2 bg-purple-600 text-white p-1 rounded-full shadow-lg"><Check size={12} /></div>}
-                </button>
-              ))}
-            </div>
-
-            <div className="text-xs font-bold text-gray-500 uppercase mb-2">Upload Custom Background</div>
-            <div
-              className={`relative border-2 border-dashed rounded-xl p-4 transition-all flex items-center justify-between gap-3 cursor-pointer group hover:border-blue-400 hover:bg-blue-50 ${dragActive ? 'border-blue-500 bg-blue-50 scale-[1.02]' : 'border-gray-300 bg-gray-50'}`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && handleFile(e.target.files[0])} />
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${dragActive ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 shadow-sm group-hover:scale-110'}`}>
-                {dragActive ? <Download size={20} className="animate-bounce" /> : <UploadCloud size={20} />}
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-gray-700 font-bold mb-1">
-                  <span className="text-blue-600 hover:underline">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-gray-400">SVG, PNG, JPG or GIF</p>
-              </div>
-              <div className="absolute top-2 right-2 flex gap-1">
-                <div className="bg-white/80 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-gray-400 uppercase border border-gray-200">Paste Supported</div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${applyToAll ? 'bg-blue-500' : 'bg-gray-300'}`} onClick={() => setApplyToAll(!applyToAll)}>
-                  <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${applyToAll ? 'translate-x-4' : ''}`} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-700">Apply to all slides</span>
-                  <span className="text-[10px] text-gray-400">If unchecked, background only applies to current slide</span>
-                </div>
-              </div>
-              {/* Fallback URL Input */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-400 uppercase">OR URL:</span>
-                <input
-                  type="text"
-                  placeholder="Paste URL..."
-                  className="border border-gray-300 rounded-lg px-2 py-1 text-xs w-32 outline-none focus:border-blue-500"
-                  value={customUrl}
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customUrl) {
-                      const newBg = { id: 'custom-url-' + Date.now(), name: 'Custom URL', type: 'image', src: customUrl, textColor: 'text-white' };
-                      onAddCustom(newBg);
-                      onSelect(newBg, applyToAll ? 'all' : 'single');
-                    }
-                  }}
-                />
-                {customUrl && (
-                  <button onClick={() => {
-                    const newBg = { id: 'custom-url-' + Date.now(), name: 'Custom URL', type: 'image', src: customUrl, textColor: 'text-white' };
-                    onAddCustom(newBg);
-                    onSelect(newBg, applyToAll ? 'all' : 'single');
-                  }} className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600"><Check size={14} /></button>
-                )}
-              </div>
-            </div>
           </div>
         </div >
       );
@@ -4645,7 +5327,7 @@
       );
     };
 
-    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, cloudSyncEnabled, setCloudSyncEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
+    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, accentColor, setAccentColor, backupEnabled, setBackupEnabled, cloudSyncEnabled, setCloudSyncEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
       const [realignDate, setRealignDate] = useState(new Date().toISOString().split('T')[0]);
       const [realignTargetDay, setRealignTargetDay] = useState(1);
       const [realignSuccess, setRealignSuccess] = useState(false);
@@ -4769,7 +5451,7 @@
       };
 
       const addScheduleItem = (day) => {
-        const newItem = { id: Date.now().toString(), time: '09:00', emoji: 'ðŸ“š', title: 'New Activity', description: '' };
+        const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' };
         setScheduleTemplate(prev => ({ ...prev, [day]: [...(prev[day] || []), newItem] }));
       };
 
@@ -4856,7 +5538,7 @@
                             <ChevronDown size={16} className={`text-gray-400 transition-transform ${showRosterMenu ? 'rotate-180' : ''}`} />
                           </button>
                           {showRosterMenu && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-48 overflow-y-auto custom-scrollbar">
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-48 overflow-y-auto custom-scrollbar">
                               {allRosters.map(r => (
                                 <button key={r.id} onClick={() => { onSetActiveRoster(r.id); setShowRosterMenu(false); }} className={`w-full text-left px-4 py-2 text-sm font-bold hover:bg-purple-50 transition-colors flex justify-between items-center ${activeRosterId === r.id ? 'text-purple-700 bg-purple-50' : 'text-gray-600'}`}>
                                   <span className="truncate">{r.name}</span>
@@ -5029,6 +5711,9 @@
                   setShowDate={setShowClockDate}
                   isGlassy={isClockGlassy}
                   setIsGlassy={setIsClockGlassy}
+                  accentColor={accentColor}
+                  setAccentColor={setAccentColor}
+                  backupEnabled={backupEnabled}
                 />
               )}
 
@@ -5288,25 +5973,29 @@
 
               {/* ABOUT TAB */}
               {activeTab === 'about' && (
-                <div className="p-6">
-                  <div className="flex flex-col items-center mb-6">
-                    <img src="./public/eduloop-logo.png" alt="EduLoop" className="w-24 h-24 rounded-full bg-white p-1 shadow-lg mb-3 object-contain" />
-                    <h2 className="text-lg font-bold text-gray-800">HomeRoom</h2>
-                    <div className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full mb-2 tracking-widest uppercase">Version 1.0</div>
-                    <p className="text-gray-500 text-sm text-center">A classroom management tool by <span className="font-semibold text-teal-600">EduLoop</span></p>
+                <div className="p-4">
+                  <div className="flex flex-col items-center mb-2">
+                    <img src="./public/eduloop-logo.png" alt="EduLoop" className="w-20 h-20 rounded-full bg-white p-1 shadow-lg mb-2 object-contain" />
+                    <h2 className="text-lg font-bold text-gray-800 leading-tight">HomeRoom</h2>
+                    <div className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold rounded-full mb-1 tracking-widest uppercase">Version 1.0</div>
+                    <p className="text-gray-500 text-xs text-center">A classroom management tool by <span className="font-semibold text-teal-600">EduLoop</span></p>
                   </div>
                   <div className="space-y-2">
-                    <a href="mailto:jeffhennigar@gmail.com" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-blue-50 rounded-xl transition-colors group">
-                      <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Mail size={16} /></div>
-                      <div><div className="text-xs text-gray-400">Contact</div><div className="text-sm font-semibold text-gray-700 group-hover:text-blue-600">jeffhennigar@gmail.com</div></div>
+                    <a href="https://ourhomeroom.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 bg-gray-50 hover:bg-teal-50 rounded-xl transition-colors group">
+                      <div className="p-1.5 bg-teal-100 rounded-lg text-teal-600"><Globe size={16} /></div>
+                      <div><div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Website</div><div className="text-sm font-semibold text-gray-700 group-hover:text-teal-600 leading-none">ourhomeroom.app</div></div>
                     </a>
-                    <a href="https://www.teacherspayteachers.com/store/effortless-edtech" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-green-50 rounded-xl transition-colors group">
-                      <div className="p-2 bg-green-100 rounded-lg text-green-600"><ExternalLink size={16} /></div>
-                      <div><div className="text-xs text-gray-400">Teachers Pay Teachers</div><div className="text-sm font-semibold text-gray-700 group-hover:text-green-600">Visit Store &rarr;</div></div>
+                    <a href="mailto:info@ourhomeroom.app" className="flex items-center gap-3 p-2.5 bg-gray-50 hover:bg-blue-50 rounded-xl transition-colors group">
+                      <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600"><Mail size={16} /></div>
+                      <div><div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Contact</div><div className="text-sm font-semibold text-gray-700 group-hover:text-blue-600 leading-none">info@ourhomeroom.app</div></div>
                     </a>
-                    <a href="https://www.etsy.com/shop/EffortlessEdtech" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-orange-50 rounded-xl transition-colors group">
-                      <div className="p-2 bg-orange-100 rounded-lg text-orange-600"><ExternalLink size={16} /></div>
-                      <div><div className="text-xs text-gray-400">Etsy Shop</div><div className="text-sm font-semibold text-gray-700 group-hover:text-orange-600">Visit Store &rarr;</div></div>
+                    <a href="https://www.teacherspayteachers.com/store/effortless-edtech" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 bg-gray-50 hover:bg-green-50 rounded-xl transition-colors group">
+                      <div className="p-1.5 bg-green-100 rounded-lg text-green-600"><ExternalLink size={16} /></div>
+                      <div><div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Teachers Pay Teachers</div><div className="text-sm font-semibold text-gray-700 group-hover:text-green-600 leading-none">Visit Store &rarr;</div></div>
+                    </a>
+                    <a href="https://www.etsy.com/shop/EffortlessEdtech" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 bg-gray-50 hover:bg-orange-50 rounded-xl transition-colors group">
+                      <div className="p-1.5 bg-orange-100 rounded-lg text-orange-600"><ExternalLink size={16} /></div>
+                      <div><div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Etsy Shop</div><div className="text-sm font-semibold text-gray-700 group-hover:text-orange-600 leading-none">Visit Store &rarr;</div></div>
                     </a>
                   </div>
                 </div>
@@ -5314,140 +6003,110 @@
 
               {/* ACCOUNT / DATA TAB */}
               {activeTab === 'data' && (
-                <div className="p-6">
+                <div className="p-5 space-y-4">
                   {user ? (
-                    <div className="mb-8 bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                          <User size={24} />
+                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                          <User size={20} />
                         </div>
-                        <div className="flex-1">
-                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Signed in as</div>
-                          <div className="text-lg font-bold text-slate-800">{user.email}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account</div>
+                          <div className="text-sm font-bold text-slate-800 truncate">{user.email}</div>
                         </div>
                         <button
                           onClick={async () => {
                             try {
-                              const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                                redirectTo: window.location.origin,
-                              });
+                              const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin });
                               if (error) throw error;
-                              alert('Password reset email sent! Please check your inbox.');
-                            } catch (e) {
-                              alert('Error: ' + e.message);
-                            }
+                              alert('Password reset email sent!');
+                            } catch (e) { alert('Error: ' + e.message); }
                           }}
-                          className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 font-bold text-xs rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2"
+                          className="px-2 py-1 bg-white border border-slate-200 text-slate-500 font-bold text-[10px] rounded-lg hover:bg-slate-50 transition-all flex items-center gap-1"
                         >
-                          <Lock size={14} /> Reset Password
+                          <Lock size={12} /> Reset
                         </button>
                       </div>
 
-                      <div className="h-px bg-slate-200/50 w-full mb-6" />
-
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-200/50">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-700">Cloud Sync</span>
-                          <span className="text-[11px] text-slate-500">Sync data automatically to the cloud</span>
+                          <span className="text-xs font-bold text-slate-700">Cloud Sync</span>
+                          <span className="text-[10px] text-slate-400">Sync data across devices</span>
                         </div>
                         <div
-                          className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-all duration-300 ${(!user) ? 'bg-gray-200 cursor-not-allowed' : (cloudSyncEnabled ? 'bg-blue-600' : 'bg-slate-300')}`}
+                          className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-all duration-300 ${(!user) ? 'bg-gray-200' : (cloudSyncEnabled ? 'bg-blue-600' : 'bg-slate-300')}`}
                           onClick={() => user && setCloudSyncEnabled(!cloudSyncEnabled)}
-                          title={user ? (cloudSyncEnabled ? "Cloud sync is ON" : "Cloud sync is OFF") : "Sign in to enable cloud sync"}
                         >
-                          <div className={`w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300 ${cloudSyncEnabled && user ? 'translate-x-5' : 'translate-x-0'}`} />
+                          <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 ${cloudSyncEnabled && user ? 'translate-x-4' : 'translate-x-0'}`} />
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="mb-8 p-6 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
-                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm mb-4">
-                        <Cloud size={32} />
+                    <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm mb-3">
+                        <Cloud size={24} />
                       </div>
-                      <h3 className="text-xl font-bold text-blue-900 mb-2">Cloud Sync Available</h3>
-                      <p className="text-blue-700 text-sm mb-6 max-w-sm opacity-80">
-                        Sign in to sync your rosters and widgets across all your devices. Never lose your classroom data again.
-                      </p>
+                      <h3 className="text-sm font-bold text-blue-900 mb-1">Cloud Sync</h3>
+                      <p className="text-blue-700 text-[11px] mb-4 opacity-80">Sign in to sync your rosters and widgets across devices.</p>
                       <button
                         onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
-                        className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95 flex items-center gap-2"
+                        className="px-6 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-2"
                       >
-                        <Cloud size={20} /> Sign In to Sync
+                        <Cloud size={16} /> Sign In
                       </button>
                     </div>
                   )}
 
-                  <div className="mb-8 p-6 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
-                    <div className="bg-white p-2 rounded-lg shadow-sm text-blue-500">
-                      <Shield size={20} />
-                    </div>
-                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                      Your privacy and data security are our top priorities. Feel free to store all your data strictly locally on this device, or use our cloud storage to sync across all your classrooms.
-                    </p>
-                  </div>
-
-                  <div className="px-1 mb-6">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Manual Data Backup</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button onClick={downloadData} className="flex flex-col items-center gap-2 p-6 bg-green-50 hover:bg-green-100 rounded-2xl transition-all border border-green-100 group">
-                        <div className="p-3 bg-green-500 rounded-xl text-white shadow-lg group-hover:scale-110 transition-transform"><Download size={24} /></div>
-                        <div className="text-center">
-                          <div className="font-bold text-gray-800">Export</div>
-                          <div className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Save Backup</div>
-                        </div>
-                      </button>
-                      <button onClick={() => fileInputRef.current.click()} className="flex flex-col items-center gap-2 p-6 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all border border-blue-100 group">
-                        <div className="p-3 bg-blue-500 rounded-xl text-white shadow-lg group-hover:scale-110 transition-transform"><Upload size={24} /></div>
-                        <div className="text-center">
-                          <div className="font-bold text-gray-800">Import</div>
-                          <div className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Restore Data</div>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 border-t pt-6">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Backup Reminders</h4>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${backupEnabled ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}><Bell size={20} /></div>
-                          <div>
-                            <div className="font-bold text-sm text-gray-800">Remind me to backup</div>
-                            <div className="text-[11px] text-slate-500">Show periodic prompts to export</div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setBackupEnabled(!backupEnabled)}
-                          className={`relative w-12 h-7 rounded-full transition-colors ${backupEnabled ? 'bg-indigo-500' : 'bg-gray-300'}`}
-                        >
-                          <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${backupEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={downloadData} className="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-xl transition-all border border-green-100 group">
+                      <div className="p-2 bg-green-500 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform"><Download size={18} /></div>
+                      <div className="text-left">
+                        <div className="font-bold text-xs text-slate-700">Export</div>
+                        <div className="text-[9px] text-green-600 font-bold uppercase tracking-tight">Backup</div>
                       </div>
+                    </button>
+                    <button onClick={() => fileInputRef.current.click()} className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-100 group">
+                      <div className="p-2 bg-blue-500 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform"><Upload size={18} /></div>
+                      <div className="text-left">
+                        <div className="font-bold text-xs text-slate-700">Import</div>
+                        <div className="text-[9px] text-blue-600 font-bold uppercase tracking-tight">Restore</div>
+                      </div>
+                    </button>
+                  </div>
 
-                      {backupEnabled && (
-                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2 duration-200">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Clock size={20} /></div>
-                            <div>
-                              <div className="font-bold text-sm text-gray-800">Frequency</div>
-                              <div className="text-[11px] text-slate-500">Every few days</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="1"
-                              max="365"
-                              value={backupInterval}
-                              onChange={(e) => setBackupInterval(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-16 p-2 text-center font-bold border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:bg-white"
-                            />
-                            <span className="text-xs font-bold text-slate-500">days</span>
-                          </div>
-                        </div>
-                      )}
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg ${backupEnabled ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}><Bell size={16} /></div>
+                        <span className="font-bold text-xs text-slate-700">Backup Reminders</span>
+                      </div>
+                      <button
+                        onClick={() => setBackupEnabled(!backupEnabled)}
+                        className={`relative w-9 h-5 rounded-full transition-colors ${backupEnabled ? 'bg-indigo-500' : 'bg-gray-300'}`}
+                      >
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${backupEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </button>
                     </div>
+                    {backupEnabled && (
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/50 animate-in fade-in slide-in-from-top-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Frequency</span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number" min="1" max="365" value={backupInterval}
+                            onChange={(e) => setBackupInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none focus:border-indigo-500"
+                          />
+                          <span className="text-[10px] font-bold text-slate-400">days</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-200 flex gap-3 italic text-slate-500">
+                    <div className="shrink-0 text-slate-300"><Shield size={14} /></div>
+                    <p className="text-[10px] text-slate-400 leading-normal">
+                      Security & privacy are priorities. Data can be stored strictly locally or synced via cloud.
+                    </p>
                   </div>
                 </div>
               )}
@@ -5591,10 +6250,76 @@
       );
     };
 
+    const dataService = {
+      // --- Profiles & Settings ---
+      async getProfile(userId) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      },
+
+      async updateProfile(userId, updates) {
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ id: userId, ...updates });
+        if (error) throw error;
+      },
+
+      // --- Slides ---
+      async getSlides(userId) {
+        const { data, error } = await supabase
+          .from('slides')
+          .select('*')
+          .eq('user_id', userId)
+          .order('slide_index', { ascending: true });
+        if (error) throw error;
+        return data;
+      },
+
+      async saveSlide(userId, slideIndex, widgets) {
+        const { error } = await supabase
+          .from('slides')
+          .upsert({
+            user_id: userId,
+            slide_index: slideIndex,
+            widgets
+          }, { onConflict: 'user_id,slide_index' });
+        if (error) throw error;
+      },
+
+      // --- Rosters ---
+      async getRosters(userId) {
+        const { data, error } = await supabase
+          .from('rosters')
+          .select('*')
+          .eq('user_id', userId);
+        if (error) throw error;
+        return data;
+      },
+
+      async saveRoster(userId, rosterData) {
+        const { data, error } = await supabase
+          .from('rosters')
+          .upsert({
+            user_id: userId,
+            ...rosterData
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    };
+
     const App = () => {
       const [user, setUser] = useState(null);
       const [isSyncing, setIsSyncing] = useState(false);
       const [lastSyncError, setLastSyncError] = useState(null);
+      const [profileLastModified, setProfileLastModified] = useState(null);
 
       // --- STATE DECLARATIONS ---
       const [allRosters, setAllRosters] = useState(() => {
@@ -5640,8 +6365,8 @@
           const defaultClock = {
             id: 'default-clock',
             type: 'CLOCK',
-            position: { x: 50, y: 50 },
-            size: { width: 625, height: 275 },
+            position: { x: 0, y: 0 },
+            size: { width: 290, height: 130 },
             zIndex: 1,
             data: { fontSize: 16, style: 'standard', isGlassy: 'clear' },
             isMinimized: false
@@ -5664,8 +6389,8 @@
 
       const [dockOrder, setDockOrder] = useState(() => {
         const stored = getDockOrder();
-        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+        const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
         if (Array.isArray(stored)) {
           const extras = stored.filter(id => !allDefaults.includes(id));
@@ -5699,6 +6424,7 @@
       const [customBackgrounds, setCustomBackgrounds] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_my_backgrounds')) || []; } catch { return []; } });
       const [showBgPicker, setShowBgPicker] = useState(false);
       const [isGridEnabled, setIsGridEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_grid_enabled')) || false; } catch { return false; } });
+      const [accentColor, setAccentColor] = useState(() => localStorage.getItem('homeroom_accent_color') || 'indigo');
       const [backupEnabled, setBackupEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_backup_enabled')) ?? true; } catch { return true; } });
       const [backupInterval, setBackupInterval] = useState(() => { try { return parseInt(localStorage.getItem('homeroom_backup_interval')) || 7; } catch { return 7; } });
       const fileInputRef = useRef(null);
@@ -5719,10 +6445,17 @@
         });
       };
 
-
-
-
       // --- EFFECTS ---
+
+      // Global Redirection Logic (MUST BE AT TOP LEVEL)
+      useEffect(() => {
+        if (!user && !authLoading) {
+          const timer = setTimeout(() => {
+            window.location.href = 'https://ourhomeroom.app';
+          }, 2000);
+          return () => clearTimeout(timer);
+        }
+      }, [user, authLoading]);
 
       // Auth state listener
       useEffect(() => {
@@ -5734,6 +6467,10 @@
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           setUser(session?.user ?? null);
           setAuthLoading(false);
+          if (!session?.user) {
+            setHasCheckedCloud(false);
+            setIsSyncing(false);
+          }
         });
 
         return () => subscription.unsubscribe();
@@ -5745,12 +6482,19 @@
 
         const channel = supabase.channel(`realtime:${user.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` }, (payload) => {
-            if (isSyncing) return; // Ignore our own changes
+            if (isSyncing) return;
             const updatedSlide = payload.new;
             if (updatedSlide && updatedSlide.slide_index !== undefined) {
+              // Ignore if this is just an echo of our own change
+              const currentSlide = slides[updatedSlide.slide_index];
+              if (currentSlide && updatedSlide.last_modified && currentSlide._last_modified === updatedSlide.last_modified) return;
+
               setSlides(prev => {
                 const next = [...prev];
-                next[updatedSlide.slide_index] = updatedSlide.widgets;
+                const widgets = updatedSlide.widgets || [];
+                // Attach temporary last_modified to the local state for comparison
+                widgets._last_modified = updatedSlide.last_modified;
+                next[updatedSlide.slide_index] = widgets;
                 return next;
               });
             }
@@ -5760,31 +6504,204 @@
             const updatedRoster = payload.new;
             if (updatedRoster) {
               setAllRosters(prev => {
-                const existingIdx = prev.findIndex(r => r.name === updatedRoster.name);
+                const existingIdx = prev.findIndex(r => r.id === updatedRoster.id || (r.name === updatedRoster.name && !r.id.includes('-')));
                 if (existingIdx !== -1) {
+                  const existing = prev[existingIdx];
+                  if (updatedRoster.last_modified && existing._last_modified === updatedRoster.last_modified) return prev;
+
                   const next = [...prev];
-                  next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster };
+                  next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster, id: updatedRoster.id, _last_modified: updatedRoster.last_modified };
                   return next;
                 } else {
-                  return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster }];
+                  return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster, _last_modified: updatedRoster.last_modified }];
                 }
               });
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
             if (isSyncing) return;
-            const p = payload.new;
-            if (p) {
-              if (p.background) setBackground(p.background);
-              if (p.grid_enabled !== undefined) setIsGridEnabled(p.grid_enabled);
-              if (p.clock_style) setClockStyle(p.clock_style);
-              if (p.schedule) setScheduleTemplate(p.schedule);
+            const profile = payload.new;
+            if (profile) {
+              // Simple check for profile updates - maybe less critical than slides/rosters but good for consistency
+              if (profile.last_modified && profileLastModified === profile.last_modified) return;
+
+              if (profile.background) setBackground(profile.background);
+              if (profile.grid_enabled !== undefined && profile.grid_enabled !== null) setIsGridEnabled(!!profile.grid_enabled);
+              if (profile.clock_style) setClockStyle(profile.clock_style);
+              if (profile.accent_color) setAccentColor(profile.accent_color);
+              if (profile.schedule) setScheduleTemplate(profile.schedule);
+              if (profile.dock_order) {
+                const order = profile.dock_order;
+                if (Array.isArray(order)) {
+                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR'];
+                  const allDefaults = [...mainDefaults, ...drawerDefaults];
+                  setDockOrder({
+                    main: mainDefaults.filter(id => order.includes(id)),
+                    drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                  });
+                } else {
+                  setDockOrder(order);
+                }
+              }
+              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
+              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
+              if (profile.last_modified) setProfileLastModified(profile.last_modified);
             }
           })
           .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-      }, [user, isSyncing]);
+      }, [user, isSyncing, profileLastModified]);
+
+      // --- CLOUD SYNC IMPLEMENTATION ---
+
+      // 1. Fetch from Supabase on Login
+      useEffect(() => {
+        if (!user) return;
+
+        const loadUserData = async () => {
+          setIsSyncing(true);
+          try {
+            console.log("Fetching cloud data...");
+            const profile = await dataService.getProfile(user.id);
+            let activeId = profile?.active_roster_id;
+
+            if (profile) {
+              if (profile.dock_order) {
+                const order = profile.dock_order;
+                if (Array.isArray(order)) {
+                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR'];
+                  const allDefaults = [...mainDefaults, ...drawerDefaults];
+                  setDockOrder({
+                    main: mainDefaults.filter(id => order.includes(id)),
+                    drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                  });
+                } else {
+                  setDockOrder({
+                    main: order?.main || [],
+                    drawer: order?.drawer || []
+                  });
+                }
+              }
+              if (profile.background) setBackground(profile.background);
+              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
+              if (profile.schedule) setScheduleTemplate(profile.schedule); // Note: mapping 'schedule' to 'scheduleTemplate' based on context, check if it should be 'activeScheduleDays' like App.tsx? 
+              // App.tsx uses 'activeScheduleDays' mapped to 'profile.schedule'. 
+              // index.html uses 'scheduleTemplate'? Let's check state. 
+              // index.html has 'scheduleTemplate' (line 5810) and 'scheduleSettings' (line 5812).
+              // Let's assume profile.schedule maps to scheduleTemplate for now (or whatever persistence key homeroom_schedule uses).
+              // Checking index.html line 5810: const [scheduleTemplate, setScheduleTemplate] = useState(getScheduleTemplate());
+              // getScheduleTemplate reads 'homeroom_schedule_template'.
+              // App.tsx logic: if (profile.schedule) setActiveScheduleDays(profile.schedule);
+              // setActiveScheduleDays corresponds to localStorage 'homeroom_schedule'.
+              // In index.html, is there a 'homeroom_schedule' state?
+              // Line 5810: scheduleTemplate. 
+              // Wait, previous view showed:
+              // 5810: const [scheduleTemplate, setScheduleTemplate] = useState(getScheduleTemplate());
+              // 5811: const [scheduleOverrides, setScheduleOverrides] = useState(getScheduleOverrides());
+              // 5812: const [scheduleSettings, setScheduleSettings] = useState(getScheduleSettings());
+              // Let's look for 'homeroom_schedule' usage.
+              // It seems index.html might call it scheduleTemplate?
+              // Let's check persistence.
+
+              if (profile.grid_enabled !== undefined && profile.grid_enabled !== null) setIsGridEnabled(!!profile.grid_enabled);
+              if (profile.clock_style) setClockStyle(profile.clock_style);
+              if (profile.accent_color) setAccentColor(profile.accent_color);
+              if (activeId) setActiveRosterId(activeId);
+            }
+
+            const cloudRosters = await dataService.getRosters(user.id);
+            let mergedRosters = allRosters;
+
+            if (cloudRosters && cloudRosters.length > 0) {
+              // Smart Merge: Keep local rosters that are not in cloud (preserves new offline work)
+              // Overwrite local rosters that share ID with cloud (standard sync)
+              const uniqueMap = new Map();
+
+              // 1. Add ALL local rosters first
+              allRosters.forEach(r => uniqueMap.set(r.id, r));
+
+              // 2. Add/Update with Cloud rosters
+              cloudRosters.forEach(r => {
+                uniqueMap.set(r.id, r);
+              });
+
+              mergedRosters = Array.from(uniqueMap.values());
+              setAllRosters(mergedRosters);
+            }
+
+            // Set Active Roster & Slides from the Merged Data
+            // This ensures we load the slides belonging to the (potentially local-only) active roster
+            if (activeId) {
+              const current = mergedRosters.find(r => r.id === activeId);
+              if (current) {
+                setActiveRosterId(activeId);
+                setRoster(current.roster || []);
+                if (current.slides && current.slides.length > 0) {
+                  setSlides(current.slides);
+                }
+              }
+            } else if (mergedRosters.length > 0) {
+              // Fallback if no active ID
+              const first = mergedRosters[0];
+              setActiveRosterId(first.id);
+              setRoster(first.roster || []);
+              if (first.slides) setSlides(first.slides);
+            }
+          } catch (e) {
+            console.error('Error loading cloud data:', e);
+            setLastSyncError(e.message);
+          } finally {
+            setIsSyncing(false);
+            setHasCheckedCloud(true);
+          }
+        };
+
+        loadUserData();
+      }, [user]);
+
+      // 2. Profile Sync consolidated into main syncToCloud below
+
+      // 3. Sync Current Slide
+      useEffect(() => {
+        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
+
+        const timer = setTimeout(async () => {
+          try {
+            await dataService.saveSlide(user.id, currentSlideIndex, slides[currentSlideIndex]);
+            setLastSyncError(null);
+          } catch (e) {
+            console.error('Error syncing slide:', e);
+            setLastSyncError(e.message || "Slide sync failed");
+          }
+        }, 1000);
+
+        return () => clearTimeout(timer);
+      }, [user, slides, currentSlideIndex, isSyncing, hasCheckedCloud]);
+
+      // 4. Sync Rosters
+      useEffect(() => {
+        if (!user || isSyncing || !hasCheckedCloud || allRosters.length === 0 || !cloudSyncEnabled) return;
+
+        const timer = setTimeout(async () => {
+          try {
+            for (const r of allRosters) {
+              await dataService.saveRoster(user.id, r);
+            }
+            setLastSyncError(null);
+          } catch (e) {
+            console.error('Error syncing rosters:', e);
+            setLastSyncError(e.message || "Roster sync failed");
+          }
+        }, 2000);
+
+        return () => clearTimeout(timer);
+      }, [user, allRosters, isSyncing, hasCheckedCloud]);
 
       // --- MANAGEMENT FUNCTIONS ---
       const handleSetActiveRoster = (id) => {
@@ -5800,10 +6717,52 @@
         }
       };
 
-      const handleAddRoster = (name) => {
-        const newRoster = { id: Date.now().toString(), name: name, roster: [], slides: [[]] };
-        setAllRosters(prev => [...prev, newRoster]);
-        handleSetActiveRoster(newRoster.id);
+      const handleAddRoster = (name, bulkText = '') => {
+        const generateUUID = () => {
+          if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        };
+
+        // 1. Parse student names from bulk text
+        let initialStudents = [];
+        if (bulkText && typeof bulkText === 'string') {
+          initialStudents = bulkText.split('\n')
+            .map(n => n.trim())
+            .filter(n => n)
+            .map(name => ({
+              id: Math.random().toString(36).substr(2, 9),
+              name: name,
+              active: true
+            }));
+        }
+
+        // Clone current slides for the new roster so the layout persists
+        let initialSlides = [[]];
+        try {
+          initialSlides = JSON.parse(JSON.stringify(slides));
+        } catch (e) {
+          console.error("Failed to clone slides for new roster", e);
+        }
+
+        const newId = generateUUID();
+        const newRoster = { id: newId, name: name, roster: initialStudents, slides: initialSlides };
+
+        // 2. Update All Rosters (Save Current + Add New)
+        setAllRosters(prev => {
+          // Save current roster state to the previous active roster object
+          const updatedPrev = prev.map(r => r.id === activeRosterId ? { ...r, roster, slides } : r);
+          return [...updatedPrev, newRoster];
+        });
+
+        // 3. Switch to New Roster Immediately
+        setActiveRosterId(newId);
+        setRoster(initialStudents);
+        setSlides(initialSlides);
+        setCurrentSlideIndex(0);
+        localStorage.setItem('homeroom_active_roster_id', newId);
       };
 
       const handleDeleteRoster = (id) => {
@@ -5913,177 +6872,89 @@
 
       // Supabase Sync Logic
       useEffect(() => {
-        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
         const syncToCloud = async () => {
+          if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
           setIsSyncing(true);
           try {
-            // 1. Sync Slides (BATCH ALL)
-            const slidesToSync = slides.map((widgets, idx) => ({
-              user_id: user.id,
-              slide_index: idx,
-              widgets: widgets
-            }));
-            const { error: slideError } = await supabase.from('slides').upsert(slidesToSync);
+            // 1. Sync Slides
+            const { error: cleanupError } = await supabase.from('slides').delete().eq('user_id', user.id).gt('slide_index', slides.length - 1);
+            if (cleanupError) console.error("Slide cleanup error:", cleanupError);
 
-            if (slideError) throw slideError;
+            for (let idx = 0; idx < slides.length; idx++) {
+              const widgets = slides[idx];
+              const last_modified = Date.now();
+              widgets._last_modified = last_modified;
 
-            // 2. Sync Active Roster
-            const activeRoster = allRosters.find(r => r.id === activeRosterId);
-            if (activeRoster) {
-              const { error: rosterError } = await supabase.from('rosters').upsert({
-                id: activeRoster.id, // CRITICAL: Must sync ID to link with profile
-                user_id: user.id,
-                name: activeRoster.name,
-                roster: activeRoster.roster
-              });
-              if (rosterError) throw rosterError;
+              const { data: existing } = await supabase.from('slides').select('id').match({ user_id: user.id, slide_index: idx }).maybeSingle();
+              let slideError;
+              const payload = { widgets, last_modified };
+
+              if (existing) {
+                ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx }));
+              } else {
+                ({ error: slideError } = await supabase.from('slides').insert({ user_id: user.id, slide_index: idx, ...payload }));
+              }
+              if (slideError) throw slideError;
             }
-            // 3. Sync Profile (Settings, Background, etc.)
-            const { error: profileError } = await supabase.from('profiles').upsert({
-              id: user.id,
+
+            // 2. Sync ALL Rosters
+            const rosterIds = allRosters.map(r => r.id);
+            for (const r of allRosters) {
+              const rosterPayload = {
+                id: r.id,
+                user_id: user.id,
+                name: r.name,
+                roster: r.roster || [],
+                last_modified: Date.now()
+              };
+              const { error: rosterError } = await supabase.from('rosters').upsert(rosterPayload);
+              if (rosterError) console.error('Roster sync error:', rosterError);
+            }
+            // Clean up deleted rosters from cloud
+            if (rosterIds.length > 0) {
+              const { error: cleanupErr } = await supabase.from('rosters').delete()
+                .eq('user_id', user.id)
+                .not('id', 'in', `(${rosterIds.join(',')})`);
+              if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
+            }
+
+            // 3. Sync Profile
+            const last_modified = Date.now();
+            setProfileLastModified(last_modified);
+
+            const profilePayload = {
               background,
               slide_backgrounds: slideBackgrounds,
               my_backgrounds: customBackgrounds,
               schedule: scheduleTemplate,
+              schedule_overrides: scheduleOverrides,
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
-              dock_order: dockOrder,
+              dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
               active_roster_id: activeRosterId,
-              schedule_overrides: scheduleOverrides,
-              schedule_settings: scheduleSettings
-            });
+              accent_color: accentColor,
+              last_modified
+            };
+
+            const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, ...profilePayload });
             if (profileError) throw profileError;
 
-            // If we get here, sync was successful
             setLastSyncError(null);
-
           } catch (e) {
             console.error("Sync Exception:", e);
             setLastSyncError(e.message || "Unknown Sync Error");
-          } finally { setIsSyncing(false); }
+          } finally {
+            setIsSyncing(false);
+          }
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, isGridEnabled, clockStyle, dockOrder]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled, profileLastModified]);
 
       // Supabase Data Loading
-      useEffect(() => {
-        if (!user) return;
-        const loadFromCloud = async () => {
-          setIsSyncing(true);
-          try {
-            console.log("Fetching cloud data for user:", user.email);
-            const { data: cloudRosters, error: rosterError } = await supabase.from('rosters').select('*').eq('user_id', user.id);
-            const { data: cloudSlides, error: slidesError } = await supabase.from('slides').select('*').eq('user_id', user.id).order('slide_index', { ascending: true });
+      // Supabase Data Loading (Handled by new loadUserData above)
+      // Redundant block removed to prevent conflicts and 'undefined' map errors.
 
-            if (rosterError) console.error("Roster fetch error:", rosterError);
-            if (slidesError) console.error("Slides fetch error:", slidesError);
-
-            let newAllRosters = [];
-            let activeId = activeRosterId;
-
-            // 1. Process Rosters
-            if (cloudRosters && cloudRosters.length > 0) {
-              newAllRosters = cloudRosters.map(cr => ({
-                id: cr.id || Date.now().toString(),
-                name: cr.name,
-                roster: cr.roster || [],
-                slides: [[]]
-              }));
-
-              // Default to the first roster if current is default/empty
-              if (activeRosterId === 'default' || !newAllRosters.find(r => r.id === activeRosterId)) {
-                activeId = newAllRosters[0].id;
-              }
-            } else {
-              // Keep existing if no cloud data (or empty)
-              newAllRosters = [...allRosters];
-            }
-
-            // 2. Process Slides
-            let loadedSlides = [[]];
-            if (cloudSlides && cloudSlides.length > 0) {
-              loadedSlides = cloudSlides.map(s => s.widgets);
-              // Attach slides to the active roster
-              const targetIdx = newAllRosters.findIndex(r => r.id === activeId);
-              if (targetIdx !== -1) {
-                newAllRosters[targetIdx].slides = loadedSlides;
-              }
-            }
-
-            // --- CLOCK PERSISTENCE FIX ---
-            // If the first slide is empty (new user/no data), add a default Clock widget
-            if (loadedSlides.length > 0 && loadedSlides[0].length === 0) {
-              console.log("No widgets found. Adding default Clock.");
-              const defaultClock = {
-                id: 'clock-' + Date.now(),
-                type: 'CLOCK',
-                position: { x: 100, y: 100 }, // Top-left-ish
-                size: { width: 400, height: 200 },
-                zIndex: 10,
-                data: { style: 'standard', showDate: true }
-              };
-              loadedSlides[0].push(defaultClock);
-              // Also update the target roster if needed
-              const targetIdx = newAllRosters.findIndex(r => r.id === activeId);
-              if (targetIdx !== -1) {
-                newAllRosters[targetIdx].slides = loadedSlides;
-              }
-            }
-
-            // 2.5 Process Profile (Settings, Background, Dock)
-            const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
-            if (profileError && profileError.code !== 'PGRST116') console.error("Profile Fetch Error:", profileError);
-
-            if (profile) {
-              console.log("Loaded Profile:", profile);
-              if (profile.background) setBackground(profile.background);
-              if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
-              if (profile.clock_style) setClockStyle(profile.clock_style);
-              if (profile.schedule) setScheduleTemplate(profile.schedule);
-              if (profile.dock_order) setDockOrder(profile.dock_order);
-              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
-              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
-              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
-              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
-            }
-
-            // 3. Update State
-            console.log("Updating State with:", { newAllRosters, activeId, loadedSlides });
-
-            // Force Update - Even if cloud data is "empty", we must override local if we are in a fresh session
-            if (newAllRosters.length > 0) {
-              setAllRosters(newAllRosters);
-              setActiveRosterId(activeId);
-
-              const currentActive = newAllRosters.find(r => r.id === activeId);
-              if (currentActive) {
-                console.log("Setting active roster:", currentActive.name);
-                setRoster(currentActive.roster || []);
-                // Critical: Ensure slides are set even if empty to clear "default" local state
-                setSlides(loadedSlides.length > 0 ? loadedSlides : [[]]);
-              }
-            } else if (hasCheckedCloud === false) {
-              // If cloud returned NOTHING, but we haven't checked before, maybe we should warn or just accept it.
-            }
-
-          } catch (e) {
-            console.error('Cloud load error:', e);
-            // SIMPLE RETRY (One time)
-            if (!window.hasRetriedCloud) {
-              window.hasRetriedCloud = true;
-              setTimeout(loadFromCloud, 2000);
-            }
-          } finally {
-            setIsSyncing(false);
-            setHasCheckedCloud(true);
-          }
-        };
-
-        // Wait for Supabase auth to fully stabilize
-        const t = setTimeout(loadFromCloud, 500);
-        return () => clearTimeout(t);
-      }, [user]);
 
       // Force Re-render on Roster Change (Safety Net)
       useEffect(() => {
@@ -6104,15 +6975,56 @@
         }
       }, [user]);
 
+      useEffect(() => { localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(background)); }, [background]);
       useEffect(() => { localStorage.setItem('homeroom_clock_style', clockStyle); }, [clockStyle]);
       useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
       useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
       useEffect(() => { localStorage.setItem('homeroom_grid_enabled', JSON.stringify(isGridEnabled)); }, [isGridEnabled]);
+
+      // Cross-tab sync for global settings
+      useEffect(() => {
+        const handleStorageChange = (e) => {
+          if (e.key === 'homeroom_grid_enabled') {
+            try {
+              const val = JSON.parse(e.newValue);
+              if (val !== isGridEnabled) setIsGridEnabled(val);
+            } catch (err) { }
+          } else if (e.key === BG_STORAGE_KEY) {
+            try {
+              const val = JSON.parse(e.newValue);
+              if (val?.id !== background?.id) setBackground(val);
+            } catch (err) { }
+          } else if (e.key === 'homeroom_accent_color') {
+            if (e.newValue !== accentColor) setAccentColor(e.newValue);
+          }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+      }, [isGridEnabled, background, accentColor]);
+      useEffect(() => {
+        const theme = THEME_COLORS[accentColor] || THEME_COLORS.indigo;
+        const root = document.documentElement;
+        Object.entries(theme).forEach(([shade, value]) => {
+          root.style.setProperty(`--accent-${shade}`, value);
+        });
+        // For shades not explicitly mapped, fallback to 500 or 600
+        const fallbacks = { 300: theme[200], 400: theme[500], 800: theme[700], 900: theme[700] };
+        Object.entries(fallbacks).forEach(([shade, value]) => {
+          root.style.setProperty(`--accent-${shade}`, value);
+        });
+        localStorage.setItem('homeroom_accent_color', accentColor);
+      }, [accentColor]);
       useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
       useEffect(() => { localStorage.setItem('homeroom_backup_interval', backupInterval); }, [backupInterval]);
       useEffect(() => { localStorage.setItem('homeroom_cloud_sync_enabled', JSON.stringify(cloudSyncEnabled)); }, [cloudSyncEnabled]);
+      useEffect(() => {
+        if (hasCheckedCloud && !isSyncing && user) {
+          // Additional safety: load accent color if we haven't yet or it changed on cloud
+          // This happens in loadUserData but keeping here for consistency with other settings
+        }
+      }, [hasCheckedCloud, isSyncing, user]);
 
       useEffect(() => {
         saveScheduleTemplate(scheduleTemplate);
@@ -6331,7 +7243,7 @@
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 100; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY };
+        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 80; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY };
         let fontSize = 36;
         if (type === 'RANDOMIZER') fontSize = 20;
         if (type === 'GROUP_MAKER') fontSize = 20;
@@ -6357,7 +7269,7 @@
           }
         }
 
-        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] }; if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false }; if (type === 'WEBCAM') data = { ...data, isMirrored: true, isActive: true }; if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false }; if (type === 'TRAFFIC') data = { ...data, activeLight: null }; if (type === 'QR') data = { ...data, url: '' }; if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] }; if (type === 'DRAWING') { startY += 80; position.y = startY; data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null }; } if (type === 'SCHEDULE') { const template = getScheduleTemplate(); const today = DAYS_OF_WEEK[new Date().getDay()]; data = { ...data, items: template[today] || [] }; } if (type === 'YOUTUBE') { data = { ...data, youtubeUrl: '' }; } if (type === 'CLOCK') { data = { ...data, style: 'standard', isGlassy: 'clear' }; } if (type === 'CALENDAR') { data = { ...data, isGlassy: true }; } data = { ...data, ...extraData }; const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false }; setWidgets(prev => [...prev, newWidget]); setMaxZIndex(prev => prev + 1); setSelectedId(id);
+        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] }; if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false }; if (type === 'WEBCAM') data = { ...data, isMirrored: true, isActive: true }; if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false }; if (type === 'TRAFFIC') data = { ...data, activeLight: null }; if (type === 'QR') data = { ...data, url: '' }; if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] }; if (type === 'DRAWING') { startY += 80; position.y = startY; data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null }; } if (type === 'SCHEDULE') { const template = getScheduleTemplate(); const today = DAYS_OF_WEEK[new Date().getDay()]; data = { ...data, items: template[today] || [] }; } if (type === 'YOUTUBE') { data = { ...data, youtubeUrl: '' }; } if (type === 'CLOCK') { data = { ...data, style: 'standard', isGlassy: 'clear' }; } if (type === 'CALENDAR') { data = { ...data, isGlassy: true }; } if (type === 'MARBLE_JAR') { data = { ...data, title: 'Classroom Goal', marbles: 0, goalCount: 50, theme: 'classic', sound: 'clink', jarColor: 'standard' }; } if (type === 'SOUNDBOARD') { data = { ...data }; } data = { ...data, ...extraData }; const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false }; setWidgets(prev => [...prev, newWidget]); setMaxZIndex(prev => prev + 1); setSelectedId(id);
       };
       // Paste Listener
       useEffect(() => {
@@ -6431,6 +7343,8 @@
             isMinimized: false
           };
           setSlides(prev => [...prev, [defaultClock]]);
+          const newIndex = slides.length;
+          setSlideBackgrounds(prev => ({ ...prev, [newIndex]: BACKGROUNDS[0] }));
         }
         setCurrentSlideIndex(prev => prev + 1);
         setSelectedId(null);
@@ -6583,11 +7497,14 @@
           isSelected,
           roster,
           allRosters,
-          onUpdateRoster: (newRoster) => {
-            const updatedAll = allRosters.map(r => r.id === activeRosterId ? { ...r, roster: newRoster } : r);
+          onUpdateRoster: (newRoster, rosterId) => {
+            const targetId = rosterId || activeRosterId;
+            const updatedAll = allRosters.map(r => r.id === targetId ? { ...r, roster: newRoster } : r);
             localStorage.setItem('homeroom_all_rosters', JSON.stringify(updatedAll));
             setAllRosters(updatedAll);
-            setRoster(newRoster);
+            if (targetId === activeRosterId) {
+              setRoster(newRoster);
+            }
           },
           extraProps: {
             clockStyle: widget.data?.style || clockStyle,
@@ -6616,13 +7533,15 @@
           case 'YOUTUBE': return <YouTubeWidget {...props} />;
           case 'CALENDAR': return <CalendarWidget {...props} selectedDate={selectedDate} onSelectDate={setSelectedDate} isGlassy={props.extraProps.isGlassy} />;
           case 'CLOCK': return <ClockWidget {...props} isGlassy={props.extraProps.isGlassy} />;
+          case 'MARBLE_JAR': return <MarbleJarWidget {...props} />;
+          case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
           default: return null;
         }
       };
 
       if (authLoading) {
         return (
-          <div className="w-screen h-screen flex items-center justify-center bg-[#0f172a] relative overflow-hidden">
+          <div className="w-screen h-screen flex items-center justify-center bg-[#0f172a] relative overflow-hidden" style={{ backgroundColor: '#0f172a', color: 'white' }}>
             {/* Decorative Background for Loading */}
             <div className="absolute inset-0 opacity-20">
               <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
@@ -6632,14 +7551,14 @@
               </svg>
             </div>
             <div className="flex flex-col items-center gap-6 z-10">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-orange-500 rounded-3xl flex items-center justify-center text-white text-4xl font-black shadow-2xl animate-pulse transform -rotate-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-orange-500 rounded-3xl flex items-center justify-center text-white text-4xl font-black shadow-2xl animate-pulse transform -rotate-6" style={{ background: 'linear-gradient(to bottom right, #3b82f6, #ea580c)' }}>
                 H
               </div>
               <div className="flex flex-col items-center">
                 <h2 className="text-white text-xl font-bold tracking-tight mb-2">HomeRoom Cloud</h2>
                 <div className="flex items-center gap-2">
                   <RefreshCw className="animate-spin text-blue-400" size={16} />
-                  <p className="text-slate-400 text-sm font-medium">Securing session...</p>
+                  <p className="text-slate-400 text-sm font-medium" style={{ color: '#94a3b8' }}>Securing session...</p>
                 </div>
               </div>
             </div>
@@ -6649,15 +7568,19 @@
 
       if (!user) {
         return (
-          <div className="w-screen h-screen bg-[#0f172a] relative overflow-hidden">
-            <div className="absolute inset-0">
-              <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
-                <rect width="100%" height="100%" fill="#0f172a" />
-                <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="#ea580c" opacity="0.1" />
-                <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="#3b82f6" opacity="0.1" />
-              </svg>
+          <div className="w-screen h-screen bg-[#0f172a] relative overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#0f172a', color: 'white' }}>
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: '#3b82f6', borderTopColor: 'transparent' }}></div>
+              <p className="font-medium text-white" style={{ color: 'white' }}>Redirecting to login...</p>
+              <button
+                onClick={() => window.location.href = 'https://ourhomeroom.app'}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors pointer-events-auto shadow-lg mt-4"
+                style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                Click here if not redirected
+              </button>
+
             </div>
-            <AuthModal forced={true} />
           </div>
         );
       }
@@ -6674,7 +7597,7 @@
           <AuthModal />
           {showSettingsModal && <SettingsModal
             user={user}
-            onSignOut={async () => { await supabase.auth.signOut(); window.location.reload(); }}
+            onSignOut={async () => { await supabase.auth.signOut(); window.location.href = 'https://ourhomeroom.app'; }}
             isSyncing={isSyncing}
             lastSyncError={lastSyncError}
             roster={roster}
@@ -6685,7 +7608,14 @@
             onDeleteRoster={handleDeleteRoster}
             onRenameRoster={handleRenameRoster}
             onClose={() => { setShowSettingsModal(false); setEditingWidgetId(null); }}
-            onSave={(newRoster) => { setRoster(newRoster); }}
+            onSave={(newRoster) => {
+              setRoster(newRoster);
+              setAllRosters(prev => prev.map(r => r.id === activeRosterId ? { ...r, roster: newRoster } : r));
+              // Force immediate persistence for roster
+              try {
+                localStorage.setItem('homeroom_roster', JSON.stringify(newRoster));
+              } catch (e) { }
+            }}
             downloadData={downloadData}
             fileInputRef={fileInputRef}
             initialTab={settingsInitialTab}
@@ -6738,6 +7668,8 @@
                 setIsClockGlassy(newVal);
               }
             }}
+            accentColor={accentColor}
+            setAccentColor={setAccentColor}
           />}
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={uploadData} />
 
@@ -6793,7 +7725,7 @@
           <div className="absolute inset-0 z-30 pointer-events-none">
             {/* Spotlight Overlay - inside widget container so only spotlighted widget appears above it */}
             {spotlightId && <div className="fixed inset-0 bg-black/85 cursor-pointer pointer-events-auto animate-in fade-in duration-500 backdrop-blur-[2px]" style={{ zIndex: 9998 }} onClick={() => setSpotlightId(null)}><div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" /></div>}
-            {widgets.map(w => {
+            {widgets?.map(w => {
               const isChromeless = ['OVERLAY_TEXT', 'CLOCK', 'CALENDAR'].includes(w.type);
               return (
                 <DraggableResizable
@@ -6872,7 +7804,7 @@
                     handleDockDrop(e, 'main');
                   }}
                 >
-                  {dockOrder.main.map((id) => renderDockItem(id, 'main'))}
+                  {dockOrder?.main?.map((id) => renderDockItem(id, 'main'))}
                 </div>
 
                 <div className="w-px h-8 bg-slate-300 mx-2" />
@@ -6883,7 +7815,7 @@
                     onClick={() => setShowMoreDrawer(!showMoreDrawer)}
                     className={`flex flex-col items-center gap-0 py-1 px-2 rounded-xl transition-all cursor-pointer group
                             ${showMoreDrawer ? 'bg-indigo-100' : 'hover:bg-white/50'}
-                            ${!isDockLocked && dockOrder.drawer.length > 0 ? 'border-2 border-dashed border-indigo-300 bg-indigo-50' : ''}
+                            ${!isDockLocked && dockOrder?.drawer?.length > 0 ? 'border-2 border-dashed border-indigo-300 bg-indigo-50' : ''}
                         `}
                     onDragOver={(e) => {
                       if (!isDockLocked) {
@@ -6916,7 +7848,7 @@
                       }}
                     >
                       <div className="w-full text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 border-b pb-1">Additional Tools</div>
-                      {dockOrder.drawer.length > 0 ? (
+                      {dockOrder?.drawer?.length > 0 ? (
                         dockOrder.drawer.map((id) => renderDockItem(id, 'drawer'))
                       ) : (
                         <div className="w-full text-center py-4 text-xs text-gray-400 italic">

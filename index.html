@@ -434,6 +434,16 @@
     };
 
     const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'OVERLAY_TEXT', 'MARBLE_JAR', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'DRAWING', 'YOUTUBE', 'CALENDAR'];
+
+    const JarIcon = () => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 10h-12c-1.1 0-2 .9-2 2v7a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-7c0-1.1-.9-2-2-2z" />
+        <path d="M10 2v4h4v-4z" />
+        <line x1="10" y1="6" x2="6" y2="10" />
+        <line x1="14" y1="6" x2="18" y2="10" />
+      </svg>
+    );
+
     const TrafficLightIcon = () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="7" y="2" width="10" height="20" rx="4" />
@@ -460,7 +470,7 @@
       SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
       YOUTUBE: { label: 'Embed', icon: <Youtube /> },
       CALENDAR: { label: 'Calendar', icon: <Calendar /> },
-      MARBLE_JAR: { label: 'Goals', icon: <Circle /> },
+      MARBLE_JAR: { label: 'Goals', icon: <JarIcon /> },
       SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> }
     };
 
@@ -2575,11 +2585,16 @@
     };
 
     const MARBLE_SOUNDS = {
-      clink: { name: 'Clink', url: 'https://cdn.freesound.org/previews/66/66717_931655-lq.mp3' },
-      pop: { name: 'Pop', url: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' },
-      wood: { name: 'Wood', url: 'https://assets.mixkit.co/active_storage/sfx/1041/1041-preview.mp3' },
-      metal: { name: 'Metal', url: 'https://assets.mixkit.co/active_storage/sfx/1044/1044-preview.mp3' }
+      pop: { id: 'pop', name: 'Pop', url: 'https://cdn.freesound.org/previews/244/244655_3633604-lq.mp3' },
+      glass: { id: 'glass', name: 'Glass', url: 'https://cdn.freesound.org/previews/336/336829_5730419-lq.mp3' },
+      clatter: { id: 'clatter', name: 'Clatter', url: 'https://cdn.freesound.org/previews/616/616113_11539463-lq.mp3' },
+      ding: { id: 'ding', name: 'Ding', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' },
+      squishy: { id: 'squishy', name: 'Squishy', url: 'https://assets.mixkit.co/sfx/preview/mixkit-slime-squish-15.mp3' },
+      duck: { id: 'duck', name: 'Duck', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-duck-quack-2605.mp3' },
+      horse: { id: 'horse', name: 'Horse', url: 'https://assets.mixkit.co/sfx/preview/mixkit-horse-neighing-1689.mp3' },
+      random: { id: 'random', name: 'Random', url: '' },
     };
+
 
     const JAR_COLORS = {
       standard: { bg: 'bg-white/10', border: 'border-white/20' },
@@ -2875,24 +2890,21 @@
     const SOUND_ASSETS = {
       transitions: [
         { id: 'bell', name: 'Bell', icon: '🔔', url: 'https://cdn.freesound.org/previews/339/339810_5121236-lq.mp3' },
-        { id: 'chime', name: 'Chime', icon: '✨', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' },
-        { id: 'countdown', name: 'Countdown', icon: '⏱️', url: 'https://cdn.freesound.org/previews/254/254316_4062622-lq.mp3' },
-        { id: 'whistle', name: 'Whistle', icon: '🗣️', url: 'https://cdn.freesound.org/previews/458/458398_9345624-lq.mp3' },
-        { id: 'gong', name: 'Gong', icon: '🧘', url: 'https://cdn.freesound.org/previews/56/56314_76146-lq.mp3' }
+        { id: 'chime', name: 'Chime', icon: '✨', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }
       ],
       celebrations: [
-        { id: 'applause', name: 'Applause', icon: '👏', url: 'https://cdn.freesound.org/previews/60/60789_728424-lq.mp3' },
-        { id: 'fanfare', name: 'Fanfare', icon: '🎺', url: 'https://cdn.freesound.org/previews/270/270528_4486188-lq.mp3' },
-        { id: 'cheer', name: 'Cheer', icon: '🎉', url: 'https://cdn.freesound.org/previews/333/333404_5260872-lq.mp3' },
-        { id: 'levelup', name: 'Level Up', icon: '⬆️', url: 'https://cdn.freesound.org/previews/341/341629_5858296-lq.mp3' },
-        { id: 'magic', name: 'Magic', icon: '🪄', url: 'https://cdn.freesound.org/previews/467/467972_9961300-lq.mp3' }
+        { id: 'applause', name: 'Applause', icon: '👏', url: 'https://assets.mixkit.co/sfx/preview/mixkit-audience-clapping-and-cheering-466.mp3' },
+        { id: 'fanfare', name: 'Fanfare', icon: '🎺', url: 'https://assets.mixkit.co/sfx/preview/mixkit-animated-small-group-applause-523.mp3' },
+        { id: 'cheer', name: 'Cheer', icon: '🎉', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cheering-crowd-loud-whistle-461.mp3' },
+        { id: 'levelup', name: 'Level Up', icon: '⬆️', url: 'https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3' },
+        { id: 'magic', name: 'Magic', icon: '🪄', url: 'https://assets.mixkit.co/sfx/preview/mixkit-fairy-dust-magic-wand-2956.mp3' }
       ],
       fun: [
-        { id: 'airhorn', name: 'Air Horn', icon: '📢', url: 'https://cdn.freesound.org/previews/366/366103_6687400-lq.mp3' },
-        { id: 'laugh', name: 'Laugh', icon: '😂', url: 'https://cdn.freesound.org/previews/155/155319_2577717-lq.mp3' },
-        { id: 'cricket', name: 'Cricket', icon: '🦗', url: 'https://cdn.freesound.org/previews/121/121511_2195640-lq.mp3' },
-        { id: 'drumroll', name: 'Drum Roll', icon: '🥁', url: 'https://cdn.freesound.org/previews/469/469344_9961300-lq.mp3' },
-        { id: 'boing', name: 'Boing', icon: '🌀', url: 'https://cdn.freesound.org/previews/415/415510_8139525-lq.mp3' }
+        { id: 'airhorn', name: 'Air Horn', icon: '📢', url: 'https://assets.mixkit.co/sfx/preview/mixkit-air-horn-sound-7466.mp3' },
+        { id: 'laugh', name: 'Laugh', icon: '😂', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-voice-laugh-343.mp3' },
+        { id: 'cricket', name: 'Cricket', icon: '🦗', url: 'https://assets.mixkit.co/sfx/preview/mixkit-crickets-and-insects-in-the-wild-ambience-124.mp3' },
+        { id: 'drumroll', name: 'Drum Roll', icon: '🥁', url: 'https://assets.mixkit.co/sfx/preview/mixkit-drum-roll-566.mp3' },
+        { id: 'boing', name: 'Boing', icon: '🌀', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-boing-2862.mp3' }
       ],
       focus: [
         { id: 'rain', name: 'Rain', icon: '🌧️', url: 'https://cdn.freesound.org/previews/531/531947_7694833-lq.mp3', loop: true },
@@ -3316,9 +3328,21 @@
     };
 
     const RandomizerWidget = ({ widget, updateData, roster, allRosters }) => {
-      const { currentName, isAnimating, fontSize = 16, pickedStudents = [], bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
+      const { currentName, isAnimating, fontSize = 16, pickedHistory = {}, bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
       const [activeClassId, setActiveClassId] = useState(savedActiveClassId || (allRosters?.length > 0 ? allRosters[0].id : null));
       const currentRoster = allRosters?.find(r => r.id === activeClassId)?.roster || roster || [];
+
+      // Migrate old pickedStudents to history if needed
+      useEffect(() => {
+        if (!widget.data.pickedHistory && widget.data.pickedStudents && widget.data.pickedStudents.length > 0) {
+          updateData(widget.id, {
+            pickedHistory: { [activeClassId]: widget.data.pickedStudents },
+            pickedStudents: null // clearer deprecation
+          });
+        }
+      }, []);
+
+      const pickedStudents = pickedHistory[activeClassId] || [];
 
       const [showSettings, setShowSettings] = useState(false);
       const steps = useRef(0);
@@ -3337,9 +3361,20 @@
             steps.current++;
             if (steps.current >= 20) {
               if (intervalRef.current) clearInterval(intervalRef.current);
-              const finalName = widget.data.currentName || randomName;
-              const newPickedList = unpickedStudents.length > 0 ? [...pickedStudents, finalName] : [finalName];
-              updateData(widget.id, { isAnimating: false, pickedStudents: newPickedList });
+              const finalName = widget.data.currentName || randomName; // Use last flashed name if available
+              // Correct logic: After animation stops, we pick a WINNER.
+              // We should pick the winner explicitly at the end to ensure it matches visual used.
+              // Actually, the flashing logic sets currentName 20 times. The last one is the winner.
+              // But React state updates might be async.
+              // Safer: pick winner upfront or track it.
+              // Current code uses `widget.data.currentName` which acts as the winner.
+
+              const newPickedList = unpickedStudents.length > 0 ? [...pickedStudents, randomName] : [randomName];
+              updateData(widget.id, {
+                isAnimating: false,
+                currentName: randomName,
+                pickedHistory: { ...pickedHistory, [activeClassId]: newPickedList }
+              });
               steps.current = 0;
             }
           }, 100);
@@ -3347,8 +3382,8 @@
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
       }, [isAnimating, widget.id, activeStudents.length]);
 
-      const resetPicked = () => updateData(widget.id, { pickedStudents: [], currentName: null });
-      const removePicked = (name) => updateData(widget.id, { pickedStudents: pickedStudents.filter(n => n !== name) });
+      const resetPicked = () => updateData(widget.id, { pickedHistory: { ...pickedHistory, [activeClassId]: [] }, currentName: null });
+      const removePicked = (name) => updateData(widget.id, { pickedHistory: { ...pickedHistory, [activeClassId]: pickedStudents.filter(n => n !== name) } });
       const scaledFS = (fontSize / 16) * 30;
       const pickedCount = pickedStudents.length;
       const totalCount = activeStudents.length;
@@ -3369,7 +3404,7 @@
                   onChange={(e) => {
                     const newId = e.target.value;
                     setActiveClassId(newId);
-                    updateData(widget.id, { activeClassId: newId, pickedStudents: [] });
+                    updateData(widget.id, { activeClassId: newId });
                   }}
                 >
                   {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
@@ -3419,7 +3454,7 @@
               onChange={(e) => {
                 const newId = e.target.value;
                 setActiveClassId(newId);
-                updateData(widget.id, { activeClassId: newId, pickedStudents: [] });
+                updateData(widget.id, { activeClassId: newId });
               }}
             >
               {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
