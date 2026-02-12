@@ -7,6 +7,52 @@
   <title>HomeRoom Pro</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            indigo: {
+              50: 'var(--accent-50)',
+              100: 'var(--accent-100)',
+              200: 'var(--accent-200)',
+              300: 'var(--accent-300)',
+              400: 'var(--accent-400)',
+              500: 'var(--accent-500)',
+              600: 'var(--accent-600)',
+              700: 'var(--accent-700)',
+              800: 'var(--accent-800)',
+              900: 'var(--accent-900)',
+            },
+            purple: {
+              50: 'var(--accent-50)',
+              100: 'var(--accent-100)',
+              200: 'var(--accent-200)',
+              300: 'var(--accent-300)',
+              400: 'var(--accent-400)',
+              500: 'var(--accent-500)',
+              600: 'var(--accent-600)',
+              700: 'var(--accent-700)',
+              800: 'var(--accent-800)',
+              900: 'var(--accent-900)',
+            },
+            blue: {
+              50: 'var(--accent-50)',
+              100: 'var(--accent-100)',
+              200: 'var(--accent-200)',
+              300: 'var(--accent-300)',
+              400: 'var(--accent-400)',
+              500: 'var(--accent-500)',
+              600: 'var(--accent-600)',
+              700: 'var(--accent-700)',
+              800: 'var(--accent-800)',
+              900: 'var(--accent-900)',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=VT323&display=swap" rel="stylesheet">
@@ -119,95 +165,95 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    (function () {
-      const url = 'https://lguewieabkrjgsobufjd.supabase.co';
-      const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
+      (function () {
+        const url = 'https://lguewieabkrjgsobufjd.supabase.co';
+        const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
 
-      window.CookieStorage = {
-        getItem: (key) => {
-          const name = key + "=";
-          const ca = document.cookie.split(';');
-          for (let i = 0; i < ca.length; i++) {
-            let c = ca[i].trim();
-            if (c.indexOf(name) === 0) {
-              try { return decodeURIComponent(c.substring(name.length)); }
-              catch (e) { return c.substring(name.length); }
-            }
-          }
-          return null;
-        },
-        setItem: (key, value) => {
-          const d = new Date();
-          d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
-          const expires = "expires=" + d.toUTCString();
-          const host = window.location.hostname;
-          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-
-          // v2.7: Strip large session data to essential tokens only
-          let processedValue = value;
-          try {
-            if (value && value.length > 3000) {
-              const parsed = JSON.parse(value);
-              // If it looks like a Supabase session, strip to essentials
-              if (parsed.access_token && parsed.refresh_token) {
-                // IMPORTANT: Must keep user object for _emitInitialSession to work
-                let minUser = parsed.user;
-                if (minUser && typeof minUser === 'object') {
-                  // optimization: remove large identities array to save space
-                  const { identities, ...rest } = minUser;
-                  minUser = rest;
-                }
-
-                const stripped = {
-                  access_token: parsed.access_token,
-                  refresh_token: parsed.refresh_token,
-                  expires_at: parsed.expires_at,
-                  expires_in: parsed.expires_in,
-                  token_type: parsed.token_type || 'bearer',
-                  user: minUser
-                };
-                processedValue = JSON.stringify(stripped);
-                console.log('CookieStorage v2.8: Stripped session (keeping user) from', value.length, 'to', processedValue.length, 'bytes');
+        window.CookieStorage = {
+          getItem: (key) => {
+            const name = key + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+              let c = ca[i].trim();
+              if (c.indexOf(name) === 0) {
+                try { return decodeURIComponent(c.substring(name.length)); }
+                catch (e) { return c.substring(name.length); }
               }
             }
-          } catch (e) {
-            // Not JSON, use original value
-          }
+            return null;
+          },
+          setItem: (key, value) => {
+            const d = new Date();
+            d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + d.toUTCString();
+            const host = window.location.hostname;
+            const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
 
-          // Aggressive Clear
-          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+            // v2.7: Strip large session data to essential tokens only
+            let processedValue = value;
+            try {
+              if (value && value.length > 3000) {
+                const parsed = JSON.parse(value);
+                // If it looks like a Supabase session, strip to essentials
+                if (parsed.access_token && parsed.refresh_token) {
+                  // IMPORTANT: Must keep user object for _emitInitialSession to work
+                  let minUser = parsed.user;
+                  if (minUser && typeof minUser === 'object') {
+                    // optimization: remove large identities array to save space
+                    const { identities, ...rest } = minUser;
+                    minUser = rest;
+                  }
 
-          let cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; SameSite=Lax; Secure`;
-          if (!isLocal && host.includes('ourhomeroom.app')) {
-            // v2.7: Use leading dot for explicit cross-subdomain sharing
-            cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+                  const stripped = {
+                    access_token: parsed.access_token,
+                    refresh_token: parsed.refresh_token,
+                    expires_at: parsed.expires_at,
+                    expires_in: parsed.expires_in,
+                    token_type: parsed.token_type || 'bearer',
+                    user: minUser
+                  };
+                  processedValue = JSON.stringify(stripped);
+                  console.log('CookieStorage v2.8: Stripped session (keeping user) from', value.length, 'to', processedValue.length, 'bytes');
+                }
+              }
+            } catch (e) {
+              // Not JSON, use original value
+            }
+
+            // Aggressive Clear
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+
+            let cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; SameSite=Lax; Secure`;
+            if (!isLocal && host.includes('ourhomeroom.app')) {
+              // v2.7: Use leading dot for explicit cross-subdomain sharing
+              cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+            }
+            document.cookie = cookieStr;
+            console.log('CookieStorage v2.7 Set:', key, 'size:', processedValue.length);
+          },
+          removeItem: (key) => {
+            const host = window.location.hostname;
+            const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+            if (!isLocal && host.includes('ourhomeroom.app')) {
+              document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+            }
           }
-          document.cookie = cookieStr;
-          console.log('CookieStorage v2.7 Set:', key, 'size:', processedValue.length);
-        },
-        removeItem: (key) => {
-          const host = window.location.hostname;
-          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
-          if (!isLocal && host.includes('ourhomeroom.app')) {
-            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
-          }
+        };
+        try {
+          window.supabaseClient = window.supabase.createClient(url, key, {
+            auth: {
+              storage: window.CookieStorage,
+              autoRefreshToken: true,
+              persistSession: true,
+              detectSessionInUrl: true,
+              storageKey: 'homeroom-auth-token',
+            }
+          });
+        } catch (e) {
+          console.error("Supabase Init Error:", e);
         }
-      };
-      try {
-        window.supabaseClient = window.supabase.createClient(url, key, {
-          auth: {
-            storage: window.CookieStorage,
-            autoRefreshToken: true,
-            persistSession: true,
-            detectSessionInUrl: true,
-            storageKey: 'homeroom-auth-token',
-          }
-        });
-      } catch (e) {
-        console.error("Supabase Init Error:", e);
-      }
-    })();
+      })();
   </script>
   <script>
     // Global error trapping for white screen debugging
@@ -284,7 +330,19 @@
       }
     };
 
-    // --- CONSTANTS ---
+    const THEME_COLORS = {
+      indigo: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+      blue: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+      emerald: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 500: '#10b981', 600: '#059669', 700: '#047857' },
+      teal: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
+      orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' },
+      red: { 50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
+      pink: { 50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 500: '#ec4899', 600: '#db2777', 700: '#be185d' },
+      purple: { 50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce' },
+      amber: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 500: '#f59e0b', 600: '#d97706', 700: '#b45309' },
+      slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 500: '#64748b', 600: '#475569', 700: '#334155' }
+    };
+
     const DEFAULT_NAMES = [];
 
     // --- SHARED EDITOR CONSTANTS ---
@@ -4454,7 +4512,7 @@
       );
     };
 
-    const AppearanceSettings = ({ currentBg, onSelect, isGridEnabled, onToggleGrid, myBackgrounds, onAddCustom, onDeleteCustom, clockStyle, setClockStyle, showDate, setShowDate, isGlassy, setIsGlassy }) => {
+    const AppearanceSettings = ({ currentBg, onSelect, isGridEnabled, onToggleGrid, myBackgrounds, onAddCustom, onDeleteCustom, clockStyle, setClockStyle, showDate, setShowDate, isGlassy, setIsGlassy, accentColor, setAccentColor }) => {
       const [customUrl, setCustomUrl] = useState('');
       const [dragActive, setDragActive] = useState(false);
       const [applyToAll, setApplyToAll] = useState(true);
@@ -4624,8 +4682,26 @@
                 ))}
               </div>
             </div>
+          </div>
 
-
+          <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Palette size={18} /></div>
+              <div className="font-bold text-xs text-gray-800">Widget Color</div>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {Object.entries(THEME_COLORS).map(([id, colors]) => (
+                <button
+                  key={id}
+                  onClick={() => setAccentColor(id)}
+                  className={`w-9 h-9 rounded-full border-2 transition-all hover:scale-110 active:scale-95 flex items-center justify-center ${accentColor === id ? 'border-gray-800 ring-2 ring-gray-200' : 'border-white shadow-sm'}`}
+                  style={{ backgroundColor: colors[600] }}
+                  title={id.charAt(0).toUpperCase() + id.slice(1)}
+                >
+                  {accentColor === id && <Check size={16} className="text-white" />}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="p-1">
@@ -4790,7 +4866,7 @@
       );
     };
 
-    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, backupEnabled, setBackupEnabled, cloudSyncEnabled, setCloudSyncEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
+    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onRenameRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, accentColor, setAccentColor, backupEnabled, setBackupEnabled, cloudSyncEnabled, setCloudSyncEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
       const [realignDate, setRealignDate] = useState(new Date().toISOString().split('T')[0]);
       const [realignTargetDay, setRealignTargetDay] = useState(1);
       const [realignSuccess, setRealignSuccess] = useState(false);
@@ -5174,6 +5250,9 @@
                   setShowDate={setShowClockDate}
                   isGlassy={isClockGlassy}
                   setIsGlassy={setIsClockGlassy}
+                  accentColor={accentColor}
+                  setAccentColor={setAccentColor}
+                  backupEnabled={backupEnabled}
                 />
               )}
 
@@ -5884,6 +5963,7 @@
       const [customBackgrounds, setCustomBackgrounds] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_my_backgrounds')) || []; } catch { return []; } });
       const [showBgPicker, setShowBgPicker] = useState(false);
       const [isGridEnabled, setIsGridEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_grid_enabled')) || false; } catch { return false; } });
+      const [accentColor, setAccentColor] = useState(() => localStorage.getItem('homeroom_accent_color') || 'indigo');
       const [backupEnabled, setBackupEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_backup_enabled')) ?? true; } catch { return true; } });
       const [backupInterval, setBackupInterval] = useState(() => { try { return parseInt(localStorage.getItem('homeroom_backup_interval')) || 7; } catch { return 7; } });
       const fileInputRef = useRef(null);
@@ -5987,6 +6067,7 @@
               if (profile.background) setBackground(profile.background);
               if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
               if (profile.clock_style) setClockStyle(profile.clock_style);
+              if (profile.accent_color) setAccentColor(profile.accent_color);
               if (profile.schedule) setScheduleTemplate(profile.schedule);
               if (profile.dock_order) {
                 const order = profile.dock_order;
@@ -6069,6 +6150,7 @@
 
               if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
               if (profile.clock_style) setClockStyle(profile.clock_style);
+              if (profile.accent_color) setAccentColor(profile.accent_color);
               if (activeId) setActiveRosterId(activeId);
             }
 
@@ -6413,6 +6495,7 @@
               clock_style: clockStyle,
               dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
               active_roster_id: activeRosterId,
+              accent_color: accentColor,
               last_modified
             };
 
@@ -6429,7 +6512,7 @@
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, dockOrder, cloudSyncEnabled]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
 
       // Supabase Data Loading
       // Supabase Data Loading (Handled by new loadUserData above)
@@ -6459,11 +6542,30 @@
       useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
       useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
       useEffect(() => { localStorage.setItem('homeroom_grid_enabled', JSON.stringify(isGridEnabled)); }, [isGridEnabled]);
+      useEffect(() => {
+        const theme = THEME_COLORS[accentColor] || THEME_COLORS.indigo;
+        const root = document.documentElement;
+        Object.entries(theme).forEach(([shade, value]) => {
+          root.style.setProperty(`--accent-${shade}`, value);
+        });
+        // For shades not explicitly mapped, fallback to 500 or 600
+        const fallbacks = { 300: theme[200], 400: theme[500], 800: theme[700], 900: theme[700] };
+        Object.entries(fallbacks).forEach(([shade, value]) => {
+          root.style.setProperty(`--accent-${shade}`, value);
+        });
+        localStorage.setItem('homeroom_accent_color', accentColor);
+      }, [accentColor]);
       useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
       useEffect(() => { localStorage.setItem('homeroom_backup_interval', backupInterval); }, [backupInterval]);
       useEffect(() => { localStorage.setItem('homeroom_cloud_sync_enabled', JSON.stringify(cloudSyncEnabled)); }, [cloudSyncEnabled]);
+      useEffect(() => {
+        if (hasCheckedCloud && !isSyncing && user) {
+          // Additional safety: load accent color if we haven't yet or it changed on cloud
+          // This happens in loadUserData but keeping here for consistency with other settings
+        }
+      }, [hasCheckedCloud, isSyncing, user]);
 
       useEffect(() => {
         saveScheduleTemplate(scheduleTemplate);
@@ -7103,6 +7205,8 @@
                 setIsClockGlassy(newVal);
               }
             }}
+            accentColor={accentColor}
+            setAccentColor={setAccentColor}
           />}
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={uploadData} />
 
