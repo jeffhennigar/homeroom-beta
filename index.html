@@ -6682,7 +6682,7 @@
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 100; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY };
+        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 80; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY };
         let fontSize = 36;
         if (type === 'RANDOMIZER') fontSize = 20;
         if (type === 'GROUP_MAKER') fontSize = 20;
