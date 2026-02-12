@@ -5849,8 +5849,8 @@
 
       const [dockOrder, setDockOrder] = useState(() => {
         const stored = getDockOrder();
-        const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'CLOCK'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALENDAR'];
+        const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
         if (Array.isArray(stored)) {
           const extras = stored.filter(id => !allDefaults.includes(id));
@@ -5991,8 +5991,8 @@
               if (profile.dock_order) {
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
-                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'CLOCK'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALENDAR'];
+                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
@@ -6031,8 +6031,8 @@
               if (profile.dock_order) {
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
-                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'CLOCK'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALENDAR'];
+                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
