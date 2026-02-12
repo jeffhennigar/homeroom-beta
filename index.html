@@ -516,9 +516,9 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
 
-        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR'];
+        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR', 'SOUNDBOARD'];
         const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
 
@@ -535,12 +535,12 @@
           const currentIds = [...saved.main, ...saved.drawer];
           const missing = allDefaults.filter(id => !currentIds.includes(id));
 
-          // Force inject MARBLE_JAR if missing (v2.9 recovery)
-          if (!currentIds.includes('MARBLE_JAR')) {
-            return { ...saved, drawer: [...saved.drawer, 'MARBLE_JAR', ...missing.filter(id => id !== 'MARBLE_JAR')] };
+          // Force inject missing new widgets (MARBLE_JAR, SOUNDBOARD)
+          if (missing.length > 0) {
+            return { ...saved, drawer: [...saved.drawer, ...missing] };
           }
 
-          return { ...saved, drawer: [...saved.drawer, ...missing] };
+          return saved;
         }
 
         return { main: mainDefaults, drawer: drawerDefaults };
@@ -2630,14 +2630,14 @@
         Events.on(render, 'afterRender', () => {
           const context = render.context;
           const themeData = MARBLE_THEMES[theme];
-          if (themeData.type === 'emoji') {
+          if (themeData && themeData.type === 'emoji') {
             const bodies = Composite.allBodies(engine.world);
             context.font = `${marbleRadius * 2}px serif`;
             context.textAlign = 'center';
             context.textBaseline = 'middle';
 
             bodies.forEach(body => {
-              if (body.label === 'marble') {
+              if (body.label === 'marble' && body.render.emoji && !body.render.emoji.startsWith('#')) {
                 const { x, y } = body.position;
                 context.save();
                 context.translate(x, y);
