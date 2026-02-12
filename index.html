@@ -6223,31 +6223,7 @@
         loadUserData();
       }, [user]);
 
-      // 2. Sync Profile Checks
-      useEffect(() => {
-        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
-
-        const timer = setTimeout(async () => {
-          try {
-            await dataService.updateProfile(user.id, {
-              dock_order: dockOrder,
-              background,
-              slide_backgrounds: slideBackgrounds,
-              my_backgrounds: customBackgrounds,
-              schedule: scheduleTemplate, // Assuming this is the main schedule data
-              grid_enabled: isGridEnabled,
-              clock_style: clockStyle,
-              active_roster_id: activeRosterId
-            });
-            setLastSyncError(null);
-          } catch (e) {
-            console.error('Error syncing profile:', e);
-            setLastSyncError(e.message || "Profile sync failed");
-          }
-        }, 1000);
-
-        return () => clearTimeout(timer);
-      }, [user, dockOrder, background, slideBackgrounds, customBackgrounds, scheduleTemplate, isGridEnabled, clockStyle, activeRosterId, isSyncing, hasCheckedCloud]);
+      // 2. Profile Sync consolidated into main syncToCloud below
 
       // 3. Sync Current Slide
       useEffect(() => {
@@ -6454,8 +6430,8 @@
 
       // Supabase Sync Logic
       useEffect(() => {
-        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
         const syncToCloud = async () => {
+          if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
           setIsSyncing(true);
           try {
             // 1. Sync Slides
@@ -6531,7 +6507,7 @@
         };
         const t = setTimeout(syncToCloud, 3000);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled, profileLastModified]);
 
       // Supabase Data Loading
       // Supabase Data Loading (Handled by new loadUserData above)
@@ -6562,6 +6538,27 @@
       useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
       useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
       useEffect(() => { localStorage.setItem('homeroom_grid_enabled', JSON.stringify(isGridEnabled)); }, [isGridEnabled]);
+
+      // Cross-tab sync for global settings
+      useEffect(() => {
+        const handleStorageChange = (e) => {
+          if (e.key === 'homeroom_grid_enabled') {
+            try {
+              const val = JSON.parse(e.newValue);
+              if (val !== isGridEnabled) setIsGridEnabled(val);
+            } catch (err) { }
+          } else if (e.key === BG_STORAGE_KEY) {
+            try {
+              const val = JSON.parse(e.newValue);
+              if (val?.id !== background?.id) setBackground(val);
+            } catch (err) { }
+          } else if (e.key === 'homeroom_accent_color') {
+            if (e.newValue !== accentColor) setAccentColor(e.newValue);
+          }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+      }, [isGridEnabled, background, accentColor]);
       useEffect(() => {
         const theme = THEME_COLORS[accentColor] || THEME_COLORS.indigo;
         const root = document.documentElement;
