@@ -6220,8 +6220,20 @@
             }));
         }
 
+        // Create default clock for new roster
+        const defaultClock = {
+          id: 'clock-' + Date.now(),
+          type: 'CLOCK',
+          position: { x: 50, y: 40 },
+          size: { width: 340, height: 260 },
+          zIndex: 100,
+          data: { style: 'standard', isGlassy: 'clear' },
+          isMinimized: false
+        };
+        const initialSlides = [[defaultClock]];
+
         const newId = generateUUID();
-        const newRoster = { id: newId, name: name, roster: initialStudents, slides: [[]] };
+        const newRoster = { id: newId, name: name, roster: initialStudents, slides: initialSlides };
 
         // 2. Update All Rosters (Save Current + Add New)
         setAllRosters(prev => {
@@ -6233,7 +6245,7 @@
         // 3. Switch to New Roster Immediately
         setActiveRosterId(newId);
         setRoster(initialStudents);
-        setSlides([[]]);
+        setSlides(initialSlides);
         setCurrentSlideIndex(0);
         localStorage.setItem('homeroom_active_roster_id', newId);
       };
