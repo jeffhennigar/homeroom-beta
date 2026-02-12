@@ -424,10 +424,12 @@
 
 
     const DESK_COLORS = {
-      blue: 'bg-blue-50 border-blue-400',
-      red: 'bg-red-50 border-red-400',
-      green: 'bg-green-50 border-green-400',
-      yellow: 'bg-yellow-50 border-yellow-400'
+      blue: { bg: '#eff6ff', border: '#2563eb' },
+      red: { bg: '#fef2f2', border: '#dc2626' },
+      green: { bg: '#ecfdf5', border: '#059669' },
+      yellow: { bg: '#fffbeb', border: '#d97706' },
+      purple: { bg: '#faf5ff', border: '#9333ea' },
+      orange: { bg: '#fff7ed', border: '#ea580c' }
     };
 
     const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'OVERLAY_TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'DRAWING', 'YOUTUBE', 'CALENDAR'];
@@ -1336,12 +1338,19 @@
             <div className="flex gap-2 items-center">
               {isEditing ? (<>
                 <div className="flex items-center gap-2 mr-2">
-                  <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { snapToGrid: snapToGrid > 0 ? 0 : 10 }); }} className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors mr-2 ${snapToGrid > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                  <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { snapToGrid: snapToGrid > 0 ? 0 : 10 }); }} className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors mr-2 ${snapToGrid > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
                     Snap: {snapToGrid > 0 ? 'On' : 'Off'}
                   </button>
                   <div className="w-px h-6 bg-gray-200" />
                   <div className="flex bg-gray-100 rounded-lg p-0.5">
-                    {["blue", "red", "green", "yellow"].map(c => (<button key={c} onClick={(e) => { e.stopPropagation(); handleColorClick(c); }} className={`w-6 h-6 rounded border m-0.5 hover:scale-110 transition-transform ${DESK_COLORS[c].split(" ")[0]} ${DESK_COLORS[c].split(" ")[1]}`} />))}
+                    {["blue", "red", "green", "yellow", "purple", "orange"].map(c => (
+                      <button
+                        key={c}
+                        onClick={(e) => { e.stopPropagation(); handleColorClick(c); }}
+                        className="w-6 h-6 rounded border m-0.5 hover:scale-110 transition-transform"
+                        style={{ backgroundColor: DESK_COLORS[c].bg, borderColor: DESK_COLORS[c].border }}
+                      />
+                    ))}
                     <button onClick={(e) => { e.stopPropagation(); addTeacher(); }} className="px-2 h-6 rounded bg-slate-600 text-[10px] m-0.5 text-white font-bold flex items-center gap-1 hover:scale-105 transition-transform"><Briefcase size={10} /> Teacher</button>
                     {selectedDeskIds.length > 0 && (
                       <>
@@ -1351,7 +1360,7 @@
                     )}
                   </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { isEditing: false }); setSelectedDeskIds([]); }} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold shadow hover:bg-green-700">Done</button>
+                <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { isEditing: false }); setSelectedDeskIds([]); }} className="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-bold shadow hover:bg-emerald-700">Done</button>
               </>) : (<>
                 <button onClick={shuffleSeats} className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-bold shadow hover:bg-indigo-700 flex items-center gap-1"><Shuffle size={12} /> Shuffle</button>
                 <button onClick={() => updateData(widget.id, { isEditing: true })} className="px-3 py-1 bg-white border border-gray-300 text-gray-600 rounded text-xs font-bold hover:bg-gray-50 flex items-center gap-1"><Edit3 size={12} /> Edit</button>
@@ -1364,7 +1373,7 @@
               const scale = fontSize / 16;
               const deskW = (desk.type === 'teacher' ? 154 : 110) * scale;
               const deskH = (desk.type === 'teacher' ? 80 : 60) * scale;
-              const styleClass = desk.type === "teacher" ? "bg-slate-800 border-slate-600 text-white shadow-lg rounded-md" : `${DESK_COLORS[desk.color || "blue"]} rounded-lg`;
+              const styleClass = desk.type === "teacher" ? "bg-slate-800 border-slate-600 text-white shadow-lg rounded-md" : "rounded-lg";
               const isSelected = selectedDeskIds.includes(desk.id);
               return (<div
                 key={desk.id}
@@ -1374,7 +1383,16 @@
                 onDrop={(e) => handleStudentDrop(e, desk.id)}
                 onContextMenu={(e) => toggleAbsence(desk.student, e)}
                 className={`absolute shadow-sm border-2 flex items-center justify-center transition-shadow ${isEditing ? "cursor-move hover:shadow-md" : "cursor-pointer"} ${styleClass} ${isAbsent ? "opacity-60" : ""} ${isSelected ? "ring-2 ring-blue-500 ring-offset-2 z-10" : ""}`}
-                style={{ left: desk.x, top: desk.y, width: deskW, height: deskH, transform: `rotate(${desk.rotation || 0}deg)`, fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px' }}
+                style={{
+                  left: desk.x,
+                  top: desk.y,
+                  width: deskW,
+                  height: deskH,
+                  transform: `rotate(${desk.rotation || 0}deg)`,
+                  fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px',
+                  backgroundColor: desk.type === "teacher" ? undefined : DESK_COLORS[desk.color || "blue"]?.bg,
+                  borderColor: desk.type === "teacher" ? undefined : DESK_COLORS[desk.color || "blue"]?.border
+                }}
                 onMouseDown={(e) => handleMouseDown(e, desk.id)}
               >
                 {isAbsent && <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full z-30 shadow-sm pointer-events-none">OUT</div>}
@@ -1384,7 +1402,7 @@
                 </>)}
                 {/* Fix text selection on name */}
                 {desk.type === "teacher" ? <div className="flex flex-col items-center opacity-80 select-none"><Briefcase size={16} className="mb-0.5" /><span className="text-[8px] uppercase font-bold tracking-widest">Teacher</span></div> : (desk.student ? <span className={`font-bold text-center px-0.5 truncate w-full select-none ${isAbsent ? 'text-slate-400 line-through' : 'text-slate-800'}`} style={{ fontSize: 'inherit' }}>{desk.student}</span> : <span className={`italic text-[10px] select-none ${desk.color === "yellow" ? "text-yellow-700/50" : "text-slate-300"}`}>Empty</span>)}
-                {desk.type !== "teacher" && <div className={`absolute -bottom-1 w-8 h-1 rounded-full ${desk.color === "yellow" ? "bg-yellow-200" : "bg-slate-200"}`} />}
+                {desk.type !== "teacher" && <div className={`absolute -bottom-1 w-8 h-1 rounded-full ${desk.color === "yellow" ? "bg-amber-200" : "bg-slate-200"}`} />}
               </div>);
             })}
 
