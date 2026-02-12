@@ -6220,17 +6220,13 @@
             }));
         }
 
-        // Create default clock for new roster
-        const defaultClock = {
-          id: 'clock-' + Date.now(),
-          type: 'CLOCK',
-          position: { x: 50, y: 40 },
-          size: { width: 340, height: 260 },
-          zIndex: 100,
-          data: { style: 'standard', isGlassy: 'clear' },
-          isMinimized: false
-        };
-        const initialSlides = [[defaultClock]];
+        // Clone current slides for the new roster so the layout persists
+        let initialSlides = [[]];
+        try {
+          initialSlides = JSON.parse(JSON.stringify(slides));
+        } catch (e) {
+          console.error("Failed to clone slides for new roster", e);
+        }
 
         const newId = generateUUID();
         const newRoster = { id: newId, name: name, roster: initialStudents, slides: initialSlides };
