@@ -475,6 +475,7 @@
       OVERLAY_TEXT: { label: 'Text', icon: <Type /> },
       TRAFFIC: { label: 'Noise', icon: <TrafficLightIcon /> },
       QR: { label: 'Exit Ticket', icon: <Share2 /> },
+      SPARK: { label: 'Spark', icon: <Lightbulb /> },
       WEBCAM: { label: 'Cam', icon: <Camera /> },
       DICE: { label: 'Dice', icon: <Dices /> },
       VOTE: { label: 'Poll', icon: <BarChart2 /> },
@@ -1968,6 +1969,7 @@
             />
           ))}
         </div>
+      );
     };
 
 
@@ -2192,9 +2194,145 @@
       );
     };
 
+
+
+    const SparkWidget = ({ widget, updateData }) => {
+      const {
+        topic = '',
+        type = 'HOOK',
+        result = '',
+        isLoading = false,
+        error = null
+      } = widget.data;
+
+      const getApiKey = () => {
+        try {
+          return import.meta.env.VITE_GEMINI_API_KEY;
+        } catch (e) {
+          return window.GEMINI_API_KEY || '';
+        }
+      };
+
+      const generateContent = async () => {
+        const apiKey = getApiKey();
+        if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY') {
+          updateData(widget.id, { error: 'Missing API Key. Please configure VITE_GEMINI_API_KEY.' });
+          return;
+        }
+
+        updateData(widget.id, { isLoading: true, error: null, result: '' });
+
+        const prompts = {
+          HOOK: `Generate a short, engaging lesson hook about "${topic}" for middle school students to get them excited.`,
+          FACT: `Give me a surprising and fun fact about "${topic}".`,
+          JOKE: `Tell me a school-appropriate joke about "${topic}".`,
+          DISCUSSION: `Create a thought-provoking discussion question about "${topic}" for the class.`,
+          TRIVIA: `Write a trivia question about "${topic}" with the answer hidden.`
+        };
+
+        const prompt = prompts[type] || prompts.HOOK;
+
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+
+          const data = await response.json();
+          if (data.error) throw new Error(data.error.message);
+
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
+          updateData(widget.id, { isLoading: false, result: text });
+        } catch (err) {
+          updateData(widget.id, { isLoading: false, error: err.message });
+        }
+      };
+
+      return (
+        <div className="h-full flex flex-col bg-white overflow-hidden relative">
+          <div className="p-3 border-b flex items-center justify-between bg-yellow-50">
+            <div className="flex items-center gap-2 font-bold text-yellow-800">
+              <Lightbulb size={16} className="text-yellow-600 fill-yellow-400" />
+              AI Spark
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto custom-scrollbar">
+            {!result ? (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Topic</label>
+                  <input
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-yellow-400 outline-none"
+                    placeholder="e.g. Photosynthesis, Ancient Rome..."
+                    value={topic}
+                    onChange={(e) => updateData(widget.id, { topic: e.target.value })}
+                    onKeyDown={(e) => e.key === 'Enter' && generateContent()}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Type</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['HOOK', 'FACT', 'JOKE', 'DISCUSSION', 'TRIVIA'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => updateData(widget.id, { type: t })}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${type === t ? 'bg-yellow-100 text-yellow-800 border-yellow-200 border' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'}`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {error && <div className="text-xs text-red-500 bg-red-50 p-2 rounded-lg border border-red-100">{error}</div>}
+
+                <button
+                  onClick={generateContent}
+                  disabled={!topic || isLoading}
+                  className="mt-2 w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold rounded-xl transition-all shadow-lg shadow-yellow-100 active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
+                  {isLoading ? 'Generating...' : 'Spark It!'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-800 font-medium text-lg leading-relaxed overflow-y-auto shadow-inner relative group">
+                  {result}
+                  <button
+                    onClick={() => navigator.clipboard.writeText(result)}
+                    className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur rounded-lg text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    title="Copy"
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => updateData(widget.id, { result: '' })}
+                    className="flex-1 py-2 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors text-xs"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={generateContent}
+                    className="flex-1 py-2 bg-yellow-100 text-yellow-700 font-bold rounded-lg hover:bg-yellow-200 transition-colors text-xs flex items-center justify-center gap-1"
+                  >
+                    <RefreshCw size={14} /> Remix
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
     const GRID_SIZE = 20;
     const HEADER_HEIGHT = 40;
-    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'QR Code', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
+    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'Exit Ticket', SPARK: 'Spark', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
 
     // --- UTILS ---
     const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass }) => {
@@ -7773,6 +7911,7 @@
           case 'DICE': return <DiceWidget {...props} />;
           case 'TRAFFIC': return <TrafficLightWidget {...props} />;
           case 'QR': return <ExitTicketWidget {...props} />;
+          case 'SPARK': return <SparkWidget {...props} />;
           case 'VOTE': return <VoteWidget {...props} />;
           case 'DRAWING': return <DrawingWidget {...props} />;
           case 'SCHEDULE': return <ScheduleWidget {...props} selectedDate={selectedDate} setSelectedDate={setSelectedDate} scheduleTemplate={scheduleTemplate} setScheduleTemplate={setScheduleTemplate} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} scheduleSettings={scheduleSettings} setScheduleSettings={setScheduleSettings} onOpenSettings={() => { setSettingsInitialTab('schedule'); setShowSettingsModal(true); }} />;
