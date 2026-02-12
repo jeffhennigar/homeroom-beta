@@ -6028,7 +6028,20 @@
             let activeId = profile?.active_roster_id;
 
             if (profile) {
-              if (profile.dock_order) setDockOrder(profile.dock_order);
+              if (profile.dock_order) {
+                const order = profile.dock_order;
+                if (Array.isArray(order)) {
+                  const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+                  const allDefaults = [...mainDefaults, ...drawerDefaults];
+                  setDockOrder({
+                    main: mainDefaults.filter(id => order.includes(id)),
+                    drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                  });
+                } else {
+                  setDockOrder(order);
+                }
+              }
               if (profile.background) setBackground(profile.background);
               if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
