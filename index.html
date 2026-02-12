@@ -7131,7 +7131,7 @@
           <div className="absolute inset-0 z-30 pointer-events-none">
             {/* Spotlight Overlay - inside widget container so only spotlighted widget appears above it */}
             {spotlightId && <div className="fixed inset-0 bg-black/85 cursor-pointer pointer-events-auto animate-in fade-in duration-500 backdrop-blur-[2px]" style={{ zIndex: 9998 }} onClick={() => setSpotlightId(null)}><div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" /></div>}
-            {widgets.map(w => {
+            {widgets?.map(w => {
               const isChromeless = ['OVERLAY_TEXT', 'CLOCK', 'CALENDAR'].includes(w.type);
               return (
                 <DraggableResizable
@@ -7210,7 +7210,7 @@
                     handleDockDrop(e, 'main');
                   }}
                 >
-                  {dockOrder.main.map((id) => renderDockItem(id, 'main'))}
+                  {dockOrder?.main?.map((id) => renderDockItem(id, 'main'))}
                 </div>
 
                 <div className="w-px h-8 bg-slate-300 mx-2" />
@@ -7254,7 +7254,7 @@
                       }}
                     >
                       <div className="w-full text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 border-b pb-1">Additional Tools</div>
-                      {dockOrder.drawer.length > 0 ? (
+                      {dockOrder?.drawer?.length > 0 ? (
                         dockOrder.drawer.map((id) => renderDockItem(id, 'drawer'))
                       ) : (
                         <div className="w-full text-center py-4 text-xs text-gray-400 italic">
