@@ -7,7 +7,7 @@ import { SCHEDULE_EMOJIS } from '../../constants';
 import { dataService } from '../../services/dataService';
 import { supabase } from '../../services/supabaseClient';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled }) => {
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -133,7 +133,9 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
             const data = JSON.parse(importText);
             if (data.roster) setRoster(data.roster);
             if (data.background) setBackground(data.background);
+            if (data.background) setBackground(data.background);
             if (data.scheduleTemplate) saveScheduleTemplate(data.scheduleTemplate);
+            if (data.widgets && setWidgets) setWidgets(data.widgets);
             // Basic validation would go here
             alert("Data imported successfully!");
         } catch (e) {
@@ -146,6 +148,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
             roster,
             background: currentBackground,
             scheduleTemplate: activeScheduleDays,
+            widgets,
             exportedAt: new Date().toISOString()
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -513,7 +516,9 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                                 const data = JSON.parse(val);
                                                 if (data.roster) setRoster(data.roster);
                                                 if (data.background) setBackground(data.background);
+                                                if (data.background) setBackground(data.background);
                                                 if (data.scheduleTemplate) saveScheduleTemplate(data.scheduleTemplate);
+                                                if (data.widgets && setWidgets) setWidgets(data.widgets);
                                                 alert("Data imported successfully!");
                                             } catch (e) {
                                                 alert("Invalid JSON data.");

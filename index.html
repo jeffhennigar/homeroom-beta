@@ -2928,22 +2928,19 @@
       sports: { name: 'Sports', items: ['⚽', '🏀', '🏈', '⚾', '🎾'], type: 'emoji' },
       minecraft: { name: 'Minecraft', items: ['🟩', '💎', '🧱', '🧟', '🔵'], type: 'emoji' },
       space: { name: 'Space', items: ['🚀', '🪐', '🌑', '👽', '🌠'], type: 'emoji' },
-      nature: { name: 'Nature', items: ['🌸', '🌿', '🍄', '🦋', '🐜'], type: 'emoji' },
       animals: { name: 'Animals', items: ['🐶', '🐱', '🦊', '🦁', '🐼'], type: 'emoji' },
       candy: { name: 'Candy', items: ['🍬', '🍭', '🍩', '🍫', '🍪'], type: 'emoji' }
     };
 
     const MARBLE_SOUNDS = {
-      pop: { id: 'pop', name: 'Pop', url: 'https://cdn.freesound.org/previews/244/244655_3633604-lq.mp3' },
-      glass: { id: 'glass', name: 'Glass', url: 'https://cdn.freesound.org/previews/336/336829_5730419-lq.mp3' },
-      clatter: { id: 'clatter', name: 'Clatter', url: 'https://cdn.freesound.org/previews/616/616113_11539463-lq.mp3' },
+      pop: { id: 'pop', name: 'Pop', url: 'https://cdn.freesound.org/previews/339/339810_5121236-lq.mp3' }, // Using Bell as fallback
+      glass: { id: 'glass', name: 'Glass', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }, // Using Clink
+      clatter: { id: 'clatter', name: 'Clatter', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }, // Using Clink
       ding: { id: 'ding', name: 'Ding', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' },
-      squishy: { id: 'squishy', name: 'Squishy', url: 'https://assets.mixkit.co/sfx/preview/mixkit-slime-squish-15.mp3' },
-      duck: { id: 'duck', name: 'Duck', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-duck-quack-2605.mp3' },
-      horse: { id: 'horse', name: 'Horse', url: 'https://assets.mixkit.co/sfx/preview/mixkit-horse-neighing-1689.mp3' },
-      duck: { id: 'duck', name: 'Duck', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-duck-quack-2605.mp3' },
-      horse: { id: 'horse', name: 'Horse', url: 'https://assets.mixkit.co/sfx/preview/mixkit-horse-neighing-1689.mp3' },
-      clink: { id: 'clink', name: 'Clink', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }, // Fallback using Ding for now or similar
+      squishy: { id: 'squishy', name: 'Squishy', url: 'https://cdn.freesound.org/previews/339/339810_5121236-lq.mp3' }, // Fallback
+      duck: { id: 'duck', name: 'Duck', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }, // Fallback
+      horse: { id: 'horse', name: 'Horse', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }, // Fallback
+      clink: { id: 'clink', name: 'Clink', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' },
       random: { id: 'random', name: 'Random', url: '' },
     };
 
@@ -3181,7 +3178,7 @@
               {/* Theme Selection */}
               <div className="mb-6">
                 <label className="text-[10px] text-white/50 font-bold uppercase mb-2 block tracking-wider">Marble Theme</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {Object.entries(MARBLE_THEMES).map(([id, t]) => (
                     <button
                       key={id}

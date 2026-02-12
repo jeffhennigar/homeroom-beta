@@ -21,6 +21,7 @@ import YouTubeWidget from './components/widgets/YouTubeWidget';
 import SettingsModal from './components/settings/SettingsModal';
 import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
 import { supabase } from './services/supabaseClient';
+import { dataService } from './services/dataService';
 
 
 // ... (rest of imports)
@@ -125,6 +126,7 @@ const App = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showGrid, setShowGrid] = useState(false);
     const [dockEditMode, setDockEditMode] = useState(false);
+    const [isDockMinimized, setIsDockMinimized] = useState(false);
     const [isCheckingPro, setIsCheckingPro] = useState(true);
 
     // Access Control Gating
@@ -162,6 +164,53 @@ const App = () => {
 
         checkAccess();
     }, []);
+
+    // Load Data from Cloud
+    useEffect(() => {
+        const loadCloudData = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            try {
+                // Load Widgets (Slide 0 for now)
+                const slides = await dataService.getSlides(user.id);
+                if (slides && slides.length > 0) {
+                    // Merge with existing if needed, but for now replace or set if empty
+                    if (slides[0].widgets) setWidgets(slides[0].widgets);
+                } else {
+                    // Create initial slide if none
+                    // await dataService.saveSlide(user.id, 0, []);
+                }
+
+                // Load Rosters
+                const rosters = await dataService.getRosters(user.id);
+                if (rosters && rosters.length > 0) {
+                    setAllRosters(rosters.map(r => ({ ...r, active: true }))); // Ensure structure match
+                    // If active ID is not in fetched rosters, verify
+                }
+            } catch (e) {
+                console.error("Error loading cloud data", e);
+            }
+        };
+
+        if (!isCheckingPro) loadCloudData();
+    }, [isCheckingPro]);
+
+    // Sync Widgets to Cloud
+    useEffect(() => {
+        const saveWidgetsToCloud = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            try {
+                await dataService.saveSlide(user.id, 0, widgets);
+            } catch (e) {
+                console.error("Failed to save widgets", e);
+            }
+        };
+
+        const timeoutId = setTimeout(saveWidgetsToCloud, 2000); // 2s Debounce
+        return () => clearTimeout(timeoutId);
+    }, [widgets]);
 
 
     // Onboarding
@@ -404,9 +453,11 @@ const App = () => {
                 setAllRosters={setAllRosters}
                 activeRosterId={activeRosterId}
                 setActiveRosterId={setActiveRosterId}
-                // Save Schedule Logic hook
                 activeScheduleDays={{}}
                 saveScheduleTemplate={() => { }}
+                widgets={widgets}
+                setWidgets={setWidgets}
+            />
             />
         </div>
     );
