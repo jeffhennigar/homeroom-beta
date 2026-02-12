@@ -1013,7 +1013,7 @@
         if (!studentName || !onUpdateRoster) return;
         // Update the SPECIFIC roster
         const newRoster = activeRoster.map(s => s.name === studentName ? { ...s, active: !s.active } : s);
-        onUpdateRoster(newRoster);
+        onUpdateRoster(newRoster, activeClassId);
       };
 
       const handleMouseDown = (e, deskId) => {
@@ -1343,7 +1343,7 @@
 
     const TextWidget = ({ widget, updateData, isGlassy, chromeless, isSelected }) => {
       const data = widget.data || {};
-      const { items = [], content = "", mode = 'text', fontSize = 16, color = 'yellow', textColor = 'inherit', fontFamily = 'Poppins', listTitle = "" } = data;
+      const { items = [], content = "", mode = 'text', fontSize = 12, color = 'yellow', textColor = 'inherit', fontFamily = 'Poppins', listTitle = "" } = data;
       const [newItemText, setNewItemText] = useState("");
       const editorRef = useRef(null);
       const [formats, setFormats] = useState({ bold: false, italic: false, underline: false });
@@ -1475,7 +1475,7 @@
               <>
                 <div
                   ref={editorRef}
-                  className="w-full h-full p-4 outline-none overflow-auto custom-scrollbar leading-relaxed text-lg"
+                  className="w-full h-full p-4 outline-none overflow-auto custom-scrollbar leading-relaxed"
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => updateData(widget.id, { content: e.currentTarget.innerHTML })}
@@ -2145,7 +2145,7 @@
         }
       }, []);
 
-      const fontSize = (widget.data.fontSize || 16) * (fontScale || 1);
+      const fontSize = (widget.data.fontSize || 12) * (fontScale || 1);
 
       const exec = (command, value = null) => {
         editorRef.current?.focus();
@@ -6934,11 +6934,14 @@
           isSelected,
           roster,
           allRosters,
-          onUpdateRoster: (newRoster) => {
-            const updatedAll = allRosters.map(r => r.id === activeRosterId ? { ...r, roster: newRoster } : r);
+          onUpdateRoster: (newRoster, rosterId) => {
+            const targetId = rosterId || activeRosterId;
+            const updatedAll = allRosters.map(r => r.id === targetId ? { ...r, roster: newRoster } : r);
             localStorage.setItem('homeroom_all_rosters', JSON.stringify(updatedAll));
             setAllRosters(updatedAll);
-            setRoster(newRoster);
+            if (targetId === activeRosterId) {
+              setRoster(newRoster);
+            }
           },
           extraProps: {
             clockStyle: widget.data?.style || clockStyle,
