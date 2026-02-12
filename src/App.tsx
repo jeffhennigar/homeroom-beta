@@ -274,7 +274,7 @@ const App = () => {
 
     // Render Widget Content
     const renderWidgetContent = (widget) => {
-        const props = { widget, updateData: updateWidgetData, roster, onUpdateRoster: updateRoster };
+        const props = { widget, updateData: updateWidgetData, roster, onUpdateRoster: updateRoster, allRosters, activeRosterId };
         switch (widget.type) {
             case 'TIMER': return <TimerWidget {...props} />;
             case 'DICE': return <DiceWidget {...props} />;
