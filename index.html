@@ -2723,12 +2723,12 @@
                   )}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="font-bold text-slate-700 bg-white/80 px-2 rounded-lg backdrop-blur-sm shadow-sm" style={{ fontSize: (fontSize * 1.5) + 'px' }}>{formatTime(timeLeft)}</span>
+                  <span className="font-bold text-slate-700 bg-white/80 px-2 rounded-lg backdrop-blur-sm shadow-sm tracking-tight" style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 1.5) + 'px' }}>{formatTime(timeLeft)}</span>
                 </div>
               </div>
             ) : mode === 'digital' ? (
               <div className="flex flex-col items-center">
-                <div className={`font-black text-slate-800 tracking-widest mb-4 font-sans`} style={{ fontSize: (fontSize * 4) + 'px' }}>{formatTime(timeLeft)}</div>
+                <div className={`font-bold text-slate-800 tracking-tight mb-4`} style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 4) + 'px' }}>{formatTime(timeLeft)}</div>
                 {!isRunning && (
                   <div className="flex flex-col items-center gap-2">
                     <div className="flex gap-2 items-center mt-2">
@@ -2770,7 +2770,7 @@
             ) : (
               /* Stopwatch Mode */
               <div className="flex flex-col items-center">
-                <div className="font-black text-slate-800 tracking-widest font-mono" style={{ fontSize: (fontSize * 3) + 'px' }}>
+                <div className="font-bold text-slate-800 tracking-tight" style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 3) + 'px' }}>
                   {formatStopwatch(elapsed)}
                 </div>
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Stopwatch</div>
