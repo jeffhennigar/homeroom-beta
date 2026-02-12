@@ -5955,7 +5955,7 @@
         }
       };
 
-      const handleAddRoster = (name) => {
+      const handleAddRoster = (name, bulkText = '') => {
         const generateUUID = () => {
           if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
           return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -5963,9 +5963,36 @@
             return v.toString(16);
           });
         };
-        const newRoster = { id: generateUUID(), name: name, roster: [], slides: [[]] };
-        setAllRosters(prev => [...prev, newRoster]);
-        handleSetActiveRoster(newRoster.id);
+
+        // 1. Parse student names from bulk text
+        let initialStudents = [];
+        if (bulkText && typeof bulkText === 'string') {
+          initialStudents = bulkText.split('\n')
+            .map(n => n.trim())
+            .filter(n => n)
+            .map(name => ({
+              id: Math.random().toString(36).substr(2, 9),
+              name: name,
+              active: true
+            }));
+        }
+
+        const newId = generateUUID();
+        const newRoster = { id: newId, name: name, roster: initialStudents, slides: [[]] };
+
+        // 2. Update All Rosters (Save Current + Add New)
+        setAllRosters(prev => {
+          // Save current roster state to the previous active roster object
+          const updatedPrev = prev.map(r => r.id === activeRosterId ? { ...r, roster, slides } : r);
+          return [...updatedPrev, newRoster];
+        });
+
+        // 3. Switch to New Roster Immediately
+        setActiveRosterId(newId);
+        setRoster(initialStudents);
+        setSlides([[]]);
+        setCurrentSlideIndex(0);
+        localStorage.setItem('homeroom_active_roster_id', newId);
       };
 
       const handleDeleteRoster = (id) => {
@@ -6163,8 +6190,8 @@
             const { data: cloudRosters, error: rosterError } = await supabase.from('rosters').select('*').eq('user_id', user.id);
             const { data: cloudSlides, error: slidesError } = await supabase.from('slides').select('*').eq('user_id', user.id).order('slide_index', { ascending: true });
 
-            if (rosterError) console.error("Roster fetch error:", rosterError);
-            if (slidesError) console.error("Slides fetch error:", slidesError);
+            if (rosterError) throw rosterError;
+            if (slidesError) throw slidesError;
 
             let newAllRosters = [];
             let activeId = activeRosterId;
@@ -6294,8 +6321,12 @@
               // If cloud returned NOTHING, but we haven't checked before, maybe we should warn or just accept it.
             }
 
+            // Only mark as checked if we successfully processed everything
+            setHasCheckedCloud(true);
+            setLastSyncError(null);
           } catch (e) {
             console.error('Cloud load error:', e);
+            setLastSyncError("Failed to load cloud data: " + (e.message || "Unknown error"));
             // SIMPLE RETRY (One time)
             if (!window.hasRetriedCloud) {
               window.hasRetriedCloud = true;
@@ -6303,7 +6334,7 @@
             }
           } finally {
             setIsSyncing(false);
-            setHasCheckedCloud(true);
+            // Do NOT set hasCheckedCloud(true) here - only on success
           }
         };
 
