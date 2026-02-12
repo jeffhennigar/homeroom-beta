@@ -56,6 +56,18 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Lexend:wght@300;400;500;600;700;800&family=VT323&family=Oswald:wght@500;700&family=Caveat:wght@400;700&family=Bangers&display=swap"
     rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.supabaseClient = null;
+    try {
+      window.supabaseClient = window.supabase.createClient(
+        'https://lguewieabkrjgsobufjd.supabase.co',
+        'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO'
+      );
+    } catch (e) {
+      console.warn('Supabase init failed:', e);
+    }
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
   <style>
     body {
@@ -165,95 +177,95 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-      (function () {
-        const url = 'https://lguewieabkrjgsobufjd.supabase.co';
-        const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
+    (function () {
+      const url = 'https://lguewieabkrjgsobufjd.supabase.co';
+      const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
 
-        window.CookieStorage = {
-          getItem: (key) => {
-            const name = key + "=";
-            const ca = document.cookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-              let c = ca[i].trim();
-              if (c.indexOf(name) === 0) {
-                try { return decodeURIComponent(c.substring(name.length)); }
-                catch (e) { return c.substring(name.length); }
-              }
-            }
-            return null;
-          },
-          setItem: (key, value) => {
-            const d = new Date();
-            d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
-            const expires = "expires=" + d.toUTCString();
-            const host = window.location.hostname;
-            const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-
-            // v2.7: Strip large session data to essential tokens only
-            let processedValue = value;
-            try {
-              if (value && value.length > 3000) {
-                const parsed = JSON.parse(value);
-                // If it looks like a Supabase session, strip to essentials
-                if (parsed.access_token && parsed.refresh_token) {
-                  // IMPORTANT: Must keep user object for _emitInitialSession to work
-                  let minUser = parsed.user;
-                  if (minUser && typeof minUser === 'object') {
-                    // optimization: remove large identities array to save space
-                    const { identities, ...rest } = minUser;
-                    minUser = rest;
-                  }
-
-                  const stripped = {
-                    access_token: parsed.access_token,
-                    refresh_token: parsed.refresh_token,
-                    expires_at: parsed.expires_at,
-                    expires_in: parsed.expires_in,
-                    token_type: parsed.token_type || 'bearer',
-                    user: minUser
-                  };
-                  processedValue = JSON.stringify(stripped);
-                  console.log('CookieStorage v2.8: Stripped session (keeping user) from', value.length, 'to', processedValue.length, 'bytes');
-                }
-              }
-            } catch (e) {
-              // Not JSON, use original value
-            }
-
-            // Aggressive Clear
-            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
-
-            let cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; SameSite=Lax; Secure`;
-            if (!isLocal && host.includes('ourhomeroom.app')) {
-              // v2.7: Use leading dot for explicit cross-subdomain sharing
-              cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
-            }
-            document.cookie = cookieStr;
-            console.log('CookieStorage v2.7 Set:', key, 'size:', processedValue.length);
-          },
-          removeItem: (key) => {
-            const host = window.location.hostname;
-            const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
-            if (!isLocal && host.includes('ourhomeroom.app')) {
-              document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+      window.CookieStorage = {
+        getItem: (key) => {
+          const name = key + "=";
+          const ca = document.cookie.split(';');
+          for (let i = 0; i < ca.length; i++) {
+            let c = ca[i].trim();
+            if (c.indexOf(name) === 0) {
+              try { return decodeURIComponent(c.substring(name.length)); }
+              catch (e) { return c.substring(name.length); }
             }
           }
-        };
-        try {
-          window.supabaseClient = window.supabase.createClient(url, key, {
-            auth: {
-              storage: window.CookieStorage,
-              autoRefreshToken: true,
-              persistSession: true,
-              detectSessionInUrl: true,
-              storageKey: 'homeroom-auth-token',
+          return null;
+        },
+        setItem: (key, value) => {
+          const d = new Date();
+          d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
+          const expires = "expires=" + d.toUTCString();
+          const host = window.location.hostname;
+          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+
+          // v2.7: Strip large session data to essential tokens only
+          let processedValue = value;
+          try {
+            if (value && value.length > 3000) {
+              const parsed = JSON.parse(value);
+              // If it looks like a Supabase session, strip to essentials
+              if (parsed.access_token && parsed.refresh_token) {
+                // IMPORTANT: Must keep user object for _emitInitialSession to work
+                let minUser = parsed.user;
+                if (minUser && typeof minUser === 'object') {
+                  // optimization: remove large identities array to save space
+                  const { identities, ...rest } = minUser;
+                  minUser = rest;
+                }
+
+                const stripped = {
+                  access_token: parsed.access_token,
+                  refresh_token: parsed.refresh_token,
+                  expires_at: parsed.expires_at,
+                  expires_in: parsed.expires_in,
+                  token_type: parsed.token_type || 'bearer',
+                  user: minUser
+                };
+                processedValue = JSON.stringify(stripped);
+                console.log('CookieStorage v2.8: Stripped session (keeping user) from', value.length, 'to', processedValue.length, 'bytes');
+              }
             }
-          });
-        } catch (e) {
-          console.error("Supabase Init Error:", e);
+          } catch (e) {
+            // Not JSON, use original value
+          }
+
+          // Aggressive Clear
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+
+          let cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; SameSite=Lax; Secure`;
+          if (!isLocal && host.includes('ourhomeroom.app')) {
+            // v2.7: Use leading dot for explicit cross-subdomain sharing
+            cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+          }
+          document.cookie = cookieStr;
+          console.log('CookieStorage v2.7 Set:', key, 'size:', processedValue.length);
+        },
+        removeItem: (key) => {
+          const host = window.location.hostname;
+          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
+          if (!isLocal && host.includes('ourhomeroom.app')) {
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
+          }
         }
-      })();
+      };
+      try {
+        window.supabaseClient = window.supabase.createClient(url, key, {
+          auth: {
+            storage: window.CookieStorage,
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true,
+            storageKey: 'homeroom-auth-token',
+          }
+        });
+      } catch (e) {
+        console.error("Supabase Init Error:", e);
+      }
+    })();
   </script>
   <script>
     // Global error trapping for white screen debugging
@@ -462,7 +474,7 @@
       TEXT: { label: 'Notes', icon: <StickyNote /> },
       OVERLAY_TEXT: { label: 'Text', icon: <Type /> },
       TRAFFIC: { label: 'Noise', icon: <TrafficLightIcon /> },
-      QR: { label: 'QR Code', icon: <Share2 /> },
+      QR: { label: 'Exit Ticket', icon: <Share2 /> },
       WEBCAM: { label: 'Cam', icon: <Camera /> },
       DICE: { label: 'Dice', icon: <Dices /> },
       VOTE: { label: 'Poll', icon: <BarChart2 /> },
@@ -1956,25 +1968,224 @@
             />
           ))}
         </div>
+    };
+
+
+    const StudentView = () => {
+      const [name, setName] = useState('');
+      const [answer, setAnswer] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+      const [error, setError] = useState(null);
+
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('session');
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!name.trim() || !answer.trim()) return;
+        if (!window.supabaseClient) {
+          setError("Connection error. Please refresh.");
+          return;
+        }
+
+        const channel = window.supabaseClient.channel(`exit_ticket:${sessionId}`);
+        channel.subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.send({
+              type: 'broadcast',
+              event: 'answer',
+              payload: { name, answer, timestamp: Date.now() }
+            });
+            setSubmitted(true);
+            channel.unsubscribe();
+          }
+        });
+      };
+
+      if (submitted) {
+        return (
+          <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+            <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm w-full animate-in zoom-in duration-300">
+              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check size={32} />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Sent!</h2>
+              <p className="text-slate-500">Your answer has been submitted to the teacher.</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm">
+            <h1 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <Share2 className="text-indigo-600" /> Exit Ticket
+            </h1>
+
+            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Your Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  placeholder="Student Name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Your Answer</label>
+                <textarea
+                  value={answer}
+                  onChange={e => setAnswer(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all min-h-[120px]"
+                  placeholder="Type your answer here..."
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-200"
+              >
+                Submit Answer
+              </button>
+            </form>
+          </div>
+        </div>
       );
     };
 
-    const QRCodeWidget = ({ widget, updateData }) => {
-      const { url = '' } = widget.data;
+    const ExitTicketWidget = ({ widget, updateData }) => {
+      const {
+        sessionId = Math.random().toString(36).substring(7),
+        question = '',
+        results = [],
+        isActive = false
+      } = widget.data;
+
+      const [showResults, setShowResults] = useState(true);
+
+      useEffect(() => {
+        if (!process.env && !window.supabaseClient) return; // Guard for no key
+        if (!isActive) return;
+
+        const channel = window.supabaseClient.channel(`exit_ticket:${sessionId}`);
+
+        channel.on(
+          'broadcast',
+          { event: 'answer' },
+          (payload) => {
+            updateData(widget.id, {
+              results: [...(widget.data.results || []), payload.payload]
+            });
+          }
+        ).subscribe();
+
+        return () => {
+          window.supabaseClient.removeChannel(channel);
+        };
+      }, [isActive, sessionId, widget.id]); // Re-sub on activate
+
+      const toggleSession = () => {
+        if (!isActive) {
+          // Starting new
+          updateData(widget.id, { isActive: true, results: [], sessionId: Math.random().toString(36).substring(7) });
+        } else {
+          updateData(widget.id, { isActive: false });
+        }
+      };
+
+      const joinUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?mode=student&session=${sessionId}`;
+
       return (
-        <div className="h-full flex flex-col p-4 bg-white relative group">
-          <h3 className="text-center font-bold text-slate-700 mb-2 flex items-center justify-center gap-2"><QrCode size={16} /> QR Code</h3>
-          <input
-            className="w-full border rounded p-2 mb-2 text-xs"
-            placeholder="https://..."
-            value={url}
-            onChange={(e) => updateData(widget.id, { url: e.target.value })}
-          />
-          <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg p-4 overflow-hidden">
-            {url ? (
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`} alt="QR Code" className="w-full h-full object-contain mix-blend-multiply" />
+        <div className="h-full flex flex-col bg-white relative overflow-hidden">
+          {/* Header */}
+          <div className="p-3 border-b flex items-center justify-between bg-slate-50">
+            <div className="flex items-center gap-2 font-bold text-slate-700">
+              <Share2 size={16} className="text-indigo-600" />
+              Exit Ticket
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-green-100 text-green-700 animate-pulse' : 'bg-slate-200 text-slate-500'}`}>
+                {isActive ? 'LIVE' : 'OFFLINE'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col p-4 overflow-hidden">
+            {!isActive ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
+                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mb-2">
+                  <Share2 size={32} />
+                </div>
+                <h3 className="font-bold text-slate-800">Ready to start?</h3>
+                <p className="text-xs text-slate-500 max-w-[200px]">Project a QR code for students to join and submit live answers.</p>
+                <button onClick={toggleSession} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-indigo-100">
+                  Start Session
+                </button>
+              </div>
             ) : (
-              <div className="text-gray-400 text-[10px] text-center italic">Paste a URL above</div>
+              <div className="h-full flex flex-col gap-4">
+                <div className="flex gap-4 h-48">
+                  {/* QR Code Area */}
+                  <div className="w-48 bg-white border-2 border-slate-900 rounded-xl p-2 shadow-lg flex-shrink-0 relative group cursor-pointer" onClick={() => window.open(joinUrl, '_blank')}>
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(joinUrl)}`} alt="QR" className="w-full h-full object-contain" />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                      <span className="text-white text-xs font-bold flex items-center gap-1"><ExternalLink size={12} /> Open Student View</span>
+                    </div>
+                  </div>
+
+                  {/* Question Input */}
+                  <div className="flex-1 flex flex-col">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Question</label>
+                    <textarea
+                      className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
+                      placeholder="Type your question here to display..."
+                      value={question}
+                      onChange={(e) => updateData(widget.id, { question: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Results Area */}
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-slate-200 flex items-center justify-between bg-white/50">
+                    <span className="text-xs font-bold text-slate-600 px-2">Responses ({results.length})</span>
+                    <button onClick={() => setShowResults(!showResults)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2">
+                      {showResults ? 'Hide Answers' : 'Show Answers'}
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                    {results.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-slate-400 text-xs italic">
+                        Waiting for submissions...
+                      </div>
+                    ) : (
+                      results.map((r, i) => (
+                        <div key={i} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm animate-in slide-in-from-bottom-2 duration-300">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-xs text-indigo-900">{r.name}</span>
+                            <span className="text-[9px] text-slate-400">{new Date(r.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                          <div className={`text-sm text-slate-700 ${!showResults ? 'blur-sm select-none' : ''}`}>
+                            {r.answer}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <button onClick={toggleSession} className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-xs transition-all">
+                  End Session
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -7561,7 +7772,7 @@
           case 'WEBCAM': return <WebcamWidget {...props} />;
           case 'DICE': return <DiceWidget {...props} />;
           case 'TRAFFIC': return <TrafficLightWidget {...props} />;
-          case 'QR': return <QRCodeWidget {...props} />;
+          case 'QR': return <ExitTicketWidget {...props} />;
           case 'VOTE': return <VoteWidget {...props} />;
           case 'DRAWING': return <DrawingWidget {...props} />;
           case 'SCHEDULE': return <ScheduleWidget {...props} selectedDate={selectedDate} setSelectedDate={setSelectedDate} scheduleTemplate={scheduleTemplate} setScheduleTemplate={setScheduleTemplate} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} scheduleSettings={scheduleSettings} setScheduleSettings={setScheduleSettings} onOpenSettings={() => { setSettingsInitialTab('schedule'); setShowSettingsModal(true); }} />;
@@ -7912,7 +8123,12 @@
     };
 
     const root = createRoot(document.getElementById('root'));
-    root.render(<App />);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'student') {
+      root.render(<StudentView />);
+    } else {
+      root.render(<App />);
+    }
   </script>
 </body>
 
