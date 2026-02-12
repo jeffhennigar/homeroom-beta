@@ -427,7 +427,7 @@
       blue: { bg: '#eff6ff', border: '#2563eb' },
       red: { bg: '#fef2f2', border: '#dc2626' },
       green: { bg: '#ecfdf5', border: '#059669' },
-      yellow: { bg: '#fffbeb', border: '#d97706' },
+      yellow: { bg: '#fefce8', border: '#eab308' },
       purple: { bg: '#faf5ff', border: '#9333ea' },
       orange: { bg: '#fff7ed', border: '#ea580c' }
     };
@@ -4581,8 +4581,8 @@
           return;
         }
 
-        // Check limit (12 custom backgrounds max)
-        const MAX_CUSTOM_BGS = 12;
+        // Check limit (10 custom backgrounds max)
+        const MAX_CUSTOM_BGS = 10;
         if (myBackgrounds.length >= MAX_CUSTOM_BGS) {
           alert(`You can only save up to ${MAX_CUSTOM_BGS} custom backgrounds. Please delete one to add more.`);
           return;
@@ -6556,6 +6556,7 @@
         }
       }, [user]);
 
+      useEffect(() => { localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(background)); }, [background]);
       useEffect(() => { localStorage.setItem('homeroom_clock_style', clockStyle); }, [clockStyle]);
       useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
       useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
