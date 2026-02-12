@@ -6039,7 +6039,10 @@
                     drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
                   });
                 } else {
-                  setDockOrder(order);
+                  setDockOrder({
+                    main: order?.main || [],
+                    drawer: order?.drawer || []
+                  });
                 }
               }
               if (profile.background) setBackground(profile.background);
@@ -7234,7 +7237,7 @@
                     onClick={() => setShowMoreDrawer(!showMoreDrawer)}
                     className={`flex flex-col items-center gap-0 py-1 px-2 rounded-xl transition-all cursor-pointer group
                             ${showMoreDrawer ? 'bg-indigo-100' : 'hover:bg-white/50'}
-                            ${!isDockLocked && dockOrder.drawer.length > 0 ? 'border-2 border-dashed border-indigo-300 bg-indigo-50' : ''}
+                            ${!isDockLocked && dockOrder?.drawer?.length > 0 ? 'border-2 border-dashed border-indigo-300 bg-indigo-50' : ''}
                         `}
                     onDragOver={(e) => {
                       if (!isDockLocked) {
