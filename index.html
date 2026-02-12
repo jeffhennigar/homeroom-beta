@@ -5706,6 +5706,71 @@
       );
     };
 
+    const dataService = {
+      // --- Profiles & Settings ---
+      async getProfile(userId) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+      },
+
+      async updateProfile(userId, updates) {
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({ id: userId, ...updates });
+        if (error) throw error;
+      },
+
+      // --- Slides ---
+      async getSlides(userId) {
+        const { data, error } = await supabase
+          .from('slides')
+          .select('*')
+          .eq('user_id', userId)
+          .order('slide_index', { ascending: true });
+        if (error) throw error;
+        return data;
+      },
+
+      async saveSlide(userId, slideIndex, widgets) {
+        const { error } = await supabase
+          .from('slides')
+          .upsert({
+            user_id: userId,
+            slide_index: slideIndex,
+            widgets
+          }, { onConflict: 'user_id,slide_index' });
+        if (error) throw error;
+      },
+
+      // --- Rosters ---
+      async getRosters(userId) {
+        const { data, error } = await supabase
+          .from('rosters')
+          .select('*')
+          .eq('user_id', userId);
+        if (error) throw error;
+        return data;
+      },
+
+      async saveRoster(userId, rosterData) {
+        const { data, error } = await supabase
+          .from('rosters')
+          .upsert({
+            user_id: userId,
+            ...rosterData
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    };
+
     const App = () => {
       const [user, setUser] = useState(null);
       const [isSyncing, setIsSyncing] = useState(false);
@@ -5857,6 +5922,10 @@
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           setUser(session?.user ?? null);
           setAuthLoading(false);
+          if (!session?.user) {
+            setHasCheckedCloud(false);
+            setIsSyncing(false);
+          }
         });
 
         return () => subscription.unsubscribe();
@@ -5940,6 +6009,160 @@
 
         return () => { supabase.removeChannel(channel); };
       }, [user, isSyncing, profileLastModified]);
+
+      // --- CLOUD SYNC IMPLEMENTATION ---
+
+      // 1. Fetch from Supabase on Login
+      useEffect(() => {
+        if (!user) return;
+
+        const loadUserData = async () => {
+          setIsSyncing(true);
+          try {
+            console.log("Fetching cloud data...");
+            const profile = await dataService.getProfile(user.id);
+            let activeId = profile?.active_roster_id;
+
+            if (profile) {
+              if (profile.dock_order) setDockOrder(profile.dock_order);
+              if (profile.background) setBackground(profile.background);
+              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
+              if (profile.schedule) setScheduleTemplate(profile.schedule); // Note: mapping 'schedule' to 'scheduleTemplate' based on context, check if it should be 'activeScheduleDays' like App.tsx? 
+              // App.tsx uses 'activeScheduleDays' mapped to 'profile.schedule'. 
+              // index.html uses 'scheduleTemplate'? Let's check state. 
+              // index.html has 'scheduleTemplate' (line 5810) and 'scheduleSettings' (line 5812).
+              // Let's assume profile.schedule maps to scheduleTemplate for now (or whatever persistence key homeroom_schedule uses).
+              // Checking index.html line 5810: const [scheduleTemplate, setScheduleTemplate] = useState(getScheduleTemplate());
+              // getScheduleTemplate reads 'homeroom_schedule_template'.
+              // App.tsx logic: if (profile.schedule) setActiveScheduleDays(profile.schedule);
+              // setActiveScheduleDays corresponds to localStorage 'homeroom_schedule'.
+              // In index.html, is there a 'homeroom_schedule' state?
+              // Line 5810: scheduleTemplate. 
+              // Wait, previous view showed:
+              // 5810: const [scheduleTemplate, setScheduleTemplate] = useState(getScheduleTemplate());
+              // 5811: const [scheduleOverrides, setScheduleOverrides] = useState(getScheduleOverrides());
+              // 5812: const [scheduleSettings, setScheduleSettings] = useState(getScheduleSettings());
+              // Let's look for 'homeroom_schedule' usage.
+              // It seems index.html might call it scheduleTemplate?
+              // Let's check persistence.
+
+              if (profile.grid_enabled !== undefined) setIsGridEnabled(profile.grid_enabled);
+              if (profile.clock_style) setClockStyle(profile.clock_style);
+              if (activeId) setActiveRosterId(activeId);
+            }
+
+            const cloudRosters = await dataService.getRosters(user.id);
+            let mergedRosters = allRosters;
+
+            if (cloudRosters && cloudRosters.length > 0) {
+              // Smart Merge: Keep local rosters that are not in cloud (preserves new offline work)
+              // Overwrite local rosters that share ID with cloud (standard sync)
+              const uniqueMap = new Map();
+
+              // 1. Add ALL local rosters first
+              allRosters.forEach(r => uniqueMap.set(r.id, r));
+
+              // 2. Add/Update with Cloud rosters
+              cloudRosters.forEach(r => {
+                uniqueMap.set(r.id, r);
+              });
+
+              mergedRosters = Array.from(uniqueMap.values());
+              setAllRosters(mergedRosters);
+            }
+
+            // Set Active Roster & Slides from the Merged Data
+            // This ensures we load the slides belonging to the (potentially local-only) active roster
+            if (activeId) {
+              const current = mergedRosters.find(r => r.id === activeId);
+              if (current) {
+                setActiveRosterId(activeId);
+                setRoster(current.roster || []);
+                if (current.slides && current.slides.length > 0) {
+                  setSlides(current.slides);
+                }
+              }
+            } else if (mergedRosters.length > 0) {
+              // Fallback if no active ID
+              const first = mergedRosters[0];
+              setActiveRosterId(first.id);
+              setRoster(first.roster || []);
+              if (first.slides) setSlides(first.slides);
+            }
+          } catch (e) {
+            console.error('Error loading cloud data:', e);
+            setLastSyncError(e.message);
+          } finally {
+            setIsSyncing(false);
+            setHasCheckedCloud(true);
+          }
+        };
+
+        loadUserData();
+      }, [user]);
+
+      // 2. Sync Profile Checks
+      useEffect(() => {
+        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
+
+        const timer = setTimeout(async () => {
+          try {
+            await dataService.updateProfile(user.id, {
+              dock_order: dockOrder,
+              background,
+              slide_backgrounds: slideBackgrounds,
+              my_backgrounds: customBackgrounds,
+              schedule: scheduleTemplate, // Assuming this is the main schedule data
+              grid_enabled: isGridEnabled,
+              clock_style: clockStyle,
+              active_roster_id: activeRosterId
+            });
+            setLastSyncError(null);
+          } catch (e) {
+            console.error('Error syncing profile:', e);
+            setLastSyncError(e.message || "Profile sync failed");
+          }
+        }, 1000);
+
+        return () => clearTimeout(timer);
+      }, [user, dockOrder, background, slideBackgrounds, customBackgrounds, scheduleTemplate, isGridEnabled, clockStyle, activeRosterId, isSyncing, hasCheckedCloud]);
+
+      // 3. Sync Current Slide
+      useEffect(() => {
+        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
+
+        const timer = setTimeout(async () => {
+          try {
+            await dataService.saveSlide(user.id, currentSlideIndex, slides[currentSlideIndex]);
+            setLastSyncError(null);
+          } catch (e) {
+            console.error('Error syncing slide:', e);
+            setLastSyncError(e.message || "Slide sync failed");
+          }
+        }, 1000);
+
+        return () => clearTimeout(timer);
+      }, [user, slides, currentSlideIndex, isSyncing, hasCheckedCloud]);
+
+      // 4. Sync Rosters
+      useEffect(() => {
+        if (!user || isSyncing || !hasCheckedCloud || allRosters.length === 0 || !cloudSyncEnabled) return;
+
+        const timer = setTimeout(async () => {
+          try {
+            for (const r of allRosters) {
+              await dataService.saveRoster(user.id, r);
+            }
+            setLastSyncError(null);
+          } catch (e) {
+            console.error('Error syncing rosters:', e);
+            setLastSyncError(e.message || "Roster sync failed");
+          }
+        }, 2000);
+
+        return () => clearTimeout(timer);
+      }, [user, allRosters, isSyncing, hasCheckedCloud]);
 
       // --- MANAGEMENT FUNCTIONS ---
       const handleSetActiveRoster = (id) => {
