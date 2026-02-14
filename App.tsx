@@ -663,7 +663,20 @@ const App: React.FC = () => {
   };
 
   const renderWidgetContent = (widget: Widget) => {
-    const props = { widget, updateData: updateWidgetData, roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId };
+    const handleUpdateSize = (id: string, size: Size) => {
+      const w = slides[currentSlideIndex].find(w => w.id === id);
+      if (w) updateWidgetLayout(id, w.position, size);
+    };
+
+    const props = {
+      widget,
+      updateData: updateWidgetData,
+      updateSize: handleUpdateSize,
+      roster,
+      onUpdateRoster: handleUpdateRoster,
+      allRosters,
+      activeRosterId
+    };
     switch (widget.type) {
       case 'TIMER': return <TimerWidget {...props} />;
       case 'RANDOMIZER': return <RandomizerWidget {...props} />;

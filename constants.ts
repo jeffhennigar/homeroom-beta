@@ -46,8 +46,8 @@ export const WIDGET_SIZES: Record<string, Size> = {
   SCHEDULE: { width: 380, height: 500 },
   OVERLAY_TEXT: { width: 500, height: 120 },
   VOTE: { width: 400, height: 350 },
-  WHITEBOARD: { width: 1200, height: 900 },
-  QR: { width: 280, height: 310 },
+  whiteboard: { width: 1200, height: 900 },
+  QR: { width: 310, height: 360 }, // Updated size for Setup mode
   AI_CHAT: { width: 400, height: 500 },
   TRANSLATOR: { width: 350, height: 400 },
   CLOCK: { width: 400, height: 220 }
