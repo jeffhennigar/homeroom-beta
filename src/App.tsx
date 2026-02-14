@@ -126,26 +126,28 @@ const App = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showGrid, setShowGrid] = useState(() => localStorage.getItem('homeroom_grid') === 'true');
     const [dockEditMode, setDockEditMode] = useState(false);
-    const [isDockMinimized, setIsDockMinimized] = useState(false);
-    const [isCheckingPro, setIsCheckingPro] = useState(true);
+    const [user, setUser] = useState<any>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // Access Control Gating
     useEffect(() => {
         const checkAccess = async () => {
             try {
-                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
 
-                if (!user || userError) {
+                if (!authUser || userError) {
                     console.log('No user session found, redirecting to signin');
                     window.location.href = 'https://ourhomeroom.app/signin';
                     return;
                 }
 
+                setUser(authUser);
+
                 // Check pro status from profiles table
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('pro_status, grid_enabled')
-                    .eq('id', user.id)
+                    .eq('id', authUser.id)
                     .single();
 
                 if (profileError || profile?.pro_status !== 'pro') {
@@ -168,6 +170,11 @@ const App = () => {
 
         checkAccess();
     }, []);
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut();
+        window.location.href = 'https://ourhomeroom.app/signin';
+    };
 
     // Persist Grid Setting
     useEffect(() => {
@@ -286,6 +293,7 @@ const App = () => {
     };
 
     const updateRoster = (newRoster) => setRoster(newRoster);
+    const handleUpdateRoster = (newRoster) => setRoster(newRoster); // Renamed for consistency with provided snippet
 
     // Background Styles
     const bgStyle = background.type === 'image'
@@ -293,76 +301,9 @@ const App = () => {
         : (background.type === 'custom' ? { backgroundImage: `url(${background.src})`, backgroundSize: 'cover' } : {});
 
     // Render Widget Content
-    const renderWidgetContent = (widget) => {
-        const props = { widget, updateData: updateWidgetData, roster, onUpdateRoster: updateRoster, allRosters, activeRosterId };
-        switch (widget.type) {
-            case 'TIMER': return <TimerWidget {...props} />;
-            case 'DICE': return <DiceWidget {...props} />;
-            case 'SEAT_PICKER': return <SeatPickerWidget {...props} />;
-            case 'GROUP_MAKER': return <GroupMakerWidget {...props} />;
-            case 'TEXT': return <TextWidget {...props} />;
-            case 'TRAFFIC': return <TrafficLightWidget {...props} />;
-            case 'VOTE': return <VoteWidget {...props} />;
-            case 'WHITEBOARD': return <WhiteboardWidget {...props} />;
-            case 'SCHEDULE': return <ScheduleWidget {...props} onOpenSettings={() => setShowSettings(true)} />;
-            case 'QR': return <QRCodeWidget {...props} />;
-            case 'YOUTUBE': return <YouTubeWidget {...props} />;
-            case 'RANDOMIZER': // Random student picker
-                return (
-                    <div className="flex flex-col h-full bg-white p-4 items-center justify-center text-center">
-                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Random Student</h3>
-                        <div className="flex-1 flex items-center justify-center w-full">
-                            <div className="text-3xl font-black text-indigo-600 animate-in zoom-in duration-300 border-2 border-indigo-100 rounded-2xl p-6 shadow-sm bg-indigo-50/50">
-                                {widget.data.student || "Ready?"}
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => {
-                                const active = roster.filter(s => s.active);
-                                const rand = active[Math.floor(Math.random() * active.length)];
-                                updateWidgetData(widget.id, { student: rand?.name || "No Students" });
-                            }}
-                            className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2"
-                        >
-                            <Shuffle size={18} /> Pick Random
-                        </button>
-                    </div>
-                );
-            case 'WEBCAM':
-                return (
-                    <div className="h-full bg-black flex flex-col items-center justify-center relative overflow-hidden rounded-2xl">
-                        {!widget.data.streamActive ? (
-                            <button onClick={async () => {
-                                try {
-                                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                                    // We can't easily store stream in ID, but we can set a flag and handle ref in component
-                                    // Simplified for this architecture:
-                                    const video = document.getElementById(`video-${widget.id}`);
-                                    if (video) video.srcObject = stream;
-                                    updateWidgetData(widget.id, { streamActive: true });
-                                } catch (e) { alert("Camera error"); }
-                            }} className="text-white flex flex-col items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-                                <Camera size={48} />
-                                <span className="font-bold">Start Camera</span>
-                            </button>
-                        ) : (
-                            <video id={`video-${widget.id}`} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
-                        )}
-                        {widget.data.streamActive && (
-                            <button onClick={() => {
-                                const video = document.getElementById(`video-${widget.id}`);
-                                if (video && video.srcObject) {
-                                    video.srcObject.getTracks().forEach(t => t.stop());
-                                    video.srcObject = null;
-                                }
-                                updateWidgetData(widget.id, { streamActive: false });
-                            }} className="absolute bottom-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">Stop</button>
-                        )}
-                    </div>
-                );
-            default: return <div>Unknown Widget</div>;
-        }
-    };
+    // The original renderWidgetContent function was replaced by an IIFE within the map.
+    // Keeping the original structure for clarity, but the actual rendering logic is now inline.
+    // const renderWidgetContent = (widget) => { ... };
 
     if (isCheckingPro) {
         return (
@@ -377,7 +318,7 @@ const App = () => {
     }
 
     return (
-        <div className={`w-screen h-screen overflow-hidden relative ${bgStyle.preview || ''}`} style={bgStyle}>
+        <div className={`w-screen h-screen overflow-hidden relative ${background.preview || ''}`} style={bgStyle}>
 
             {/* Grid Overlay */}
             {showGrid && (
@@ -402,7 +343,77 @@ const App = () => {
                     minWidth={200} minHeight={150}
                     {...w.data} // Pass locked/minimized/transparent
                 >
-                    {renderWidgetContent(w)}
+                    {(() => {
+                        const props = { widget: w, updateData: updateWidgetData, updateSize: (id, sz) => updateWidgetLayout(id, sz), roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId };
+                        switch (w.type) {
+                            // case 'NOTES': return <NotesWidget {...props} />; // Assuming NotesWidget, StopwatchWidget, CalculatorWidget are defined elsewhere or will be added
+                            case 'TIMER': return <TimerWidget {...props} />;
+                            // case 'STOPWATCH': return <StopwatchWidget {...props} />;
+                            // case 'CALCULATOR': return <CalculatorWidget {...props} />;
+                            case 'DICE': return <DiceWidget {...props} />;
+                            case 'SEAT_PICKER': return <SeatPickerWidget {...props} />;
+                            case 'GROUP_MAKER': return <GroupMakerWidget {...props} />;
+                            case 'TEXT': return <TextWidget {...props} />;
+                            case 'TRAFFIC': return <TrafficLightWidget {...props} />;
+                            case 'VOTE': return <VoteWidget {...props} />;
+                            case 'WHITEBOARD': return <WhiteboardWidget {...props} />;
+                            case 'SCHEDULE': return <ScheduleWidget {...props} onOpenSettings={() => setShowSettings(true)} />;
+                            case 'QR': return <QRCodeWidget {...props} />;
+                            case 'YOUTUBE': return <YouTubeWidget {...props} />;
+                            case 'RANDOMIZER': // Random student picker
+                                return (
+                                    <div className="flex flex-col h-full bg-white p-4 items-center justify-center text-center">
+                                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Random Student</h3>
+                                        <div className="flex-1 flex items-center justify-center w-full">
+                                            <div className="text-3xl font-black text-indigo-600 animate-in zoom-in duration-300 border-2 border-indigo-100 rounded-2xl p-6 shadow-sm bg-indigo-50/50">
+                                                {w.data.student || "Ready?"}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const active = roster.filter(s => s.active);
+                                                const rand = active[Math.floor(Math.random() * active.length)];
+                                                updateWidgetData(w.id, { student: rand?.name || "No Students" });
+                                            }}
+                                            className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2"
+                                        >
+                                            <Shuffle size={18} /> Pick Random
+                                        </button>
+                                    </div>
+                                );
+                            case 'WEBCAM':
+                                return (
+                                    <div className="h-full bg-black flex flex-col items-center justify-center relative overflow-hidden rounded-2xl">
+                                        {!w.data.streamActive ? (
+                                            <button onClick={async () => {
+                                                try {
+                                                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                                                    const video = document.getElementById(`video-${w.id}`) as HTMLVideoElement;
+                                                    if (video) video.srcObject = stream;
+                                                    updateWidgetData(w.id, { streamActive: true });
+                                                } catch (e) { alert("Camera error"); }
+                                            }} className="text-white flex flex-col items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+                                                <Camera size={48} />
+                                                <span className="font-bold">Start Camera</span>
+                                            </button>
+                                        ) : (
+                                            <video id={`video-${w.id}`} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
+                                        )}
+                                        {w.data.streamActive && (
+                                            <button onClick={() => {
+                                                const video = document.getElementById(`video-${w.id}`) as HTMLVideoElement;
+                                                if (video && video.srcObject) {
+                                                    (video.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+                                                    video.srcObject = null;
+                                                }
+                                                updateWidgetData(w.id, { streamActive: false });
+                                            }} className="absolute bottom-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">Stop</button>
+                                        )}
+                                    </div>
+                                );
+                            default: return <div>Unknown Widget</div>;
+                        }
+                    })()}
                 </DraggableResizable>
             ))}
 
@@ -450,6 +461,10 @@ const App = () => {
             <SettingsModal
                 isOpen={showSettings}
                 onClose={() => setShowSettings(false)}
+                user={user}
+                onSignOut={handleSignOut}
+                onSignIn={() => window.location.href = 'https://ourhomeroom.app/signin'}
+                isSyncing={isSyncing}
                 roster={roster}
                 setRoster={setRoster}
                 backgrounds={[...BACKGROUNDS, ...customBackgrounds]}
