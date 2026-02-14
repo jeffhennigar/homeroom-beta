@@ -2463,7 +2463,7 @@
         };
 
         const handleMouseUp = () => {
-          if (isDragging) {
+          if (isDragging && isGridEnabled) {
             const snappedX = Math.round(positionRef.current.x / GRID_SIZE) * GRID_SIZE;
             const snappedY = Math.round(positionRef.current.y / GRID_SIZE) * GRID_SIZE;
             onUpdateRef.current(id, { x: snappedX, y: snappedY }, sizeRef.current);
@@ -7483,7 +7483,7 @@
               last_modified
             };
 
-            const { accent_color, last_modified: _lm, ...safeProfilePayload } = profilePayload; // Strip accent_color and last_modified due to schema mismatch
+            const { accent_color, last_modified: _lm, grid_enabled: _ge, ...safeProfilePayload } = profilePayload; // Strip accent_color, last_modified, and grid_enabled due to schema mismatch
             const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, ...safeProfilePayload });
             if (profileError) throw profileError;
 
