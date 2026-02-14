@@ -6028,14 +6028,14 @@
                           {/* Custom Dropdown (Item 13) */}
                           <div className="relative flex-1">
                             <button onClick={() => setShowRosterMenu(!showRosterMenu)} className="w-full flex justify-between items-center border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-purple-500 shadow-sm">
-                              <span className="font-bold text-gray-700 truncate mr-2">{allRosters.find(r => r.id === activeRosterId)?.name || 'Select Class'}</span>
+                              <span className="font-bold text-gray-700 truncate mr-2">{(typeof (allRosters.find(r => r.id === activeRosterId)?.name) === 'string' ? allRosters.find(r => r.id === activeRosterId)?.name : 'Select Class') || 'Select Class'}</span>
                               <ChevronDown size={16} className={`text-gray-400 transition-transform ${showRosterMenu ? 'rotate-180' : ''}`} />
                             </button>
                             {showRosterMenu && (
                               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-48 overflow-y-auto custom-scrollbar">
                                 {allRosters.map(r => (
                                   <button key={r.id} onClick={() => { onSetActiveRoster(r.id); setShowRosterMenu(false); }} className={`w-full text-left px-4 py-2 text-sm font-bold hover:bg-purple-50 transition-colors flex justify-between items-center ${activeRosterId === r.id ? 'text-purple-700 bg-purple-50' : 'text-gray-600'}`}>
-                                    <span className="truncate">{r.name}</span>
+                                    <span className="truncate">{typeof r.name === 'string' ? r.name : 'Unnamed Class'}</span>
                                     {activeRosterId === r.id && <Check size={14} className="flex-shrink-0 ml-2" />}
                                   </button>
                                 ))}
@@ -6150,7 +6150,7 @@
                                   <div className={`w-4 h-4 rounded border flex items-center justify-center ${s.active ? 'bg-blue-500 border-blue-500' : 'border-gray-400 bg-white'}`}>
                                     {s.active && <Check size={12} className="text-white" />}
                                   </div>
-                                  <span className={`font-medium ${s.active ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{s.name}</span>
+                                  <span className={`font-medium ${s.active ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{typeof s.name === 'string' ? s.name : 'Unnamed Student'}</span>
                                 </div>
                                 <button
                                   onClick={(e) => {
