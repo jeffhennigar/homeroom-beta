@@ -15,43 +15,35 @@ const QRCodeWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
     };
 
     return (
-        <div className="h-full flex flex-col p-4 bg-white relative group border-t-[6px] border-slate-800">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                    <QrCode size={18} className="text-slate-500" />
-                    Exit Ticket
-                </h3>
-            </div>
-
+        <div className="h-full flex flex-col p-4 bg-white">
             {/* Input Area */}
             <input
-                className="w-full border-2 border-slate-200 rounded-lg p-2 mb-3 text-xs focus:border-blue-500 focus:outline-none transition-colors font-mono text-slate-600"
+                className="w-full border border-slate-200 rounded-lg p-2 mb-3 text-sm focus:border-blue-500 focus:outline-none transition-colors font-mono text-slate-600 shadow-sm"
                 placeholder="Paste URL here..."
                 value={url}
                 onChange={(e) => updateData(widget.id, { url: e.target.value })}
             />
 
             {/* Teacher Options Toggle */}
-            <div className="flex bg-slate-100 p-1 rounded-lg mb-3">
+            <div className="flex bg-slate-100 p-1 rounded-lg mb-3 shrink-0">
                 <button
                     onClick={() => updateData(widget.id, { mode: 'multiple' })}
                     className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] font-bold transition-all ${mode === 'multiple' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                     title="Multiple Choice"
                 >
-                    <ListChecks size={12} /> MC
+                    <ListChecks size={14} /> MC
                 </button>
                 <button
                     onClick={() => updateData(widget.id, { mode: 'long' })}
                     className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] font-bold transition-all ${mode === 'long' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                     title="Longer Explanation"
                 >
-                    <Type size={12} /> Text
+                    <Type size={14} /> Text
                 </button>
             </div>
 
             {/* QR Display Area */}
-            <div className={`flex-1 flex flex-col items-center justify-center rounded-xl overflow-hidden relative border-2 ${url ? 'bg-white border-slate-100' : 'bg-slate-50 border-dashed border-slate-200'}`}>
+            <div className={`flex-1 flex flex-col items-center justify-center rounded-xl overflow-hidden relative border ${url ? 'bg-white border-slate-100' : 'bg-slate-50 border-dashed border-slate-200'}`}>
                 {url ? (
                     <>
                         {/* Student Instruction Pill */}
@@ -62,20 +54,20 @@ const QRCodeWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
                         <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`}
                             alt="Scan QR"
-                            className="w-full h-full object-contain p-4 mix-blend-multiply"
+                            className="w-full h-full object-contain p-6 mix-blend-multiply"
                         />
 
                         {/* Shortlink Display */}
-                        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur py-1.5 px-3 border-t border-slate-100 text-center">
-                            <div className="text-[10px] font-mono text-slate-500 truncate select-all cursor-text" title={url}>
+                        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur py-2 px-3 border-t border-slate-50 text-center">
+                            <div className="text-[10px] font-mono text-slate-500 truncate select-all cursor-text font-medium" title={url}>
                                 {url}
                             </div>
                         </div>
                     </>
                 ) : (
                     <div className="flex flex-col items-center text-slate-400 gap-2">
-                        <Monitor size={24} className="opacity-20" />
-                        <span className="text-[10px] font-medium italic">Paste a link to generate</span>
+                        <Monitor size={32} className="opacity-20" />
+                        <span className="text-xs font-medium italic">Paste a link to generate</span>
                     </div>
                 )}
             </div>

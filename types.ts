@@ -114,4 +114,10 @@ export interface Widget {
 export interface WidgetProps {
   widget: Widget;
   updateData: (id: string, data: Partial<WidgetData>) => void;
+  // Optional resize capability for widgets
+  updateSize?: (id: string, size: Size) => void;
+  roster?: Student[];
+  onUpdateRoster?: (roster: Student[]) => void;
+  allRosters?: any[];
+  activeRosterId?: string | null;
 }
