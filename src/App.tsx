@@ -478,7 +478,6 @@ const App = () => {
                 widgets={widgets}
                 setWidgets={setWidgets}
             />
-            />
         </div>
     );
 };
