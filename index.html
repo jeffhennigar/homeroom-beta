@@ -343,6 +343,37 @@
       }
     };
 
+    const ensureString = (val, fallback = '') => {
+      if (typeof val === 'string') return val;
+      if (val && typeof val === 'object') {
+        console.warn('React Error 31 Prevention: Attempted to render object where string expected', val);
+        try {
+          return JSON.stringify(val);
+        } catch (e) {
+          return fallback;
+        }
+      }
+      return String(val ?? fallback);
+    };
+
+    const sanitizeRoster = (r) => {
+      if (!Array.isArray(r)) return [];
+      return r.map(s => ({
+        ...s,
+        name: ensureString(s.name, 'Unnamed Student'),
+        active: !!s.active
+      }));
+    };
+
+    const sanitizeAllRosters = (rosters) => {
+      if (!Array.isArray(rosters)) return [];
+      return rosters.map(r => ({
+        ...r,
+        name: ensureString(r.name, 'Unnamed Class'),
+        roster: sanitizeRoster(r.roster)
+      }));
+    };
+
     const THEME_COLORS = {
       indigo: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
       blue: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
@@ -530,7 +561,7 @@
         if (Array.isArray(stored) && stored.length > 0 && typeof stored[0] === 'string') {
           return stored.map(n => ({ id: Math.random().toString(36).substr(2, 9), name: n, active: true }));
         }
-        return stored;
+        return sanitizeRoster(stored);
       } catch (e) { return DEFAULT_NAMES.map(n => ({ id: Math.random().toString(36).substr(2, 9), name: n, active: true })); }
     };
     const saveRoster = (roster) => { try { localStorage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(roster)); } catch (e) { } };
@@ -5800,8 +5831,8 @@
       const [activeTab, setActiveTab] = useState(initialTab);
       const [mode, setMode] = useState('list');
 
-      const [localRoster, setLocalRoster] = useState(roster || []);
-      const [bulkText, setBulkText] = useState((roster || []).map(s => s.name).join('\n'));
+      const [localRoster, setLocalRoster] = useState(Array.isArray(roster) ? roster : []);
+      const [bulkText, setBulkText] = useState((Array.isArray(roster) ? roster : []).map(s => ensureString(s.name, 'Unnamed Student')).join('\n'));
 
       // Roster Management State
       const [isAddingRoster, setIsAddingRoster] = useState(false);
@@ -5940,8 +5971,9 @@
 
       // Sync local roster when active roster changes
       useEffect(() => {
-        setLocalRoster(roster || []);
-        setBulkText((roster || []).map(s => s.name).join('\n'));
+        const safeRoster = Array.isArray(roster) ? roster : [];
+        setLocalRoster(safeRoster);
+        setBulkText(safeRoster.map(s => ensureString(s.name, 'Unnamed Student')).join('\n'));
       }, [roster]);
 
       const tabs = [
@@ -5994,7 +6026,7 @@
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-bold text-slate-800 tracking-tight">{tabs.find(t => t.id === activeTab)?.label}</h2>
                   {activeTab === 'roster' && (
-                    {/* Controls embedded in body */ }
+                    null
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -6020,171 +6052,13 @@
               {/* Scrollable Body */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8 relative">
                 {activeTab === 'roster' && (
-                  <div className="space-y-4">
-                    <div className="mb-6 space-y-4">
-                      <div className="flex-1">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Active Roster</label>
-                        <div className="flex gap-2">
-                          {/* Custom Dropdown (Item 13) */}
-                          <div className="relative flex-1">
-                            <button onClick={() => setShowRosterMenu(!showRosterMenu)} className="w-full flex justify-between items-center border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-purple-500 shadow-sm">
-                              <span className="font-bold text-gray-700 truncate mr-2">{(typeof (allRosters.find(r => r.id === activeRosterId)?.name) === 'string' ? allRosters.find(r => r.id === activeRosterId)?.name : 'Select Class') || 'Select Class'}</span>
-                              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showRosterMenu ? 'rotate-180' : ''}`} />
-                            </button>
-                            {showRosterMenu && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-48 overflow-y-auto custom-scrollbar">
-                                {allRosters.map(r => (
-                                  <button key={r.id} onClick={() => { onSetActiveRoster(r.id); setShowRosterMenu(false); }} className={`w-full text-left px-4 py-2 text-sm font-bold hover:bg-purple-50 transition-colors flex justify-between items-center ${activeRosterId === r.id ? 'text-purple-700 bg-purple-50' : 'text-gray-600'}`}>
-                                    <span className="truncate">{typeof r.name === 'string' ? r.name : 'Unnamed Class'}</span>
-                                    {activeRosterId === r.id && <Check size={14} className="flex-shrink-0 ml-2" />}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <button onClick={() => { setIsAddingRoster(true); setNewRosterName(''); setNewRosterBulk(''); }} className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200" title="Add New Roster"><Plus size={18} /></button>
-                          <button onClick={() => {
-                            const r = allRosters.find(r => r.id === activeRosterId);
-                            setEditingRosterId(activeRosterId);
-                            setEditRosterName(r?.name || '');
-                          }} className="p-2 border border-gray-200 text-gray-400 rounded-lg hover:bg-gray-50" title="Rename Roster"><Edit3 size={16} /></button>
-                          {allRosters.length > 1 && (
-                            <button onClick={(e) => {
-                              e.stopPropagation();
-                              setShowDeleteConfirm(true);
-                            }} className="p-2 border border-red-100 text-red-500 rounded-lg hover:bg-red-50" title="Delete Roster"><Trash2 size={16} /></button>
-                          )}
-                        </div>
-                      </div>
+                  <div className="p-8 text-center text-gray-500 font-bold border-2 border-dashed rounded-3xl">
+                    DIAGNOSTIC: Roster Tab Content is Minimal. If this crashes, the error is in the SettingsModal wrapper.
+                    <div className="mt-4 text-xs font-mono">
+                      Active Tab: {activeTab}<br />
+                      Active Roster ID: {ensureString(activeRosterId, 'None')}<br />
+                      All Rosters Count: {allRosters?.length || 0}
                     </div>
-
-                    {/* Add Roster Modal Overlay */}
-                    {isAddingRoster && (
-                      <div className="absolute inset-0 bg-white/95 z-10 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200 rounded-3xl">
-                        <h3 className="text-lg font-bold text-gray-800 mb-4">Create New Class</h3>
-                        <div className="space-y-4 flex-1">
-                          <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Class Name</label>
-                            <input autoFocus type="text" value={newRosterName} onChange={e => setNewRosterName(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-purple-500 font-bold text-gray-700" placeholder="e.g., Period 2 - Science" />
-                          </div>
-                          <div className="flex-1 flex flex-col">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Students (Paste list)</label>
-                            <textarea value={newRosterBulk} onChange={e => setNewRosterBulk(e.target.value)} className="flex-1 border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-purple-500 resize-none custom-scrollbar" placeholder="Paste names here..." style={{ minHeight: '200px' }} />
-                          </div>
-                          <div className="flex gap-2 justify-end pt-2">
-                            <button onClick={() => setIsAddingRoster(false)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancel</button>
-                            <button disabled={!newRosterName.trim()} onClick={() => {
-                              onAddRoster(newRosterName, newRosterBulk);
-                              setIsAddingRoster(false);
-                            }} className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">Create Class</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Rename Roster Overlay */}
-                    {editingRosterId && (
-                      <div className="absolute inset-0 bg-white/95 z-10 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200 justify-center items-center rounded-3xl">
-                        <div className="w-full max-w-sm space-y-4">
-                          <h3 className="text-lg font-bold text-gray-800 text-center">Rename Class</h3>
-                          <input autoFocus type="text" value={editRosterName} onChange={e => setEditRosterName(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 font-bold text-gray-700 text-center" />
-                          <div className="flex gap-2 justify-center">
-                            <button onClick={() => setEditingRosterId(null)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancel</button>
-                            <button onClick={() => {
-                              onRenameRoster(editingRosterId, editRosterName);
-                              setEditingRosterId(null);
-                            }} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Save Name</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Delete Roster Confirmation Modal */}
-                    {showDeleteConfirm && (
-                      <div className="absolute inset-0 bg-black/50 z-20 flex items-center justify-center animate-in fade-in duration-200 rounded-3xl">
-                        <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm mx-4 animate-in zoom-in-95 duration-200">
-                          <div className="text-center mb-4">
-                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                              <Trash2 size={24} className="text-red-500" />
-                            </div>
-                            <h3 className="text-lg font-bold text-gray-800">Delete Roster?</h3>
-                            <p className="text-gray-500 text-sm mt-1">This will permanently delete "{typeof (allRosters.find(r => r.id === activeRosterId)?.name) === 'string' ? allRosters.find(r => r.id === activeRosterId)?.name : 'Unnamed Class'}" and all its students.</p>
-                          </div>
-                          <div className="flex gap-3">
-                            <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
-                            <button onClick={() => {
-                              onDeleteRoster(activeRosterId);
-                              setShowDeleteConfirm(false);
-                            }} className="flex-1 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition-colors">Delete</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between mb-4 bg-gray-50 p-2 rounded-xl">
-                      <div className="text-sm font-bold text-gray-700 px-2">{localRoster.length} Students</div>
-                      <div className="flex gap-1">
-                        <button onClick={() => {
-                          const lines = bulkText.split('\n').map(n => n.trim()).filter(n => n);
-                          const newRoster = lines.map(name => {
-                            const existing = (roster || []).find(s => s.name === name);
-                            return existing ? existing : { id: Math.random().toString(36).substr(2, 9), name: name, active: true };
-                          });
-                          setLocalRoster(newRoster);
-                          setMode('list');
-                        }} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'list' ? 'bg-white shadow text-purple-600' : 'text-gray-500'}`}>List</button>
-                        <button onClick={() => {
-                          setBulkText(localRoster.map(s => typeof s.name === 'string' ? s.name : 'Unnamed Student').join('\n'));
-                          setMode('bulk');
-                        }} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'bulk' ? 'bg-white shadow text-purple-600' : 'text-gray-500'}`}>Bulk Add</button>
-                      </div>
-                    </div>
-
-                    <>
-                      {mode === 'list' ? (
-                        <div className="p-4">
-                          <div className="space-y-1">
-                            {localRoster.map(s => (
-                              <div key={s.id} className={`flex items-center justify-between p-2 rounded border group ${s.active ? 'bg-white border-gray-100 hover:border-blue-300' : 'bg-gray-50 border-transparent opacity-60'}`}>
-                                <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => toggleActive(s.id)}>
-                                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${s.active ? 'bg-blue-500 border-blue-500' : 'border-gray-400 bg-white'}`}>
-                                    {s.active && <Check size={12} className="text-white" />}
-                                  </div>
-                                  <span className={`font-medium ${s.active ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{typeof s.name === 'string' ? s.name : 'Unnamed Student'}</span>
-                                </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (window.confirm(`Delete ${typeof s.name === 'string' ? s.name : 'Unnamed Student'} from the roster?`)) {
-                                      const newRoster = localRoster.filter(student => student.id !== s.id);
-                                      setLocalRoster(newRoster);
-                                      // Also sync back to bulk text if in that mode
-                                      if (mode === 'bulk') setBulkText(newRoster.map(sn => sn.name).join('\n'));
-                                    }
-                                  }}
-                                  className="p-1.5 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                                  title="Delete Student"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            ))}
-                            {localRoster.length === 0 && <div className="text-center text-gray-400 py-8 px-4 bg-gray-50 rounded-xl my-4 border border-dashed border-gray-200">No students yet. Click Bulk Add to add your class.</div>}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 flex flex-col">
-                          <label className="text-xs font-bold text-gray-500 uppercase mb-2">Edit Names (One per line)</label>
-                          <textarea
-                            className="border-2 border-gray-200 rounded-xl p-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all custom-scrollbar resize-none font-medium text-slate-700"
-                            rows={7}
-                            autoFocus
-                            value={bulkText}
-                            onChange={e => setBulkText(e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </>
                   </div>
                 )}
 
@@ -6783,12 +6657,17 @@
           .select('*')
           .eq('user_id', userId);
         if (error) throw error;
-        return data;
+        return sanitizeAllRosters(data);
       },
 
       async saveRoster(userId, rosterData) {
         // Strip 'slides' if present, as it's not in the rosters table schema
         const { slides, ...rosterPayload } = rosterData;
+
+        // UUID Fix: Don't send 'default' as an ID to Supabase as it expects a UUID
+        if (rosterPayload.id === 'default') {
+          delete rosterPayload.id;
+        }
 
         const { data, error } = await supabase
           .from('rosters')
@@ -6799,6 +6678,15 @@
           .select()
           .single();
         if (error) throw error;
+
+        // Ensure we return sanitized data
+        if (data) {
+          return {
+            ...data,
+            name: ensureString(data.name, 'Unnamed Class'),
+            roster: sanitizeRoster(data.roster)
+          };
+        }
         return data;
       }
     };
@@ -6813,7 +6701,7 @@
       const [allRosters, setAllRosters] = useState(() => {
         try {
           const stored = localStorage.getItem('homeroom_all_rosters');
-          if (stored) return JSON.parse(stored);
+          if (stored) return sanitizeAllRosters(JSON.parse(stored));
         } catch (e) { }
         const defaultRoster = getRoster();
         const defaultSlides = (() => {
@@ -6998,10 +6886,21 @@
                   if (updatedRoster.last_modified && existing._last_modified === updatedRoster.last_modified) return prev;
 
                   const next = [...prev];
-                  next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster, id: updatedRoster.id, _last_modified: updatedRoster.last_modified };
+                  next[existingIdx] = {
+                    ...next[existingIdx],
+                    name: ensureString(updatedRoster.name, next[existingIdx].name),
+                    roster: sanitizeRoster(updatedRoster.roster),
+                    id: updatedRoster.id,
+                    _last_modified: updatedRoster.last_modified
+                  };
                   return next;
                 } else {
-                  return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster, _last_modified: updatedRoster.last_modified }];
+                  return [...prev, {
+                    id: updatedRoster.id,
+                    name: ensureString(updatedRoster.name, 'Unnamed Class'),
+                    roster: sanitizeRoster(updatedRoster.roster),
+                    _last_modified: updatedRoster.last_modified
+                  }];
                 }
               });
             }
@@ -7375,7 +7274,7 @@
 
               const { data: existing } = await supabase.from('slides').select('id').match({ user_id: user.id, slide_index: idx }).maybeSingle();
               let slideError;
-              const payload = { widgets, last_modified };
+              const payload = { widgets }; // Removed last_modified as it's not in the slides table
 
               if (existing) {
                 ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx }));
@@ -7388,6 +7287,7 @@
             // 2. Sync ALL Rosters
             const rosterIds = allRosters.map(r => r.id);
             for (const r of allRosters) {
+              if (r.id === 'default') continue; // Don't sync the local-only default roster
               const rosterPayload = {
                 id: r.id,
                 user_id: user.id,
@@ -7400,10 +7300,13 @@
             }
             // Clean up deleted rosters from cloud
             if (rosterIds.length > 0) {
-              const { error: cleanupErr } = await supabase.from('rosters').delete()
-                .eq('user_id', user.id)
-                .not('id', 'in', `(${rosterIds.join(',')})`);
-              if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
+              const validRosterIds = rosterIds.filter(id => id && id !== 'default' && id.includes('-'));
+              if (validRosterIds.length > 0) {
+                const { error: cleanupErr } = await supabase.from('rosters').delete()
+                  .eq('user_id', user.id)
+                  .not('id', 'in', `(${validRosterIds.join(',')})`);
+                if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
+              }
             }
 
             // 3. Sync Profile
@@ -7419,7 +7322,7 @@
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
-              active_roster_id: activeRosterId,
+              active_roster_id: (activeRosterId && activeRosterId !== 'default') ? activeRosterId : null,
               accent_color: accentColor,
               last_modified
             };
@@ -7450,7 +7353,7 @@
           const r = allRosters.find(rr => rr.id === activeRosterId);
           if (r && r.roster?.length !== roster.length) {
             console.log("Safety Net triggered: Roster mismatch detected. Updating view.");
-            setRoster(r.roster);
+            setRoster(Array.isArray(r.roster) ? r.roster : []);
           }
         }
       }, [activeRosterId, hasCheckedCloud]);
