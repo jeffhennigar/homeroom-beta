@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -6420,9 +6420,9 @@
                           {lastSyncError ? 'Error' : (isSyncing ? 'Syncing...' : 'Synced')}
                         </span>
                       </div>
-                      {lastSyncError ? (
+                      {ensureString(lastSyncError) ? (
                         <div className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded border border-red-100 mb-2">
-                          {lastSyncError}
+                          {ensureString(lastSyncError)}
                         </div>
                       ) : (
                         <div className="text-xs text-slate-500">
@@ -7300,11 +7300,11 @@
             }
             // Clean up deleted rosters from cloud
             if (rosterIds.length > 0) {
-              const validRosterIds = rosterIds.filter(id => id && id !== 'default' && id.includes('-'));
+              const validRosterIds = rosterIds.filter(id => id && id !== 'default' && String(id).includes('-'));
               if (validRosterIds.length > 0) {
                 const { error: cleanupErr } = await supabase.from('rosters').delete()
                   .eq('user_id', user.id)
-                  .not('id', 'in', `(${validRosterIds.join(',')})`);
+                  .not('id', 'in', `(${validRosterIds.map(id => `'${id}'`).join(',')})`);
                 if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
               }
             }
