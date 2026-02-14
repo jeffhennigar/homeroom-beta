@@ -124,7 +124,7 @@ const App = () => {
     const [zIndices, setZIndices] = useState({});
     const [maxZ, setMaxZ] = useState(10);
     const [showSettings, setShowSettings] = useState(false);
-    const [showGrid, setShowGrid] = useState(false);
+    const [showGrid, setShowGrid] = useState(() => localStorage.getItem('homeroom_grid') === 'true');
     const [dockEditMode, setDockEditMode] = useState(false);
     const [isDockMinimized, setIsDockMinimized] = useState(false);
     const [isCheckingPro, setIsCheckingPro] = useState(true);
@@ -144,7 +144,7 @@ const App = () => {
                 // Check pro status from profiles table
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .select('pro_status')
+                    .select('pro_status, grid_enabled')
                     .eq('id', user.id)
                     .single();
 
@@ -152,6 +152,10 @@ const App = () => {
                     console.log('Access denied: Basic or missing profile, redirecting to free');
                     window.location.href = 'https://free.ourhomeroom.app';
                     return;
+                }
+
+                if (profile?.grid_enabled !== undefined) {
+                    setShowGrid(profile.grid_enabled);
                 }
 
                 // Access granted
@@ -164,6 +168,22 @@ const App = () => {
 
         checkAccess();
     }, []);
+
+    // Persist Grid Setting
+    useEffect(() => {
+        localStorage.setItem('homeroom_grid', String(showGrid));
+
+        if (!isCheckingPro) {
+            const saveGrid = async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await dataService.updateProfile(user.id, { grid_enabled: showGrid });
+                }
+            };
+            // Debounce slightly or just save (it's infrequent)
+            saveGrid();
+        }
+    }, [showGrid, isCheckingPro]);
 
     // Load Data from Cloud
     useEffect(() => {
