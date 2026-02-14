@@ -99,25 +99,34 @@ const WIDGET_SIZES = {
 const App = () => {
     // Global Persisted State
     const [allRosters, setAllRosters] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_all_rosters')) || [{ id: 'default', name: "My Class", roster: DEFAULT_NAMES.map(n => ({ id: Math.random().toString(36).substr(2, 9), name: n, active: true })) }]; }
+        try {
+            const parsed = JSON.parse(localStorage.getItem('homeroom_all_rosters'));
+            return Array.isArray(parsed) ? parsed : [{ id: 'default', name: "My Class", roster: DEFAULT_NAMES.map(n => ({ id: Math.random().toString(36).substr(2, 9), name: n, active: true })) }];
+        }
         catch { return [{ id: 'default', name: "My Class", roster: [] }]; }
     });
     const [activeRosterId, setActiveRosterId] = useState(() => localStorage.getItem('homeroom_active_roster_id') || 'default');
 
     // Computed current state
     const activeRosterObj = allRosters.find(r => r.id === activeRosterId) || allRosters[0];
-    const [roster, setRoster] = useState(activeRosterObj.roster || []);
+    const [roster, setRoster] = useState(activeRosterObj?.roster || []);
 
     const [background, setBackground] = useState(() => {
         try { return JSON.parse(localStorage.getItem('homeroom_background')) || BACKGROUNDS[0]; } catch { return BACKGROUNDS[0]; }
     });
 
     const [customBackgrounds, setCustomBackgrounds] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_custom_backgrounds')) || []; } catch { return []; }
+        try {
+            const parsed = JSON.parse(localStorage.getItem('homeroom_custom_backgrounds'));
+            return Array.isArray(parsed) ? parsed : [];
+        } catch { return []; }
     });
 
     const [dockOrder, setDockOrder] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_dock_order')) || INIT_DOCK_ORDER; } catch { return INIT_DOCK_ORDER; }
+        try {
+            const parsed = JSON.parse(localStorage.getItem('homeroom_dock_order'));
+            return Array.isArray(parsed) ? parsed : INIT_DOCK_ORDER;
+        } catch { return INIT_DOCK_ORDER; }
     });
 
     const [widgets, setWidgets] = useState([]);
@@ -208,7 +217,8 @@ const App = () => {
                 const slides = await dataService.getSlides(user.id);
                 if (slides && slides.length > 0) {
                     // Merge with existing if needed, but for now replace or set if empty
-                    if (slides[0].widgets) setWidgets(slides[0].widgets);
+                    const loadedWidgets = slides[0].widgets;
+                    if (Array.isArray(loadedWidgets)) setWidgets(loadedWidgets);
                 } else {
                     // Create initial slide if none
                     // await dataService.saveSlide(user.id, 0, []);
@@ -216,7 +226,7 @@ const App = () => {
 
                 // Load Rosters
                 const rosters = await dataService.getRosters(user.id);
-                if (rosters && rosters.length > 0) {
+                if (rosters && Array.isArray(rosters) && rosters.length > 0) {
                     setAllRosters(rosters.map(r => ({ ...r, active: true }))); // Ensure structure match
                     // If active ID is not in fetched rosters, verify
                 }
