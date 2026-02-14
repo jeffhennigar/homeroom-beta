@@ -7483,7 +7483,7 @@
               last_modified
             };
 
-            const { accent_color, ...safeProfilePayload } = profilePayload; // Strip accent_color due to schema mismatch
+            const { accent_color, last_modified: _lm, ...safeProfilePayload } = profilePayload; // Strip accent_color and last_modified due to schema mismatch
             const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, ...safeProfilePayload });
             if (profileError) throw profileError;
 
