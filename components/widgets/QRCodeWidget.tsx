@@ -1,22 +1,82 @@
-import React from 'react';
-import { QrCode } from 'lucide-react';
+import React, { useState } from 'react';
+import { QrCode, Monitor, ListChecks, Type } from 'lucide-react';
+import { WidgetProps } from '../../types';
 
-const QRCodeWidget = ({ widget, updateData }) => {
-    const { url = '' } = widget.data;
+const QRCodeWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
+    const { url = '', mode = 'multiple' } = widget.data; // mode: 'multiple' | 'long'
+
+    const getShortUrl = (fullUrl: string) => {
+        try {
+            const urlObj = new URL(fullUrl.startsWith('http') ? fullUrl : `https://${fullUrl}`);
+            return urlObj.hostname + (urlObj.pathname.length > 1 ? '/...' : '');
+        } catch {
+            return fullUrl;
+        }
+    };
+
     return (
-        <div className="h-full flex flex-col p-4 bg-white relative group">
-            <h3 className="text-center font-bold text-slate-700 mb-2 flex items-center justify-center gap-2"><QrCode size={16} /> QR Code</h3>
+        <div className="h-full flex flex-col p-4 bg-white relative group border-t-[6px] border-slate-800">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                    <QrCode size={18} className="text-slate-500" />
+                    Exit Ticket
+                </h3>
+            </div>
+
+            {/* Input Area */}
             <input
-                className="w-full border rounded p-2 mb-2 text-xs"
-                placeholder="https://..."
+                className="w-full border-2 border-slate-200 rounded-lg p-2 mb-3 text-xs focus:border-blue-500 focus:outline-none transition-colors font-mono text-slate-600"
+                placeholder="Paste URL here..."
                 value={url}
                 onChange={(e) => updateData(widget.id, { url: e.target.value })}
             />
-            <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg p-4 overflow-hidden">
+
+            {/* Teacher Options Toggle */}
+            <div className="flex bg-slate-100 p-1 rounded-lg mb-3">
+                <button
+                    onClick={() => updateData(widget.id, { mode: 'multiple' })}
+                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] font-bold transition-all ${mode === 'multiple' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="Multiple Choice"
+                >
+                    <ListChecks size={12} /> MC
+                </button>
+                <button
+                    onClick={() => updateData(widget.id, { mode: 'long' })}
+                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] font-bold transition-all ${mode === 'long' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    title="Longer Explanation"
+                >
+                    <Type size={12} /> Text
+                </button>
+            </div>
+
+            {/* QR Display Area */}
+            <div className={`flex-1 flex flex-col items-center justify-center rounded-xl overflow-hidden relative border-2 ${url ? 'bg-white border-slate-100' : 'bg-slate-50 border-dashed border-slate-200'}`}>
                 {url ? (
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`} alt="QR Code" className="w-full h-full object-contain mix-blend-multiply" />
+                    <>
+                        {/* Student Instruction Pill */}
+                        <div className={`absolute top-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm z-10 ${mode === 'multiple' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                            {mode === 'multiple' ? 'Multiple Choice' : 'Long Answer'}
+                        </div>
+
+                        <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`}
+                            alt="Scan QR"
+                            className="w-full h-full object-contain p-4 mix-blend-multiply"
+                        />
+
+                        {/* Shortlink Display */}
+                        <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur py-1.5 px-3 border-t border-slate-100 text-center">
+                            <div className="text-[10px] font-mono text-slate-500 truncate select-all cursor-text" title={url}>
+                                {url}
+                            </div>
+                        </div>
+                    </>
                 ) : (
-                    <div className="text-gray-400 text-[10px] text-center italic">Paste a URL above</div>
+                    <div className="flex flex-col items-center text-slate-400 gap-2">
+                        <Monitor size={24} className="opacity-20" />
+                        <span className="text-[10px] font-medium italic">Paste a link to generate</span>
+                    </div>
                 )}
             </div>
         </div>

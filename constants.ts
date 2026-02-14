@@ -47,7 +47,7 @@ export const WIDGET_SIZES: Record<string, Size> = {
   OVERLAY_TEXT: { width: 500, height: 120 },
   VOTE: { width: 400, height: 350 },
   WHITEBOARD: { width: 1200, height: 900 },
-  QR: { width: 250, height: 280 },
+  QR: { width: 280, height: 310 },
   AI_CHAT: { width: 400, height: 500 },
   TRANSLATOR: { width: 350, height: 400 },
   CLOCK: { width: 400, height: 220 }
