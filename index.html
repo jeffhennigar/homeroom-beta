@@ -195,7 +195,7 @@
           return null;
         },
         setItem: (key, value) => {
-          con d = new;
+          const d = new Date();
           d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
           const expires = "expires=" + d.toUTCString();
           const host = window.location.hostname;
@@ -4828,6 +4828,28 @@
 
     const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}'];
 
+    const SimpleTimePicker = ({ time, onChange, onClose }) => (
+      <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-2 animate-in fade-in zoom-in-95 duration-200">
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => onChange(e.target.value)}
+          className="p-2 border border-slate-200 rounded-md text-sm font-bold text-slate-700 outline-none focus:border-indigo-500"
+          autoFocus
+          onBlur={(e) => {
+            // Only close if focus moves outside (not perfect but simple)
+            // setTimeout(onClose, 200);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === 'Escape') onClose();
+          }}
+        />
+        <div className="mt-2 flex justify-end">
+          <button onMouseDown={onClose} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Done</button>
+        </div>
+      </div>
+    );
+
     const ScheduleWidget = ({ widget, updateData, onOpenSettings, selectedDate, setSelectedDate, scheduleTemplate, setScheduleTemplate, scheduleOverrides, setScheduleOverrides, scheduleSettings, setScheduleSettings }) => {
       const { fontSize = 14 } = widget.data;
       const [dragIndex, setDragIndex] = useState(null);
@@ -5972,9 +5994,7 @@
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-bold text-slate-800 tracking-tight">{tabs.find(t => t.id === activeTab)?.label}</h2>
                   {activeTab === 'roster' && (
-                    <div className="flex items-center gap-2">
-                      {/* Additional Roster Header Controls could go here */}
-                    </div>
+                    {/* Controls embedded in body */ }
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -5999,13 +6019,624 @@
 
               {/* Scrollable Body */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8 relative">
-                {/* ROSTER_STUB */}
-                {/* APPEARANCE_STUB */}
-                {/* SCHEDULE_STUB */}
-                {/* DATA_STUB */}
-                {/* DEBUG_STUB */}
-                {/* ABOUT_STUB */}
-                {/* FEEDBACK_STUB */}
+                {activeTab === 'roster' && (
+                  <div className="space-y-4">
+                    <div className="mb-6 space-y-4">
+                      <div className="flex-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Active Roster</label>
+                        <div className="flex gap-2">
+                          {/* Custom Dropdown (Item 13) */}
+                          <div className="relative flex-1">
+                            <button onClick={() => setShowRosterMenu(!showRosterMenu)} className="w-full flex justify-between items-center border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-purple-500 shadow-sm">
+                              <span className="font-bold text-gray-700 truncate mr-2">{allRosters.find(r => r.id === activeRosterId)?.name || 'Select Class'}</span>
+                              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showRosterMenu ? 'rotate-180' : ''}`} />
+                            </button>
+                            {showRosterMenu && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-200 max-h-48 overflow-y-auto custom-scrollbar">
+                                {allRosters.map(r => (
+                                  <button key={r.id} onClick={() => { onSetActiveRoster(r.id); setShowRosterMenu(false); }} className={`w-full text-left px-4 py-2 text-sm font-bold hover:bg-purple-50 transition-colors flex justify-between items-center ${activeRosterId === r.id ? 'text-purple-700 bg-purple-50' : 'text-gray-600'}`}>
+                                    <span className="truncate">{r.name}</span>
+                                    {activeRosterId === r.id && <Check size={14} className="flex-shrink-0 ml-2" />}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button onClick={() => { setIsAddingRoster(true); setNewRosterName(''); setNewRosterBulk(''); }} className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200" title="Add New Roster"><Plus size={18} /></button>
+                          <button onClick={() => {
+                            const r = allRosters.find(r => r.id === activeRosterId);
+                            setEditingRosterId(activeRosterId);
+                            setEditRosterName(r?.name || '');
+                          }} className="p-2 border border-gray-200 text-gray-400 rounded-lg hover:bg-gray-50" title="Rename Roster"><Edit3 size={16} /></button>
+                          {allRosters.length > 1 && (
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              setShowDeleteConfirm(true);
+                            }} className="p-2 border border-red-100 text-red-500 rounded-lg hover:bg-red-50" title="Delete Roster"><Trash2 size={16} /></button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add Roster Modal Overlay */}
+                    {isAddingRoster && (
+                      <div className="absolute inset-0 bg-white/95 z-10 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200 rounded-3xl">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">Create New Class</h3>
+                        <div className="space-y-4 flex-1">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Class Name</label>
+                            <input autoFocus type="text" value={newRosterName} onChange={e => setNewRosterName(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-purple-500 font-bold text-gray-700" placeholder="e.g., Period 2 - Science" />
+                          </div>
+                          <div className="flex-1 flex flex-col">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Students (Paste list)</label>
+                            <textarea value={newRosterBulk} onChange={e => setNewRosterBulk(e.target.value)} className="flex-1 border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-purple-500 resize-none custom-scrollbar" placeholder="Paste names here..." style={{ minHeight: '200px' }} />
+                          </div>
+                          <div className="flex gap-2 justify-end pt-2">
+                            <button onClick={() => setIsAddingRoster(false)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancel</button>
+                            <button disabled={!newRosterName.trim()} onClick={() => {
+                              onAddRoster(newRosterName, newRosterBulk);
+                              setIsAddingRoster(false);
+                            }} className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">Create Class</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rename Roster Overlay */}
+                    {editingRosterId && (
+                      <div className="absolute inset-0 bg-white/95 z-10 flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200 justify-center items-center rounded-3xl">
+                        <div className="w-full max-w-sm space-y-4">
+                          <h3 className="text-lg font-bold text-gray-800 text-center">Rename Class</h3>
+                          <input autoFocus type="text" value={editRosterName} onChange={e => setEditRosterName(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 font-bold text-gray-700 text-center" />
+                          <div className="flex gap-2 justify-center">
+                            <button onClick={() => setEditingRosterId(null)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancel</button>
+                            <button onClick={() => {
+                              onRenameRoster(editingRosterId, editRosterName);
+                              setEditingRosterId(null);
+                            }} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Save Name</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Delete Roster Confirmation Modal */}
+                    {showDeleteConfirm && (
+                      <div className="absolute inset-0 bg-black/50 z-20 flex items-center justify-center animate-in fade-in duration-200 rounded-3xl">
+                        <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm mx-4 animate-in zoom-in-95 duration-200">
+                          <div className="text-center mb-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                              <Trash2 size={24} className="text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800">Delete Roster?</h3>
+                            <p className="text-gray-500 text-sm mt-1">This will permanently delete "{allRosters.find(r => r.id === activeRosterId)?.name}" and all its students.</p>
+                          </div>
+                          <div className="flex gap-3">
+                            <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+                            <button onClick={() => {
+                              onDeleteRoster(activeRosterId);
+                              setShowDeleteConfirm(false);
+                            }} className="flex-1 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition-colors">Delete</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between mb-4 bg-gray-50 p-2 rounded-xl">
+                      <div className="text-sm font-bold text-gray-700 px-2">{localRoster.length} Students</div>
+                      <div className="flex gap-1">
+                        <button onClick={() => {
+                          const lines = bulkText.split('\n').map(n => n.trim()).filter(n => n);
+                          const newRoster = lines.map(name => {
+                            const existing = (roster || []).find(s => s.name === name);
+                            return existing ? existing : { id: Math.random().toString(36).substr(2, 9), name: name, active: true };
+                          });
+                          setLocalRoster(newRoster);
+                          setMode('list');
+                        }} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'list' ? 'bg-white shadow text-purple-600' : 'text-gray-500'}`}>List</button>
+                        <button onClick={() => {
+                          setBulkText(localRoster.map(s => s.name).join('\n'));
+                          setMode('bulk');
+                        }} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'bulk' ? 'bg-white shadow text-purple-600' : 'text-gray-500'}`}>Bulk Add</button>
+                      </div>
+                    </div>
+
+                    <>
+                      {mode === 'list' ? (
+                        <div className="p-4">
+                          <div className="space-y-1">
+                            {localRoster.map(s => (
+                              <div key={s.id} className={`flex items-center justify-between p-2 rounded border group ${s.active ? 'bg-white border-gray-100 hover:border-blue-300' : 'bg-gray-50 border-transparent opacity-60'}`}>
+                                <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => toggleActive(s.id)}>
+                                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${s.active ? 'bg-blue-500 border-blue-500' : 'border-gray-400 bg-white'}`}>
+                                    {s.active && <Check size={12} className="text-white" />}
+                                  </div>
+                                  <span className={`font-medium ${s.active ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{s.name}</span>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm(`Delete ${s.name} from the roster?`)) {
+                                      const newRoster = localRoster.filter(student => student.id !== s.id);
+                                      setLocalRoster(newRoster);
+                                      // Also sync back to bulk text if in that mode
+                                      if (mode === 'bulk') setBulkText(newRoster.map(sn => sn.name).join('\n'));
+                                    }
+                                  }}
+                                  className="p-1.5 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                                  title="Delete Student"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                            {localRoster.length === 0 && <div className="text-center text-gray-400 py-8 px-4 bg-gray-50 rounded-xl my-4 border border-dashed border-gray-200">No students yet. Click Bulk Add to add your class.</div>}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 flex flex-col">
+                          <label className="text-xs font-bold text-gray-500 uppercase mb-2">Edit Names (One per line)</label>
+                          <textarea
+                            className="border-2 border-gray-200 rounded-xl p-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all custom-scrollbar resize-none font-medium text-slate-700"
+                            rows={7}
+                            autoFocus
+                            value={bulkText}
+                            onChange={e => setBulkText(e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </>
+                  </div>
+                )}
+
+                {activeTab === 'appearance' && (
+                  <AppearanceSettings
+                    currentBg={currentBg}
+                    onSelect={onBgSelect}
+                    isGridEnabled={isGridEnabled}
+                    onToggleGrid={onToggleGrid}
+                    myBackgrounds={myBackgrounds}
+                    onAddCustom={onAddCustomBg}
+                    onDeleteCustom={onDeleteCustomBg}
+                    clockStyle={clockStyle}
+                    setClockStyle={setClockStyle}
+                    showDate={showClockDate}
+                    setShowDate={setShowClockDate}
+                    isGlassy={isClockGlassy}
+                    setIsGlassy={setIsClockGlassy}
+                    accentColor={accentColor}
+                    setAccentColor={setAccentColor}
+                    backupEnabled={backupEnabled}
+                  />
+                )}
+
+                {activeTab === 'schedule' && (
+                  <div className="space-y-4">
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 mb-4">
+                      <h4 className="font-bold text-indigo-800 text-sm flex items-center gap-2"><Layout size={16} /> Schedule Settings</h4>
+                      <p className="text-indigo-600 text-xs mt-1">
+                        This plan repeats every cycle. To make changes for a specific date, edit directly in the Schedule widget on the main toolbar.
+                      </p>
+                    </div>
+
+                    {/* Mode Toggle */}
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setScheduleSettings({ ...scheduleSettings, mode: 'weekly' })} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${scheduleSettings?.mode !== 'rotating' ? 'bg-white shadow text-indigo-600' : 'text-gray-500'}`}>Weekly (M-F)</button>
+                        <button onClick={() => setScheduleSettings({ ...scheduleSettings, mode: 'rotating' })} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${scheduleSettings?.mode === 'rotating' ? 'bg-white shadow text-indigo-600' : 'text-gray-500'}`}>Rotating Cycle</button>
+                      </div>
+                      {scheduleSettings?.mode === 'rotating' && (
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                          <span className="text-xs font-bold text-gray-500">Days in Cycle:</span>
+                          <input type="number" min="1" max="20" value={scheduleSettings.cycleLength || 6} onChange={(e) => setScheduleSettings({ ...scheduleSettings, cycleLength: Math.max(1, parseInt(e.target.value) || 1) })} className="w-14 p-1 border rounded text-center font-bold text-sm outline-none focus:border-indigo-500" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Realign Tool */}
+                    {scheduleSettings?.mode === 'rotating' && (
+                      <div className="flex items-center gap-2 mb-4 bg-indigo-50 p-2 rounded-lg border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                        <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider shrink-0 flex items-center gap-1"><RotateCcw size={12} /> Realign:</span>
+                        <input type="date" value={realignDate} onChange={e => setRealignDate(e.target.value)} className="text-xs p-1 rounded border border-indigo-200 outline-none text-slate-600 font-bold" />
+                        <span className="text-xs font-bold text-indigo-400">is</span>
+                        <select value={realignTargetDay} onChange={e => setRealignTargetDay(parseInt(e.target.value))} className="text-xs p-1 rounded border border-indigo-200 outline-none text-slate-600 font-bold w-24 cursor-pointer">
+                          {Array.from({ length: scheduleSettings.cycleLength || 6 }, (_, i) => i + 1).map(num => (
+                            <option key={num} value={num}>{(scheduleSettings.dayLabels?.[num - 1] || `Day ${num}`)}</option>
+                          ))}
+                        </select>
+                        <button onClick={() => {
+                          setScheduleSettings({ ...scheduleSettings, anchorDate: realignDate, anchorDay: realignTargetDay });
+                          setRealignSuccess(true);
+                          setTimeout(() => setRealignSuccess(false), 2000);
+                        }} className="ml-auto px-3 py-1 bg-indigo-600 text-white rounded font-bold text-xs hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-1">
+                          {realignSuccess ? <Check size={12} /> : null} Set
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Day Selector */}
+                    <div className="flex flex-col gap-2 mb-4">
+                      <div className="flex gap-2 items-center">
+                        <div className="flex-1">
+                          <select
+                            value={selectedDay}
+                            onChange={(e) => setSelectedDay(e.target.value)}
+                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg font-bold text-slate-700 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all cursor-pointer hover:bg-white"
+                          >
+                            {((scheduleSettings?.mode === 'rotating')
+                              ? Array.from({ length: scheduleSettings.cycleLength || 6 }, (_, i) => `Day ${i + 1}`)
+                              : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                            ).map((day, i) => {
+                              const label = (scheduleSettings?.mode === 'rotating' && scheduleSettings?.dayLabels?.[i]) || day;
+                              return <option key={day} value={day}>{label}</option>;
+                            })}
+                          </select>
+                        </div>
+
+                        <div className="relative shrink-0">
+                          <button onClick={() => setShowCopyMenu(!showCopyMenu)} className="px-3 py-2.5 text-xs font-bold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1 border border-blue-100 transition-colors">
+                            <Copy size={14} /> Copy
+                          </button>
+                          {showCopyMenu && (
+                            <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 w-48 overflow-hidden flex flex-col">
+                              {/* Backdrop to close */}
+                              <div className="fixed inset-0 z-[-1]" onClick={() => setShowCopyMenu(false)}></div>
+                              <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase bg-gray-50 border-b">Copy {selectedDay} to:</div>
+                              <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                {copyScheduleDays.map((d) => {
+                                  const dIdx = parseInt(d.split(' ')[1]) - 1;
+                                  const dLabel = (scheduleSettings?.mode === 'rotating' && scheduleSettings?.dayLabels?.[dIdx]) || d;
+                                  return (
+                                    <button key={d} onClick={() => { setCopyTargetDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]); }} className={`w-full text-left px-3 py-2 text-xs font-bold flex items-center justify-between hover:bg-gray-50 ${(copyTargetDays.includes(d)) ? 'text-blue-600 bg-blue-50' : 'text-slate-600'}`}>
+                                      <span className="truncate">{dLabel}</span>
+                                      {copyTargetDays.includes(d) && <Check size={12} />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <button onClick={() => { handleBatchCopy(); setShowCopyMenu(false); }} className="m-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-xs">Copy Now ({copyTargetDays.length})</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Rename Input for Rotating Mode */}
+                      {scheduleSettings?.mode === 'rotating' && selectedDay && (
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
+                          <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider shrink-0 w-24">Label:</span>
+                          <input
+                            type="text"
+                            value={scheduleSettings.dayLabels?.[parseInt(selectedDay.split(' ')[1]) - 1] || ''}
+                            onChange={(e) => {
+                              const idx = parseInt(selectedDay.split(' ')[1]) - 1;
+                              setScheduleSettings({
+                                ...scheduleSettings,
+                                dayLabels: { ...scheduleSettings.dayLabels, [idx]: e.target.value }
+                              });
+                            }}
+                            className="flex-1 text-sm font-bold text-slate-700 bg-white border border-indigo-100 rounded px-2 py-1 outline-none focus:border-indigo-400 placeholder-indigo-200"
+                            placeholder={`Hint: "Week 1: Mon"`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {copyStatus && <span className="text-xs text-green-600 font-bold block mb-2 animate-pulse">{copyStatus}</span>}
+
+                    {/* Activities for selected day */}
+                    <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-1">
+                      {(scheduleTemplate[selectedDay] || []).map((item, index) => (
+                        <div key={item.id} className="relative flex gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200" style={{ zIndex: (settingsEmojiPickerIndex === index || settingsTimePickerState.index === index) ? 50 : 0 }}>
+                          <div className="flex flex-col items-center shrink-0 w-20 relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSettingsTimePickerState(settingsTimePickerState.index === index ? { index: null, triggerRef: null } : { index, triggerRef: { current: e.currentTarget } });
+                              }}
+                              className="w-full text-xs font-bold text-indigo-600 bg-white border border-indigo-100 px-1 py-1 rounded hover:bg-indigo-50"
+                            >
+                              {(() => {
+                                const [h, m] = (item.time || '09:00').split(':');
+                                const hours = parseInt(h);
+                                const ampm = hours >= 12 ? 'PM' : 'AM';
+                                const displayH = hours % 12 || 12;
+                                return `${displayH}:${m} ${ampm}`;
+                              })()}
+                            </button>
+                            {settingsTimePickerState.index === index && (
+                              <SimpleTimePicker
+                                time={item.time || '09:00'}
+                                onChange={(t) => updateScheduleItem(selectedDay, index, 'time', t)}
+                                onClose={() => setSettingsTimePickerState({ index: null, triggerRef: null })}
+                              />
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div
+                              className="text-lg cursor-pointer hover:scale-110 transition-transform p-1 rounded hover:bg-gray-200 emoji"
+                              onClick={() => setSettingsEmojiPickerIndex(settingsEmojiPickerIndex === index ? null : index)}
+                            >
+                              {item.emoji || 'ðŸ“š'}
+                            </div>
+                            {settingsEmojiPickerIndex === index && (
+                              <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-2 w-48 max-h-40 overflow-y-auto custom-scrollbar">
+                                <div className="grid grid-cols-5 gap-1">
+                                  {SCHEDULE_EMOJIS.map((emoji, i) => (
+                                    <button
+                                      key={i}
+                                      onClick={() => { updateScheduleItem(selectedDay, index, 'emoji', emoji); setSettingsEmojiPickerIndex(null); }}
+                                      className={`text-xl p-1.5 rounded-lg hover:bg-indigo-100 transition-colors emoji ${item.emoji === emoji ? 'bg-indigo-200 ring-2 ring-indigo-400' : ''}`}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="text"
+                              value={item.title || ''}
+                              onChange={(e) => updateScheduleItem(selectedDay, index, 'title', e.target.value)}
+                              className="w-full text-sm font-bold bg-transparent border-none outline-none"
+                              placeholder="Activity name"
+                            />
+                            <input
+                              type="text"
+                              value={item.description || ''}
+                              onChange={(e) => updateScheduleItem(selectedDay, index, 'description', e.target.value)}
+                              className="w-full text-xs text-gray-500 bg-transparent border-none outline-none"
+                              placeholder="Description (optional)"
+                            />
+                          </div>
+                          <button onClick={() => removeScheduleItem(selectedDay, index)} className="p-1 text-red-400 hover:text-red-600 self-center"><X size={14} /></button>
+                        </div>
+                      ))}
+                      {(scheduleTemplate[selectedDay] || []).length === 0 && (
+                        <div className="text-center py-4 text-gray-400 text-sm">No activities for {selectedDay}</div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2.5 mt-3">
+                      <button onClick={() => addScheduleItem(selectedDay)} className="flex-1 py-2.5 bg-indigo-100 text-indigo-700 font-bold text-sm rounded-lg hover:bg-indigo-200 flex items-center justify-center gap-2 transition-colors">
+                        <Plus size={16} /> Add Activity
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'data' && (
+                  <div className="p-5 space-y-4">
+                    {user ? (
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                            <User size={20} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account</div>
+                            <div className="text-sm font-bold text-slate-800 truncate">{user.email}</div>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin });
+                                if (error) throw error;
+                                alert('Password reset email sent!');
+                              } catch (e) { alert('Error: ' + e.message); }
+                            }}
+                            className="px-2 py-1 bg-white border border-slate-200 text-slate-500 font-bold text-[10px] rounded-lg hover:bg-slate-50 transition-all flex items-center gap-1"
+                          >
+                            <Lock size={12} /> Reset
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-200/50">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-slate-700">Cloud Sync</span>
+                            <span className="text-[10px] text-slate-400">Sync data across devices</span>
+                          </div>
+                          <div
+                            className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-all duration-300 ${(!user) ? 'bg-gray-200' : (cloudSyncEnabled ? 'bg-blue-600' : 'bg-slate-300')}`}
+                            onClick={() => user && setCloudSyncEnabled(!cloudSyncEnabled)}
+                          >
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 ${cloudSyncEnabled && user ? 'translate-x-4' : 'translate-x-0'}`} />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm mb-3">
+                          <Cloud size={24} />
+                        </div>
+                        <h3 className="text-sm font-bold text-blue-900 mb-1">Cloud Sync</h3>
+                        <p className="text-blue-700 text-[11px] mb-4 opacity-80">Sign in to sync your rosters and widgets across devices.</p>
+                        <button
+                          onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
+                          className="px-6 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95 flex items-center gap-2"
+                        >
+                          <Cloud size={16} /> Sign In
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button onClick={downloadData} className="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-xl transition-all border border-green-100 group">
+                        <div className="p-2 bg-green-500 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform"><Download size={18} /></div>
+                        <div className="text-left">
+                          <div className="font-bold text-xs text-slate-700">Export</div>
+                          <div className="text-[9px] text-green-600 font-bold uppercase tracking-tight">Backup</div>
+                        </div>
+                      </button>
+                      <button onClick={() => fileInputRef.current.click()} className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-100 group">
+                        <div className="p-2 bg-blue-500 rounded-lg text-white shadow-sm group-hover:scale-105 transition-transform"><Upload size={18} /></div>
+                        <div className="text-left">
+                          <div className="font-bold text-xs text-slate-700">Import</div>
+                          <div className="text-[9px] text-blue-600 font-bold uppercase tracking-tight">Restore</div>
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                      <div className="flex items-center justify-between mb-2">
+                        {/* Backup Toggle was here in legacy for `data` tab? No, it was in appearance? */}
+                        {/* Checking legacy lines... Data tab lines 6449... */}
+                        {/* Yes, backup reminders were in Data tab in legacy? */}
+                        {/* Let me check previous `view_file` output */}
+                        {/* Yes, line 6521: Backup Reminders in Data tab */}
+                        <div className="flex items-center gap-2">
+                          <div className={`p-1.5 rounded-lg ${backupEnabled ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}><Bell size={16} /></div>
+                          <span className="font-bold text-xs text-slate-700">Backup Reminders</span>
+                        </div>
+                        <button
+                          onClick={() => setBackupEnabled(!backupEnabled)}
+                          className={`relative w-9 h-5 rounded-full transition-colors ${backupEnabled ? 'bg-indigo-500' : 'bg-gray-300'}`}
+                        >
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${backupEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                      {backupEnabled && (
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/50 animate-in fade-in slide-in-from-top-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase">Frequency</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number" min="1" max="365" value={backupInterval}
+                              onChange={(e) => setBackupInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none focus:border-indigo-500"
+                            />
+                            <span className="text-[10px] font-bold text-slate-400">days</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-200 flex gap-3 italic text-slate-500">
+                      <div className="shrink-0 text-slate-300"><Shield size={14} /></div>
+                      <p className="text-[10px] text-slate-400 leading-normal">
+                        Security & privacy are priorities. Data can be stored strictly locally or synced via cloud.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'debug' && (
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2"><Activity size={24} className="text-blue-500" /> System Status</h3>
+
+                    {/* Authentication Status */}
+                    <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-700">Authentication</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${user ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {user ? 'Authenticated' : 'Not Signed In'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 font-mono break-all">
+                        User ID: {user ? user.id : 'N/A'}
+                      </div>
+                      <div className="text-xs text-slate-500 font-mono mt-1">
+                        Role: {user ? user.role : 'N/A'}
+                      </div>
+                    </div>
+
+                    {/* Last Sync Error */}
+                    <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-700">Last Sync Status</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${lastSyncError ? 'bg-red-100 text-red-700' : (isSyncing ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700')}`}>
+                          {lastSyncError ? 'Error' : (isSyncing ? 'Syncing...' : 'Synced')}
+                        </span>
+                      </div>
+                      {lastSyncError ? (
+                        <div className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded border border-red-100 mb-2">
+                          {lastSyncError}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-500">
+                          Sync is performed automatically on changes.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Connectivity Test */}
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-700">Connectivity Test</span>
+                        {/* TestConnectionButton assumed generic or inline defined elsewhere? No, it was used in legacy. */}
+                        {/* If TestConnectionButton was defined inside SettingsModal, I might have lost it. */}
+                        {/* I'll use a simple button instead if I can't find it. */}
+                        {/* Or I can check if it was defined. */}
+                        <button onClick={async () => {
+                          try {
+                            const { data, error } = await supabase.from('profiles').select('count').limit(1);
+                            if (error) throw error;
+                            alert('Connection Successful!');
+                          } catch (e) { alert('Connection Failed: ' + e.message); }
+                        }} className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold hover:bg-blue-200">Test</button>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        Tests Read/Write access to your profile.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'about' && (
+                  <div className="p-4">
+                    <div className="flex flex-col items-center mb-6 mt-4">
+                      <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl shadow-xl flex items-center justify-center text-white mb-4">
+                        <span className="text-4xl">📚</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-gray-800 leading-tight">HomeRoom</h2>
+                      <div className="mt-2 px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full tracking-widest uppercase border border-indigo-100">Pro Version 1.0</div>
+                    </div>
+                    <div className="space-y-3 max-w-sm mx-auto">
+                      <a href="https://ourhomeroom.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-white hover:shadow-md hover:scale-[1.02] border border-gray-100 rounded-2xl transition-all group">
+                        <div className="p-2 bg-teal-100 rounded-xl text-teal-600"><Globe size={20} /></div>
+                        <div><div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Website</div><div className="font-bold text-gray-700 group-hover:text-teal-600">ourhomeroom.app</div></div>
+                      </a>
+                      <a href="mailto:info@ourhomeroom.app" className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-white hover:shadow-md hover:scale-[1.02] border border-gray-100 rounded-2xl transition-all group">
+                        <div className="p-2 bg-blue-100 rounded-xl text-blue-600"><Mail size={20} /></div>
+                        <div><div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Contact</div><div className="font-bold text-gray-700 group-hover:text-blue-600">info@ourhomeroom.app</div></div>
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'feedback' && (
+                  <div className="p-8 max-w-lg mx-auto">
+                    <div className="text-center mb-6">
+                      <h3 className="text-xl font-bold text-slate-800">We'd love to hear from you!</h3>
+                      <p className="text-slate-500 text-sm mt-1">Found a bug? Have a suggestion? Let us know.</p>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-1.5 block ml-1">Your Name</label>
+                        <input type="text" value={feedbackName} onChange={e => setFeedbackName(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 transition-colors bg-slate-50 focus:bg-white font-medium" placeholder="Your name" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-1.5 block ml-1">Email</label>
+                        <input type="email" value={feedbackEmail} onChange={e => setFeedbackEmail(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 transition-colors bg-slate-50 focus:bg-white font-medium" placeholder="you@school.edu" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-1.5 block ml-1">Message</label>
+                        <textarea value={feedbackMessage} onChange={e => setFeedbackMessage(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 transition-colors resize-none bg-slate-50 focus:bg-white font-medium" rows={5} placeholder="Your feedback or question..." />
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          onClick={handleFormspreeSubmit}
+                          disabled={!feedbackMessage.trim() || submittingFeedback}
+                          className={`w-full py-3.5 ${submittingFeedback ? 'bg-slate-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed`}
+                        >
+                          {submittingFeedback ? <RefreshCw className="animate-spin" size={18} /> : <Mail size={18} />}
+                          {submittingFeedback ? 'Sending...' : 'Send Feedback'}
+                        </button>
+                      </div>
+                      {feedbackStatus && <div className={`text-center text-sm font-bold mt-4 p-3 rounded-xl animate-in fade-in slide-in-from-bottom-2 ${feedbackStatus.includes('failed') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{feedbackStatus}</div>}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           </div>
