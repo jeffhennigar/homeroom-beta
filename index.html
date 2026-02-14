@@ -302,7 +302,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, Users
     } from 'lucide-react';
 
     const TimerIcon = Timer;
@@ -6108,7 +6108,7 @@
                               <Trash2 size={24} className="text-red-500" />
                             </div>
                             <h3 className="text-lg font-bold text-gray-800">Delete Roster?</h3>
-                            <p className="text-gray-500 text-sm mt-1">This will permanently delete "{allRosters.find(r => r.id === activeRosterId)?.name}" and all its students.</p>
+                            <p className="text-gray-500 text-sm mt-1">This will permanently delete "{typeof (allRosters.find(r => r.id === activeRosterId)?.name) === 'string' ? allRosters.find(r => r.id === activeRosterId)?.name : 'Unnamed Class'}" and all its students.</p>
                           </div>
                           <div className="flex gap-3">
                             <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
