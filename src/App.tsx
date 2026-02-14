@@ -109,7 +109,9 @@ const App = () => {
 
     // Computed current state
     const activeRosterObj = allRosters.find(r => r.id === activeRosterId) || allRosters[0];
-    const [roster, setRoster] = useState(activeRosterObj?.roster || []);
+    const [roster, setRoster] = useState(() => {
+        return Array.isArray(activeRosterObj?.roster) ? activeRosterObj.roster : [];
+    });
 
     const [background, setBackground] = useState(() => {
         try { return JSON.parse(localStorage.getItem('homeroom_background')) || BACKGROUNDS[0]; } catch { return BACKGROUNDS[0]; }
