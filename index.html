@@ -6787,11 +6787,14 @@
       },
 
       async saveRoster(userId, rosterData) {
+        // Strip 'slides' if present, as it's not in the rosters table schema
+        const { slides, ...rosterPayload } = rosterData;
+
         const { data, error } = await supabase
           .from('rosters')
           .upsert({
             user_id: userId,
-            ...rosterData
+            ...rosterPayload
           })
           .select()
           .single();
