@@ -259,12 +259,15 @@ const WhiteboardWidget = ({ widget, updateData }) => {
             addToHistory();
             const reader = new FileReader();
             reader.onload = (ev) => {
-                const img = new Image(); img.src = ev.target.result;
-                img.onload = () => {
-                    const aspect = img.width / img.height;
-                    const newItem = { id: Date.now().toString(), x: 0.5, y: 0.5, src: ev.target.result, scale: 1, width: 200, height: 200 / aspect };
-                    updateData(widget.id, { imageItems: [...imageItems, newItem] });
-                };
+                if (ev.target?.result) {
+                    const img = new Image();
+                    img.src = ev.target.result as string;
+                    img.onload = () => {
+                        const aspect = img.width / img.height;
+                        const newItem = { id: Date.now().toString(), x: 0.5, y: 0.5, src: ev.target.result, scale: 1, width: 200, height: 200 / aspect };
+                        updateData(widget.id, { imageItems: [...imageItems, newItem] });
+                    };
+                }
             };
             reader.readAsDataURL(file);
         }

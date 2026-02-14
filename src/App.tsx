@@ -126,8 +126,13 @@ const App = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showGrid, setShowGrid] = useState(() => localStorage.getItem('homeroom_grid') === 'true');
     const [dockEditMode, setDockEditMode] = useState(false);
+    const [isDockMinimized, setIsDockMinimized] = useState(false);
+    const [isCheckingPro, setIsCheckingPro] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [clockStyle, setClockStyle] = useState('12h');
+    const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
+    const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
     // Access Control Gating
     useEffect(() => {
@@ -465,6 +470,11 @@ const App = () => {
                 onSignOut={handleSignOut}
                 onSignIn={() => window.location.href = 'https://ourhomeroom.app/signin'}
                 isSyncing={isSyncing}
+                clockStyle={clockStyle}
+                setClockStyle={setClockStyle}
+                cloudSyncEnabled={cloudSyncEnabled}
+                setCloudSyncEnabled={setCloudSyncEnabled}
+                lastSyncError={lastSyncError}
                 roster={roster}
                 setRoster={setRoster}
                 backgrounds={[...BACKGROUNDS, ...customBackgrounds]}

@@ -26,7 +26,8 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
         if (audioContextRef.current) return;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            const audioCtx = new AudioContextClass();
             audioContextRef.current = audioCtx;
             const analyser = audioCtx.createAnalyser();
             analyserRef.current = analyser;
