@@ -6134,7 +6134,7 @@
                           setMode('list');
                         }} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'list' ? 'bg-white shadow text-purple-600' : 'text-gray-500'}`}>List</button>
                         <button onClick={() => {
-                          setBulkText(localRoster.map(s => s.name).join('\n'));
+                          setBulkText(localRoster.map(s => typeof s.name === 'string' ? s.name : 'Unnamed Student').join('\n'));
                           setMode('bulk');
                         }} className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'bulk' ? 'bg-white shadow text-purple-600' : 'text-gray-500'}`}>Bulk Add</button>
                       </div>
@@ -6155,7 +6155,7 @@
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (window.confirm(`Delete ${s.name} from the roster?`)) {
+                                    if (window.confirm(`Delete ${typeof s.name === 'string' ? s.name : 'Unnamed Student'} from the roster?`)) {
                                       const newRoster = localRoster.filter(student => student.id !== s.id);
                                       setLocalRoster(newRoster);
                                       // Also sync back to bulk text if in that mode
