@@ -50,17 +50,17 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
     const handleStart = () => {
         if (!eventName.trim() || !targetDate) return;
         updateData(widget.id, { isRunning: true });
-        if (updateSize) updateSize(widget.id, { width: 780, height: 120 });
+        if (updateSize) updateSize(widget.id, { width: 700, height: 110 });
     };
 
     const handleEdit = () => {
         updateData(widget.id, { isRunning: false });
-        if (updateSize) updateSize(widget.id, { width: 290, height: 360 });
+        if (updateSize) updateSize(widget.id, { width: 300, height: 400 });
     };
 
     const handleReset = () => {
         updateData(widget.id, { eventName: '', targetDate: '', isRunning: false });
-        if (updateSize) updateSize(widget.id, { width: 290, height: 360 });
+        if (updateSize) updateSize(widget.id, { width: 300, height: 400 });
     };
 
     const isExpired = isRunning && targetDate && timeLeft.total <= 0;

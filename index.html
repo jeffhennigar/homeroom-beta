@@ -657,7 +657,7 @@
       MARBLE_JAR: { width: 400, height: 500 },
       SOUNDBOARD: { width: 600, height: 500 },
       CALCULATOR: { width: 280, height: 380 },
-      COUNTDOWN: { width: 290, height: 360 }
+      COUNTDOWN: { width: 300, height: 400 }
     };
 
     // --- COMPONENTS ---
@@ -3673,15 +3673,15 @@
       const handleStart = () => {
         if (!eventName.trim() || !targetDate) return;
         updateData(widget.id, { isRunning: true });
-        if (updateLayout) updateLayout(widget.id, widget.position, { width: 780, height: 120 });
+        if (updateLayout) updateLayout(widget.id, widget.position, { width: 700, height: 110 });
       };
       const handleEdit = () => {
         updateData(widget.id, { isRunning: false });
-        if (updateLayout) updateLayout(widget.id, widget.position, { width: 290, height: 360 });
+        if (updateLayout) updateLayout(widget.id, widget.position, { width: 300, height: 400 });
       };
       const handleReset = () => {
         updateData(widget.id, { eventName: '', targetDate: '', isRunning: false });
-        if (updateLayout) updateLayout(widget.id, widget.position, { width: 290, height: 360 });
+        if (updateLayout) updateLayout(widget.id, widget.position, { width: 300, height: 400 });
       };
 
       const isExpired = isRunning && targetDate && timeLeft.total <= 0;
