@@ -8034,7 +8034,7 @@
         const source = allRosters.find(r => r.id === id);
         if (!source) return;
         const newName = `${ensureString(source.name, 'Class')} (Copy)`;
-        onAddRoster(newName, (source.roster || []).map(s => ensureString(s.name, '')).join('\n'));
+        handleAddRoster(newName, (source.roster || []).map(s => ensureString(s.name, '')).join('\n'));
       };
 
       const handleRenameRoster = (id, newName) => {
@@ -8886,7 +8886,7 @@
             allRosters={allRosters}
             activeRosterId={activeRosterId}
             onSetActiveRoster={handleSetActiveRoster}
-            onAddRoster={onAddRoster}
+            onAddRoster={handleAddRoster}
             onDeleteRoster={handleDeleteRoster}
             onDeleteSelectedRosters={handleDeleteSelectedRosters}
             onRenameRoster={handleRenameRoster}
