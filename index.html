@@ -3644,6 +3644,7 @@
       const eventName = data.eventName || '';
       const targetDate = data.targetDate || '';
       const isRunning = data.isRunning || false;
+      const scrollText = data.scrollText || false;
       const colorTheme = data.colorTheme || 'purple';
       const theme = COUNTDOWN_THEMES[colorTheme] || COUNTDOWN_THEMES.purple;
       const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
@@ -3686,14 +3687,14 @@
       const isExpired = isRunning && targetDate && timeLeft.total <= 0;
 
       if (isRunning) {
-        return (
-          <div ref={containerRef} className="flex items-center h-full w-full" style={{ background: theme.bar, padding: '0 24px', overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-            <div className="shrink-0" style={{ marginRight: 20, maxWidth: '25%' }}>
+        const barContent = (
+          <>
+            <div className="shrink-0" style={{ marginRight: 20, maxWidth: scrollText ? 'none' : '25%', whiteSpace: 'nowrap' }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, marginBottom: 4 }}>Countdown</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{eventName || 'Event'}</div>
             </div>
-            <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)', marginRight: 24, flexShrink: 0 }} />
-            <div className="flex items-center flex-1 justify-center" style={{ gap: 6 }}>
+            <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)', marginRight: 24, marginLeft: scrollText ? 24 : 0, flexShrink: 0 }} />
+            <div className="flex items-center justify-center" style={{ gap: 6, flexShrink: 0 }}>
               {isExpired ? (
                 <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', textAlign: 'center' }}>🎉 Time's Up!</div>
               ) : (
@@ -3708,13 +3709,23 @@
                 </>
               )}
             </div>
-            <div className="flex shrink-0" style={{ gap: 8, marginLeft: 16 }}>
-              <button onClick={handleEdit} className="hover:brightness-110 active:scale-95" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 12px', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s' }}>
-                <Edit3 size={13} /> Edit
-              </button>
-              <button onClick={handleReset} className="hover:brightness-110 active:scale-95" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 8px', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }} title="Reset">
-                <RotateCcw size={13} />
-              </button>
+            {scrollText && <div style={{ width: 80, flexShrink: 0 }} />}
+          </>
+        );
+
+        return (
+          <div ref={containerRef} className="h-full w-full" style={{ background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+            {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>}
+            <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24 } : { padding: '0 24px' }}>
+              {barContent}
+              <div className="flex shrink-0" style={{ gap: 8, marginLeft: 16 }}>
+                <button onClick={handleEdit} className="hover:brightness-110 active:scale-95" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 12px', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s' }}>
+                  <Edit3 size={13} /> Edit
+                </button>
+                <button onClick={handleReset} className="hover:brightness-110 active:scale-95" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 8px', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }} title="Reset">
+                  <RotateCcw size={13} />
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -3734,6 +3745,13 @@
           </div>
           <input type="text" value={eventName} onChange={(e) => updateData(widget.id, { eventName: e.target.value })} placeholder="Event name..." style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: `2px solid ${theme.border}`, fontSize: 14, fontWeight: 600, color: '#1e293b', outline: 'none', background: 'white', marginBottom: 10, textAlign: 'center', transition: 'border-color 0.2s' }} onFocus={(e) => (e.target.style.borderColor = theme.focus)} onBlur={(e) => (e.target.style.borderColor = theme.border)} />
           <input type="datetime-local" value={targetDate} onChange={(e) => updateData(widget.id, { targetDate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: `2px solid ${theme.border}`, fontSize: 13, fontWeight: 600, color: '#475569', outline: 'none', background: 'white', marginBottom: 14, textAlign: 'center', transition: 'border-color 0.2s' }} onFocus={(e) => (e.target.style.borderColor = theme.focus)} onBlur={(e) => (e.target.style.borderColor = theme.border)} />
+          {/* Scroll Text Toggle */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
+            <div onClick={() => updateData(widget.id, { scrollText: !scrollText })} style={{ width: 36, height: 20, borderRadius: 10, background: scrollText ? theme.swatch : '#cbd5e1', position: 'relative', transition: 'background 0.2s', cursor: 'pointer', flexShrink: 0 }}>
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'white', position: 'absolute', top: 2, left: scrollText ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: theme.title, opacity: 0.7 }}>Scroll text</span>
+          </label>
           <button onClick={handleStart} disabled={!eventName.trim() || !targetDate} className="active:scale-95" style={{ width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: (!eventName.trim() || !targetDate) ? '#cbd5e1' : theme.btn, color: 'white', fontSize: 14, fontWeight: 800, cursor: (!eventName.trim() || !targetDate) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s', boxShadow: (!eventName.trim() || !targetDate) ? 'none' : `0 6px 20px ${theme.shadow}` }}>
             <Play size={16} /> Start Countdown
           </button>

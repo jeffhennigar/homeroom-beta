@@ -17,6 +17,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
     const eventName = data.eventName || '';
     const targetDate = data.targetDate || '';
     const isRunning = data.isRunning || false;
+    const scrollText = data.scrollText || false;
     const colorTheme = data.colorTheme || 'purple';
     const theme = COUNTDOWN_THEMES[colorTheme] || COUNTDOWN_THEMES.purple;
 
@@ -53,7 +54,6 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
     const handleStart = () => {
         if (!eventName.trim() || !targetDate) return;
         updateData(widget.id, { isRunning: true });
-        // Morph to wide bar
         if (updateSize) {
             updateSize(widget.id, { width: 700, height: 110 });
         }
@@ -61,7 +61,6 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
 
     const handleEdit = () => {
         updateData(widget.id, { isRunning: false });
-        // Revert to compact form
         if (updateSize) {
             updateSize(widget.id, { width: 280, height: 320 });
         }
@@ -78,48 +77,20 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
 
     // ── Running / Bar view ──
     if (isRunning) {
-        return (
-            <div
-                ref={containerRef}
-                className="flex items-center h-full w-full"
-                style={{
-                    background: theme.bar,
-                    padding: '0 24px',
-                    overflow: 'hidden',
-                    transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                }}
-            >
-                {/* Event name */}
-                <div className="shrink-0" style={{ marginRight: 20, maxWidth: '25%' }}>
+        const barContent = (
+            <>
+                <div className="shrink-0" style={{ marginRight: 20, maxWidth: scrollText ? 'none' : '25%', whiteSpace: 'nowrap' }}>
                     <div style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,0.6)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.08em',
-                        lineHeight: 1,
-                        marginBottom: 4,
-                    }}>
-                        Countdown
-                    </div>
+                        fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)',
+                        textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, marginBottom: 4,
+                    }}>Countdown</div>
                     <div style={{
-                        fontSize: 18,
-                        fontWeight: 800,
-                        color: 'white',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1.2,
-                    }}>
-                        {eventName || 'Event'}
-                    </div>
+                        fontSize: 18, fontWeight: 800, color: 'white',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2,
+                    }}>{eventName || 'Event'}</div>
                 </div>
-
-                {/* Divider */}
-                <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)', marginRight: 24, flexShrink: 0 }} />
-
-                {/* Countdown digits */}
-                <div className="flex items-center flex-1 justify-center" style={{ gap: 6 }}>
+                <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)', marginRight: 24, marginLeft: scrollText ? 24 : 0, flexShrink: 0 }} />
+                <div className="flex items-center justify-center" style={{ gap: 6, flexShrink: 0 }}>
                     {isExpired ? (
                         <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', textAlign: 'center' }}>
                             🎉 Time's Up!
@@ -136,47 +107,40 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                         </>
                     )}
                 </div>
+                {scrollText && <div style={{ width: 80, flexShrink: 0 }} />}
+            </>
+        );
 
-                {/* Controls */}
-                <div className="flex shrink-0" style={{ gap: 8, marginLeft: 16 }}>
-                    <button
-                        onClick={handleEdit}
-                        className="hover:brightness-110 active:scale-95"
-                        style={{
-                            background: 'rgba(255,255,255,0.15)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: 8,
-                            padding: '6px 12px',
-                            color: 'white',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            transition: 'all 0.15s',
-                        }}
-                    >
-                        <Edit3 size={13} /> Edit
-                    </button>
-                    <button
-                        onClick={handleReset}
-                        className="hover:brightness-110 active:scale-95"
-                        style={{
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            borderRadius: 8,
-                            padding: '6px 8px',
-                            color: 'rgba(255,255,255,0.7)',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                        }}
-                        title="Reset"
-                    >
-                        <RotateCw size={13} />
-                    </button>
+        return (
+            <div ref={containerRef} className="h-full w-full" style={{ background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+                {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>}
+                <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24 } : { padding: '0 24px' }}>
+                    {barContent}
+                    <div className="flex shrink-0" style={{ gap: 8, marginLeft: 16 }}>
+                        <button
+                            onClick={handleEdit}
+                            className="hover:brightness-110 active:scale-95"
+                            style={{
+                                background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)',
+                                borderRadius: 8, padding: '6px 12px', color: 'white', fontSize: 12, fontWeight: 700,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s',
+                            }}
+                        >
+                            <Edit3 size={13} /> Edit
+                        </button>
+                        <button
+                            onClick={handleReset}
+                            className="hover:brightness-110 active:scale-95"
+                            style={{
+                                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 8, padding: '6px 8px', color: 'rgba(255,255,255,0.7)', fontSize: 12,
+                                fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                            }}
+                            title="Reset"
+                        >
+                            <RotateCw size={13} />
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -187,34 +151,18 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
         <div
             ref={containerRef}
             className="flex flex-col h-full items-center justify-center"
-            style={{
-                background: theme.setup,
-                padding: 20,
-                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
+            style={{ background: theme.setup, padding: 20, transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
         >
             {/* Icon */}
             <div style={{
-                width: 56,
-                height: 56,
-                borderRadius: 16,
-                background: theme.icon,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 12,
-                boxShadow: `0 8px 24px ${theme.shadow}`,
+                width: 56, height: 56, borderRadius: 16, background: theme.icon,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 12, boxShadow: `0 8px 24px ${theme.shadow}`,
             }}>
                 <Clock size={28} color="white" />
             </div>
 
-            <h3 style={{
-                fontSize: 15,
-                fontWeight: 800,
-                color: theme.title,
-                marginBottom: 12,
-                letterSpacing: '-0.01em',
-            }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: theme.title, marginBottom: 12, letterSpacing: '-0.01em' }}>
                 Event Countdown
             </h3>
 
@@ -226,14 +174,10 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                         onClick={() => updateData(widget.id, { colorTheme: key })}
                         title={key.charAt(0).toUpperCase() + key.slice(1)}
                         style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: '50%',
-                            background: t.swatch,
+                            width: 22, height: 22, borderRadius: '50%', background: t.swatch,
                             border: colorTheme === key ? '3px solid white' : '2px solid transparent',
                             boxShadow: colorTheme === key ? `0 0 0 2px ${t.swatch}, 0 2px 8px ${t.shadow}` : '0 1px 3px rgba(0,0,0,0.15)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
+                            cursor: 'pointer', transition: 'all 0.2s',
                             transform: colorTheme === key ? 'scale(1.15)' : 'scale(1)',
                         }}
                     />
@@ -247,18 +191,10 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                 onChange={(e) => updateData(widget.id, { eventName: e.target.value })}
                 placeholder="Event name..."
                 style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    border: `2px solid ${theme.border}`,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: '#1e293b',
-                    outline: 'none',
-                    background: 'white',
-                    marginBottom: 10,
-                    textAlign: 'center',
-                    transition: 'border-color 0.2s',
+                    width: '100%', padding: '10px 14px', borderRadius: 10,
+                    border: `2px solid ${theme.border}`, fontSize: 14, fontWeight: 600,
+                    color: '#1e293b', outline: 'none', background: 'white',
+                    marginBottom: 10, textAlign: 'center', transition: 'border-color 0.2s',
                 }}
                 onFocus={(e) => (e.target.style.borderColor = theme.focus)}
                 onBlur={(e) => (e.target.style.borderColor = theme.border)}
@@ -270,22 +206,34 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                 value={targetDate}
                 onChange={(e) => updateData(widget.id, { targetDate: e.target.value })}
                 style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    border: `2px solid ${theme.border}`,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#475569',
-                    outline: 'none',
-                    background: 'white',
-                    marginBottom: 14,
-                    textAlign: 'center',
-                    transition: 'border-color 0.2s',
+                    width: '100%', padding: '10px 14px', borderRadius: 10,
+                    border: `2px solid ${theme.border}`, fontSize: 13, fontWeight: 600,
+                    color: '#475569', outline: 'none', background: 'white',
+                    marginBottom: 14, textAlign: 'center', transition: 'border-color 0.2s',
                 }}
                 onFocus={(e) => (e.target.style.borderColor = theme.focus)}
                 onBlur={(e) => (e.target.style.borderColor = theme.border)}
             />
+
+            {/* Scroll Text Toggle */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
+                <div
+                    onClick={() => updateData(widget.id, { scrollText: !scrollText })}
+                    style={{
+                        width: 36, height: 20, borderRadius: 10,
+                        background: scrollText ? theme.swatch : '#cbd5e1',
+                        position: 'relative', transition: 'background 0.2s',
+                        cursor: 'pointer', flexShrink: 0,
+                    }}
+                >
+                    <div style={{
+                        width: 16, height: 16, borderRadius: '50%', background: 'white',
+                        position: 'absolute', top: 2, left: scrollText ? 18 : 2,
+                        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: theme.title, opacity: 0.7 }}>Scroll text</span>
+            </label>
 
             {/* Start Button */}
             <button
@@ -293,25 +241,13 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                 disabled={!eventName.trim() || !targetDate}
                 className="active:scale-95"
                 style={{
-                    width: '100%',
-                    padding: '12px 20px',
-                    borderRadius: 12,
-                    border: 'none',
-                    background: (!eventName.trim() || !targetDate)
-                        ? '#cbd5e1'
-                        : theme.btn,
-                    color: 'white',
-                    fontSize: 14,
-                    fontWeight: 800,
+                    width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none',
+                    background: (!eventName.trim() || !targetDate) ? '#cbd5e1' : theme.btn,
+                    color: 'white', fontSize: 14, fontWeight: 800,
                     cursor: (!eventName.trim() || !targetDate) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     transition: 'all 0.2s',
-                    boxShadow: (!eventName.trim() || !targetDate)
-                        ? 'none'
-                        : `0 6px 20px ${theme.shadow}`,
+                    boxShadow: (!eventName.trim() || !targetDate) ? 'none' : `0 6px 20px ${theme.shadow}`,
                 }}
             >
                 <Play size={16} /> Start Countdown
@@ -325,22 +261,15 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
 const CountdownUnit = ({ value, label }: { value: number; label: string }) => (
     <div style={{ textAlign: 'center', minWidth: 54 }}>
         <div style={{
-            fontSize: 32,
-            fontWeight: 900,
-            color: 'white',
-            lineHeight: 1,
-            fontFamily: "'Inter', system-ui, monospace",
-            letterSpacing: '-0.03em',
+            fontSize: 32, fontWeight: 900, color: 'white', lineHeight: 1,
+            fontFamily: "'Inter', system-ui, monospace", letterSpacing: '-0.03em',
             textShadow: '0 2px 8px rgba(0,0,0,0.2)',
         }}>
             {String(value).padStart(2, '0')}
         </div>
         <div style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.5)',
-            letterSpacing: '0.12em',
-            marginTop: 4,
+            fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
+            letterSpacing: '0.12em', marginTop: 4,
         }}>
             {label}
         </div>
@@ -349,12 +278,8 @@ const CountdownUnit = ({ value, label }: { value: number; label: string }) => (
 
 const Separator = () => (
     <div style={{
-        fontSize: 24,
-        fontWeight: 800,
-        color: 'rgba(255,255,255,0.3)',
-        lineHeight: 1,
-        paddingBottom: 10,
-        userSelect: 'none',
+        fontSize: 24, fontWeight: 800, color: 'rgba(255,255,255,0.3)',
+        lineHeight: 1, paddingBottom: 10, userSelect: 'none',
     }}>
         :
     </div>
