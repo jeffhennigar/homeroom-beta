@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Play, RotateCw, Edit3 } from 'lucide-react';
+import { Clock, Play, RotateCw, Edit3, Settings } from 'lucide-react';
 
 const COUNTDOWN_THEMES: Record<string, { bar: string; setup: string; icon: string; title: string; border: string; focus: string; btn: string; shadow: string; swatch: string }> = {
     purple: { bar: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)', setup: 'linear-gradient(135deg, #eef2ff 0%, #e8e0ff 100%)', icon: 'linear-gradient(135deg, #6366f1, #7c3aed)', title: '#312e81', border: '#e0e7ff', focus: '#6366f1', btn: 'linear-gradient(135deg, #6366f1, #7c3aed)', shadow: 'rgba(99, 102, 241, 0.35)', swatch: '#7c3aed' },
@@ -22,6 +22,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
     const theme = COUNTDOWN_THEMES[colorTheme] || COUNTDOWN_THEMES.purple;
 
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
+    const [showMenu, setShowMenu] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Live countdown tick
@@ -55,7 +56,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
         if (!eventName.trim() || !targetDate) return;
         updateData(widget.id, { isRunning: true });
         if (updateSize) {
-            updateSize(widget.id, { width: 700, height: 110 });
+            updateSize(widget.id, { width: 740, height: 110 });
         }
     };
 
@@ -112,35 +113,74 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
         );
 
         return (
-            <div ref={containerRef} className="h-full w-full" style={{ background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+            <div
+                ref={containerRef}
+                className="h-full w-full"
+                style={{ background: theme.bar, overflow: 'visible', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}
+                onMouseLeave={() => setShowMenu(false)}
+            >
                 {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>}
-                <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24 } : { padding: '0 24px' }}>
+                <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24, overflow: 'hidden' } : { padding: '0 24px', overflow: 'hidden' }}>
                     {barContent}
-                    <div className="flex shrink-0" style={{ gap: 8, marginLeft: 16 }}>
-                        <button
-                            onClick={handleEdit}
-                            className="hover:brightness-110 active:scale-95"
-                            style={{
-                                background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)',
-                                borderRadius: 8, padding: '6px 12px', color: 'white', fontSize: 12, fontWeight: 700,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s',
-                            }}
-                        >
-                            <Edit3 size={13} /> Edit
-                        </button>
-                        <button
-                            onClick={handleReset}
-                            className="hover:brightness-110 active:scale-95"
-                            style={{
-                                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
-                                borderRadius: 8, padding: '6px 8px', color: 'rgba(255,255,255,0.7)', fontSize: 12,
-                                fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                            }}
-                            title="Reset"
-                        >
-                            <RotateCw size={13} />
-                        </button>
-                    </div>
+                </div>
+
+                {/* Settings cog — visible on hover */}
+                <div
+                    style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+                    onMouseEnter={() => { }}
+                >
+                    <button
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="hover:brightness-110 active:scale-95"
+                        style={{
+                            width: 32, height: 32, borderRadius: 8,
+                            background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)',
+                            color: 'white', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s', opacity: 0,
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={(e) => { if (!showMenu) e.currentTarget.style.opacity = '0'; }}
+                    >
+                        <Settings size={16} />
+                    </button>
+                    {showMenu && (
+                        <div style={{
+                            position: 'absolute', top: 36, right: 0,
+                            background: 'white', borderRadius: 10,
+                            boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+                            padding: 4, minWidth: 130, zIndex: 20,
+                        }}>
+                            <button
+                                onClick={() => { setShowMenu(false); handleEdit(); }}
+                                style={{
+                                    width: '100%', padding: '8px 12px', borderRadius: 8,
+                                    border: 'none', background: 'transparent', color: '#334155',
+                                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    transition: 'background 0.15s',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <Edit3 size={14} /> Edit
+                            </button>
+                            <button
+                                onClick={() => { setShowMenu(false); handleReset(); }}
+                                style={{
+                                    width: '100%', padding: '8px 12px', borderRadius: 8,
+                                    border: 'none', background: 'transparent', color: '#ef4444',
+                                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    transition: 'background 0.15s',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <RotateCw size={14} /> Reset
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
