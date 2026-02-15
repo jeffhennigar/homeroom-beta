@@ -5221,31 +5221,63 @@
             ) : (
               items.map((item, index) => {
                 const isCurrent = isCurrentItem(item, index);
+                // Dynamic scaling based on fontSize
+                const padding = fontSize * 0.4;
+                const minHeight = fontSize * 2.2; // Reduced substantially to fit more
+                const columnWidth = fontSize * 2.6;
+                const emojiSize = fontSize * 0.9;
+                const titleSize = Math.max(10, fontSize * 0.65);
+                const descSize = Math.max(9, fontSize * 0.45);
+                const timeSize = Math.max(9, fontSize * 0.5);
+
                 return (
-                  <div key={item.id} onDragOver={handleDragOver} onDrop={() => handleDrop(index)} className={`relative group flex gap-3 p-3 rounded-xl border transition-all w-full min-h-[4.5rem] shadow-sm ${isCurrent ? 'bg-white border-indigo-300 ring-2 ring-indigo-100' : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`} style={{ zIndex: emojiPickerIndex === index ? 50 : 0 }}>
-                    <div draggable onDragStart={() => handleDragStart(index)} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing text-slate-300 hover:text-indigo-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><GripVertical size={16} /></div>
-                    {isCurrent && <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-8 bg-indigo-500 rounded-r-full" />}
-                    <div className="flex flex-col items-center shrink-0 w-[4.5rem] relative justify-center border-r border-slate-100 pr-3 ml-4">
-                      <button onClick={(e) => { e.stopPropagation(); setTimePickerState(timePickerState.index === index ? { index: null, triggerRef: null } : { index, triggerRef: { current: e.currentTarget } }); }} className={`w-full text-sm font-bold px-2 py-1 rounded transition-colors ${isCurrent ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 bg-slate-50 group-hover:bg-slate-100'}`}>{(() => { const [h, m] = (item.time || '09:00').split(':'); const hours = parseInt(h); const displayH = hours % 12 || 12; return `${displayH}:${m}`; })()} <span className="text-[10px] font-medium text-slate-400 ml-0.5">{parseInt((item.time || '09:00').split(':')[0]) >= 12 ? 'PM' : 'AM'}</span></button>
+                  <div key={item.id} onDragOver={handleDragOver} onDrop={() => handleDrop(index)}
+                    className={`relative group flex rounded-xl border transition-all w-full shadow-sm ${isCurrent ? 'bg-white border-indigo-300 ring-2 ring-indigo-100' : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
+                    style={{
+                      zIndex: emojiPickerIndex === index ? 50 : 0,
+                      minHeight: minHeight + 'px',
+                      padding: padding + 'px',
+                      gap: padding + 'px'
+                    }}>
+                    <div draggable onDragStart={() => handleDragStart(index)} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing text-slate-300 hover:text-indigo-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><GripVertical size={Math.max(12, fontSize * 0.6)} /></div>
+                    {isCurrent && <div className="absolute -left-1 top-[15%] bottom-[15%] w-1.5 bg-indigo-500 rounded-r-full" />}
+
+                    <div className="flex flex-col items-center shrink-0 relative justify-center border-r border-slate-100 ml-4"
+                      style={{ width: columnWidth + 'px', paddingRight: (padding * 0.8) + 'px' }}>
+                      <button onClick={(e) => { e.stopPropagation(); setTimePickerState(timePickerState.index === index ? { index: null, triggerRef: null } : { index, triggerRef: { current: e.currentTarget } }); }}
+                        className={`w-full font-bold px-1.5 py-0.5 rounded transition-colors ${isCurrent ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 bg-slate-50 group-hover:bg-slate-100'}`}
+                        style={{ fontSize: timeSize + 'px' }}>
+                        {(() => { const [h, m] = (item.time || '09:00').split(':'); const hours = parseInt(h); const displayH = hours % 12 || 12; return `${displayH}:${m}`; })()}
+                        <span className="ml-0.5 opacity-60" style={{ fontSize: (timeSize * 0.8) + 'px' }}>{parseInt((item.time || '09:00').split(':')[0]) >= 12 ? 'PM' : 'AM'}</span>
+                      </button>
                       {timePickerState.index === index && <TimePicker time={item.time || '09:00'} onChange={(t) => updateItem(index, 'time', t)} onClose={() => setTimePickerState({ index: null, triggerRef: null })} triggerRef={timePickerState.triggerRef} />}
                     </div>
+
                     <div className="relative flex items-center justify-center shrink-0">
-                      <div className="text-2xl cursor-pointer hover:scale-110 transition-transform active:scale-95 p-1 rounded-lg hover:bg-indigo-50" onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}>{item.emoji || '📚'}</div>
+                      <div className="cursor-pointer hover:scale-110 transition-transform active:scale-95 p-1 rounded-lg hover:bg-indigo-50"
+                        style={{ fontSize: emojiSize + 'px' }}
+                        onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}>
+                        {item.emoji || '📚'}
+                      </div>
                       {emojiPickerIndex === index && <div className="absolute left-0 top-full mt-2 z-[100] bg-white rounded-xl shadow-2xl border border-slate-100 p-2 w-56 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100" onClick={(e) => e.stopPropagation()}><div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-2xl p-2 rounded-lg hover:bg-indigo-50 transition-colors ${item.emoji === emoji ? 'bg-indigo-100' : ''}`}>{emoji}</button>))} </div></div>}
                     </div>
+
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-slate-700 bg-transparent border-none outline-none truncate placeholder-slate-300" style={{ fontSize: Math.max(10, fontSize - 10) + 'px' }} placeholder="Activity Name" />
+                      <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)}
+                        className="w-full font-bold text-slate-700 bg-transparent border-none outline-none truncate placeholder-slate-300"
+                        style={{ fontSize: titleSize + 'px' }} placeholder="Activity Name" />
                       <textarea
                         value={item.description || ''}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
-                        className="w-full text-xs text-slate-400 bg-transparent border-none outline-none resize-none placeholder-slate-200 font-medium overflow-hidden"
+                        className="w-full text-slate-400 bg-transparent border-none outline-none resize-none placeholder-slate-200 font-medium overflow-hidden"
+                        style={{ fontSize: descSize + 'px' }}
                         placeholder="Add details..."
                         rows={1}
                         onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
                       />
                     </div>
-                    <button onClick={() => removeItem(index)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all self-center"><Trash2 size={16} /></button>
+                    <button onClick={() => removeItem(index)} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all self-center"><Trash2 size={Math.max(14, fontSize * 0.6)} /></button>
                   </div>
                 );
               })
@@ -5326,10 +5358,25 @@
 
     // --- MISSING COMPONENTS (Restored) ---
     // (Onboarding now works with object roster)
-    const OnboardingModal = ({ onComplete, onSaveRoster }) => {
+    const OnboardingModal = ({ onComplete, onSaveRoster, setBackupEnabled, setBackupInterval }) => {
       const [storagePreference, setStoragePreference] = useState('local');
       const [text, setText] = useState(DEFAULT_NAMES.join('\n'));
       const handleSave = () => {
+        if (storagePreference === 'local') {
+          const understood = window.confirm(
+            "IMPORTANT: You've selected Local Storage.\n\n" +
+            "Your data will be stored ONLY on this browser. Clearing your browser cache, computer updates, or school admin settings could PERMANENTLY delete your data without warning.\n\n" +
+            "To help keep your data safe, a WEEKLY backup reminder has been automatically enabled for you.\n\n" +
+            "Please ensure you regularly download a backup (using the 'Export' button in settings) and save it as an email attachment or in your own cloud storage.\n\n" +
+            "Do you understand and wish to proceed with Local Storage?"
+          );
+          if (!understood) return;
+
+          // Enable weekly backup reminder
+          if (setBackupEnabled) setBackupEnabled(true);
+          if (setBackupInterval) setBackupInterval(7);
+        }
+
         const names = text.split('\n').map(n => n.trim()).filter(n => n);
         if (names.length > 0) {
           const roster = names.map(n => ({ id: Math.random().toString(36).substr(2, 9), name: n, active: true }));
@@ -6400,6 +6447,7 @@
                                   const newTemplate = {}; // Wipe existing template for a clean import
                                   let maxCycleDay = scheduleSettings.cycleLength || 5;
                                   let isRotatingImport = false;
+                                  const customDayLabels = {}; // Map of "Day X" to "Original Label"
 
                                   // Skip header
                                   for (let i = 1; i < lines.length; i++) {
@@ -6420,7 +6468,9 @@
 
                                     if (parts.length < 2) continue;
 
-                                    let day = parts[0];
+                                    let originalDayStr = parts[0];
+                                    let dayLabel = originalDayStr;
+                                    let day = originalDayStr;
                                     let time = parts[1] || '09:00';
                                     const emoji = parts[2] || '📅';
                                     const title = parts[3] || 'Activity';
@@ -6438,12 +6488,19 @@
                                         const weekNum = parseInt(matchWeek[1]);
                                         const dayIndex = dow.indexOf(matchDay); // 1 = Mon, 5 = Fri
                                         if (dayIndex >= 1 && dayIndex <= 5) {
-                                          day = `Day ${(weekNum - 1) * 5 + dayIndex}`;
+                                          const calcDay = (weekNum - 1) * 5 + dayIndex;
+                                          day = `Day ${calcDay}`;
+                                          customDayLabels[calcDay] = dayLabel;
                                         }
                                       } else if (matchDay) {
                                         day = matchDay; // Strip "Prefixed Monday" to just "Monday"
                                       } else if (day.toLowerCase().includes('day')) {
                                         isRotatingImport = true;
+                                        const numMatch = day.match(/\d+/);
+                                        if (numMatch) {
+                                          const calcDay = parseInt(numMatch[0]);
+                                          customDayLabels[calcDay] = dayLabel;
+                                        }
                                       }
                                     }
 
@@ -6479,9 +6536,15 @@
 
                                   setScheduleTemplate(newTemplate);
                                   let newSettings = { ...scheduleSettings };
-                                  if (isRotatingImport) newSettings.mode = 'rotating';
-                                  if (maxCycleDay > (scheduleSettings.cycleLength || 5) || isRotatingImport) {
+                                  if (isRotatingImport) {
+                                    newSettings.mode = 'rotating';
                                     newSettings.cycleLength = maxCycleDay;
+                                    // Build dayLabels array
+                                    const labels = [];
+                                    for (let i = 1; i <= maxCycleDay; i++) {
+                                      labels.push(customDayLabels[i] || `Day ${i}`);
+                                    }
+                                    newSettings.dayLabels = labels;
                                   }
                                   setScheduleSettings(newSettings);
                                   alert('Schedule imported successfully!');
@@ -6866,8 +6929,8 @@
                 {activeTab === 'about' && (
                   <div className="p-4">
                     <div className="flex flex-col items-center mb-6 mt-4">
-                      <div className="w-32 h-32 mb-4 drop-shadow-xl hover:scale-105 transition-transform duration-300">
-                        <img src="/effortless_edtech_logo.png" alt="HomeRoom Logo" className="w-full h-full object-contain" />
+                      <div className="w-32 h-32 mb-4 hover:scale-105 transition-transform duration-300">
+                        <img src="/homeroom-logo.png" alt="HomeRoom Logo" className="w-full h-full object-contain" />
                       </div>
                       <h2 className="text-2xl font-bold text-gray-800 leading-tight">HomeRoom</h2>
                       <div className="mt-2 px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full tracking-widest uppercase border border-indigo-100">Pro Version 1.0</div>
@@ -8057,7 +8120,7 @@
         if (type === 'SEAT_PICKER') fontSize = 16; // Reduced by ~2 clicks
         if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16;
         if (type === 'TIMER') fontSize = 14;
-        if (type === 'SCHEDULE') fontSize = 28; // Reduced by 8 clicks (36 -> 28)
+        if (type === 'SCHEDULE') fontSize = 24; // User requested 2 clicks smaller (28 -> 24)
 
         let data = { fontSize }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
         if (type === 'SEAT_PICKER') {
@@ -8402,7 +8465,14 @@
           backgroundPosition: 'center'
         }} onMouseDown={() => setSelectedId(null)}>
           {/* Modals */}
-          {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} onSaveRoster={(newRoster) => setRoster(newRoster)} />}
+          {showOnboarding && (
+            <OnboardingModal
+              onComplete={() => setShowOnboarding(false)}
+              onSaveRoster={(newRoster) => setRoster(newRoster)}
+              setBackupEnabled={setBackupEnabled}
+              setBackupInterval={setBackupInterval}
+            />
+          )}
           <AuthModal />
           {showSettingsModal && <SettingsModal
             user={user}
