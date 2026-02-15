@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { Calendar, Settings, Plus, X, Copy } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}'];
+
+// Baseline width for scaling calculations
+const BASELINE_WIDTH = 400;
 
 // Helper to interact with App-level state/storage for schedule template
 const getScheduleTemplate = () => {
@@ -25,6 +28,41 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
     const [emojiPickerIndex, setEmojiPickerIndex] = useState(null);
     const today = DAYS_OF_WEEK[new Date().getDay()];
     const [scheduleData, setScheduleData] = useState(() => { const template = getScheduleTemplate(); return template[today] || []; });
+
+    // Responsive scaling state
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1);
+
+    // ResizeObserver for responsive scaling
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const w = entry.contentRect.width;
+                // Scale factor: 1.0 at 400px, shrinks/grows proportionally
+                setScale(Math.max(0.55, Math.min(1.4, w / BASELINE_WIDTH)));
+            }
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    // Auto-size textareas when data changes or scale changes
+    const autoSizeTextareas = useCallback(() => {
+        if (!containerRef.current) return;
+        const textareas = containerRef.current.querySelectorAll('textarea[data-autosize]');
+        textareas.forEach((ta: HTMLTextAreaElement) => {
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+        });
+    }, []);
+
+    useLayoutEffect(() => {
+        // Small delay to let the DOM render before measuring
+        const raf = requestAnimationFrame(autoSizeTextareas);
+        return () => cancelAnimationFrame(raf);
+    }, [scheduleData, scale, autoSizeTextareas]);
 
     useEffect(() => {
         const refreshFromStorage = () => { const template = getScheduleTemplate(); setScheduleData(template[today] || []); };
@@ -58,35 +96,84 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
     const handleDrop = (targetIndex) => { if (dragIndex === null || dragIndex === targetIndex) return; const newItems = [...scheduleData]; const [moved] = newItems.splice(dragIndex, 1); newItems.splice(targetIndex, 0, moved); saveScheduleData(newItems); setDragIndex(null); };
     const selectEmoji = (index, emoji) => { updateItem(index, 'emoji', emoji); setEmojiPickerIndex(null); };
 
+    // Scaled sizes
+    const s = (base: number) => Math.round(base * scale);
+    const headerH = s(36);
+    const itemPadding = s(8);
+    const gap = s(4);
+    const titleFontSize = Math.max(10, s(Math.max(10, fontSize - 6)));
+    const descFontSize = Math.max(9, s(11));
+    const timeFontSize = Math.max(9, s(12));
+    const emojiSize = Math.max(16, s(22));
+    const headerFontSize = Math.max(10, s(13));
+    const iconSize = Math.max(12, s(16));
+    const borderRadius = s(8);
+
     return (
-        <div className="flex flex-col h-full bg-gradient-to-br from-indigo-50 to-purple-50">
-            <div className="h-10 bg-white/80 backdrop-blur border-b flex items-center justify-between px-3 shrink-0">
-                <h3 className="font-bold text-indigo-800 text-sm flex items-center gap-2"><Calendar size={16} /> {today}'s Schedule</h3>
-                <div className="flex gap-1">
-                    <button onClick={addItem} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors" title="Add activity"><Plus size={16} /></button>
-                    <button onClick={onOpenSettings} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors" title="Schedule settings"><Settings size={16} /></button>
+        <div ref={containerRef} className="flex flex-col h-full bg-gradient-to-br from-indigo-50 to-purple-50">
+            <div
+                className="bg-white/80 backdrop-blur border-b flex items-center justify-between shrink-0"
+                style={{ height: headerH, paddingLeft: s(10), paddingRight: s(10) }}
+            >
+                <h3 className="font-bold text-indigo-800 flex items-center" style={{ fontSize: headerFontSize, gap: s(6) }}>
+                    <Calendar size={iconSize} /> {today}'s Schedule
+                </h3>
+                <div className="flex" style={{ gap: s(4) }}>
+                    <button onClick={addItem} className="text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors" style={{ padding: s(4) }} title="Add activity"><Plus size={iconSize} /></button>
+                    <button onClick={onOpenSettings} className="text-gray-400 hover:bg-gray-100 rounded-lg transition-colors" style={{ padding: s(4) }} title="Schedule settings"><Settings size={iconSize} /></button>
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 custom-scrollbar">
+            <div
+                className="flex-1 overflow-y-auto flex flex-col custom-scrollbar"
+                style={{ padding: s(6), gap }}
+            >
                 {scheduleData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                        <Calendar size={40} className="text-indigo-200 mb-3" />
-                        <p className="text-indigo-400 text-sm font-medium mb-2">No schedule items yet</p>
-                        <button onClick={addItem} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 flex items-center gap-1"><Plus size={14} /> Add Activity</button>
+                    <div className="flex flex-col items-center justify-center h-full text-center" style={{ padding: s(16) }}>
+                        <Calendar size={s(40)} className="text-indigo-200" style={{ marginBottom: s(12) }} />
+                        <p className="text-indigo-400 font-medium" style={{ fontSize: s(13), marginBottom: s(8) }}>No schedule items yet</p>
+                        <button onClick={addItem} className="bg-indigo-600 text-white font-bold hover:bg-indigo-700 flex items-center" style={{ padding: `${s(6)}px ${s(12)}px`, fontSize: s(11), borderRadius: s(8), gap: s(4) }}><Plus size={s(14)} /> Add Activity</button>
                     </div>
                 ) : (
                     scheduleData.map((item, index) => {
                         const isCurrent = isCurrentItem(item, index);
+                        const hasDescription = !!(item.description && item.description.trim());
                         return (
-                            <div key={item.id} draggable onDragStart={() => handleDragStart(index)} onDragOver={handleDragOver} onDrop={() => handleDrop(index)} className={`relative group flex gap-2 p-2 rounded-lg border transition-all cursor-move w-full min-h-[4rem] ${isCurrent ? 'bg-indigo-100 border-indigo-400 ring-2 ring-indigo-300' : 'bg-white border-gray-200 hover:border-indigo-200'}`} style={{ zIndex: emojiPickerIndex === index ? 50 : 0 }}>
-                                {isCurrent && <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />}
+                            <div
+                                key={item.id}
+                                draggable
+                                onDragStart={() => handleDragStart(index)}
+                                onDragOver={handleDragOver}
+                                onDrop={() => handleDrop(index)}
+                                className={`relative group flex items-stretch transition-all cursor-move w-full ${isCurrent ? 'bg-indigo-100 border-indigo-400 ring-2 ring-indigo-300' : 'bg-white border-gray-200 hover:border-indigo-200'}`}
+                                style={{
+                                    gap: s(6),
+                                    padding: itemPadding,
+                                    borderRadius,
+                                    borderWidth: 1,
+                                    borderStyle: 'solid',
+                                    zIndex: emojiPickerIndex === index ? 50 : 0,
+                                }}
+                            >
+                                {isCurrent && <div className="absolute bg-indigo-500 rounded-full animate-pulse" style={{ left: -s(4), top: '50%', transform: 'translateY(-50%)', width: s(8), height: s(8) }} />}
 
-                                <div className="flex flex-col items-center shrink-0 w-18">
-                                    <input type="time" value={item.time || '09:00'} onChange={(e) => updateItem(index, 'time', e.target.value)} className="w-full text-sm font-bold text-indigo-600 bg-transparent border-none text-center cursor-pointer hover:bg-indigo-50 rounded" />
+                                {/* Time column */}
+                                <div className="flex flex-col items-center shrink-0 justify-center" style={{ width: s(64) }}>
+                                    <input
+                                        type="time"
+                                        value={item.time || '09:00'}
+                                        onChange={(e) => updateItem(index, 'time', e.target.value)}
+                                        className="w-full font-bold text-indigo-600 bg-transparent border-none text-center cursor-pointer hover:bg-indigo-50 rounded"
+                                        style={{ fontSize: timeFontSize }}
+                                    />
                                 </div>
 
-                                <div className="relative flex items-center text-xl shrink-0">
-                                    <div className="cursor-pointer hover:scale-110 transition-transform p-1 rounded hover:bg-indigo-100" onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}>
+                                {/* Emoji column */}
+                                <div className="relative flex items-center shrink-0">
+                                    <div
+                                        className="cursor-pointer hover:scale-110 transition-transform rounded hover:bg-indigo-100"
+                                        style={{ fontSize: emojiSize, padding: s(3), lineHeight: 1 }}
+                                        onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}
+                                    >
                                         {item.emoji || '📚'}
                                     </div>
                                     {emojiPickerIndex === index && (
@@ -95,19 +182,38 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                    <input type="text" value={item.title || ''} onChange={(e) => updateItem(index, 'title', e.target.value)} className="w-full font-bold text-gray-800 bg-transparent border-none outline-none truncate" style={{ fontSize: Math.max(10, fontSize - 10) + 'px' }} placeholder="Activity name" />
+
+                                {/* Title + description column */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: s(1) }}>
+                                    <input
+                                        type="text"
+                                        value={item.title || ''}
+                                        onChange={(e) => updateItem(index, 'title', e.target.value)}
+                                        className="w-full font-bold text-gray-800 bg-transparent border-none outline-none truncate"
+                                        style={{ fontSize: titleFontSize }}
+                                        placeholder="Activity name"
+                                    />
                                     <textarea
+                                        data-autosize
                                         value={item.description || ''}
                                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                                         onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
-                                        className="w-full text-xs text-gray-500 bg-transparent border-none outline-none resize-none placeholder-gray-300 font-medium overflow-hidden"
+                                        className="w-full text-gray-500 bg-transparent border-none outline-none resize-none placeholder-gray-300 font-medium overflow-hidden"
+                                        style={{ fontSize: descFontSize, lineHeight: 1.4 }}
                                         placeholder="Add details..."
                                         rows={1}
                                         onInput={(e: any) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
                                     />
                                 </div>
-                                <button onClick={() => removeItem(index)} className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity self-center"><X size={14} /></button>
+
+                                {/* Remove button */}
+                                <button
+                                    onClick={() => removeItem(index)}
+                                    className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0"
+                                    style={{ padding: s(3) }}
+                                >
+                                    <X size={Math.max(10, s(14))} />
+                                </button>
                             </div>
                         );
                     })
