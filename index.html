@@ -648,7 +648,7 @@
       WEBCAM: { width: 320, height: 240 },
       DICE: { width: 300, height: 320 },
       TRAFFIC: { width: 220, height: 360 },
-      QR: { width: 250, height: 280 },
+      QR: { width: 400, height: 300 },
       VOTE: { width: 400, height: 350 },
       DRAWING: { width: 900, height: 550 },
       SCHEDULE: { width: 380, height: 500 },
@@ -2249,28 +2249,6 @@
                 <h3 className="font-bold text-slate-800">Ready to start?</h3>
                 <p className="text-xs text-slate-500 max-w-[200px]">Project a QR code for students to join and submit live answers.</p>
 
-                {type === 'mc' && (
-                  <div className="w-full max-w-[250px] bg-slate-50 border border-slate-200 rounded-xl p-3 text-left">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Configure Options</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {options.map((opt, i) => (
-                        <div key={i} className="flex items-center gap-1">
-                          <span className="text-[10px] font-bold text-slate-400 w-4">{String.fromCharCode(65 + i)}</span>
-                          <input
-                            className="flex-1 bg-white border border-slate-200 rounded-md px-2 py-1 text-xs outline-none focus:border-indigo-500"
-                            value={opt}
-                            onChange={(e) => {
-                              const newOpts = [...options];
-                              newOpts[i] = e.target.value;
-                              updateData(widget.id, { options: newOpts });
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <button onClick={toggleSession} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-indigo-100">
                   Start Session
                 </button>
@@ -2314,6 +2292,27 @@
                       value={question}
                       onChange={(e) => updateData(widget.id, { question: e.target.value })}
                     />
+                    {type === 'mc' && (
+                      <div className="mt-3 bg-white border border-slate-200 rounded-xl p-3 text-left shadow-sm">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Configure Options</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {options.map((opt, i) => (
+                            <div key={i} className="flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-slate-400 w-4">{String.fromCharCode(65 + i)}</span>
+                              <input
+                                className="flex-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs outline-none focus:border-indigo-500"
+                                value={opt}
+                                onChange={(e) => {
+                                  const newOpts = [...options];
+                                  newOpts[i] = e.target.value;
+                                  updateData(widget.id, { options: newOpts });
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -6393,91 +6392,98 @@
                                 const file = e.target.files[0];
                                 if (!file) return;
                                 const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  const text = event.target.result;
-                                  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-                                  if (lines.length <= 1) return;
+                                                                  reader.onload = (event) => {
+                                    const text = event.target.result;
+                                    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+                                    if (lines.length <= 1) return;
 
-                                  const newTemplate = {}; // Wipe existing template for a clean import
-                                  let maxCycleDay = scheduleSettings.cycleLength || 5;
+                                    const newTemplate = {}; // Wipe existing template for a clean import
+                                    let maxCycleDay = scheduleSettings.cycleLength || 5;
+                                    let isRotatingImport = false;
 
-                                  // Skip header
-                                  for (let i = 1; i < lines.length; i++) {
-                                    // Robust CSV split to handle commas inside quotes
-                                    const parts = [];
-                                    let currentPart = '';
-                                    let inQuotes = false;
-                                    for (let char of lines[i]) {
-                                      if (char === '"') inQuotes = !inQuotes;
-                                      else if (char === ',' && !inQuotes) {
-                                        parts.push(currentPart.trim().replace(/^"|"$/g, ''));
-                                        currentPart = '';
-                                      } else {
-                                        currentPart += char;
-                                      }
-                                    }
-                                    parts.push(currentPart.trim().replace(/^"|"$/g, ''));
-
-                                    if (parts.length < 2) continue;
-
-                                    let day = parts[0];
-                                    let time = parts[1] || '09:00';
-                                    const emoji = parts[2] || '📅';
-                                    const title = parts[3] || 'Activity';
-                                    const description = parts[4] || '';
-
-                                    // Smart Day Mapping (Clean up labels and handle Week X: Monday)
-                                    if (day) {
-                                      const dow = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                                      const matchDay = dow.find(d => day.toLowerCase().includes(d.toLowerCase()));
-                                      const matchWeek = day.match(/Week\s*(\d+)/i);
-
-                                      if (matchWeek && matchDay) {
-                                        // Map "Week 2: Monday" to "Day 6" (assuming 5-day school week)
-                                        const weekNum = parseInt(matchWeek[1]);
-                                        const dayIndex = dow.indexOf(matchDay); // 1 = Mon, 5 = Fri
-                                        if (dayIndex >= 1 && dayIndex <= 5) {
-                                          day = `Day ${(weekNum - 1) * 5 + dayIndex}`;
+                                    // Skip header
+                                    for (let i = 1; i < lines.length; i++) {
+                                      // Robust CSV split to handle commas inside quotes
+                                      const parts = [];
+                                      let currentPart = '';
+                                      let inQuotes = false;
+                                      for (let char of lines[i]) {
+                                        if (char === '"') inQuotes = !inQuotes;
+                                        else if (char === ',' && !inQuotes) {
+                                          parts.push(currentPart.trim().replace(/^"|"$/g, ''));
+                                          currentPart = '';
+                                        } else {
+                                          currentPart += char;
                                         }
-                                      } else if (matchDay) {
-                                        day = matchDay; // Strip "Prefixed Monday" to just "Monday"
                                       }
-                                    }
+                                      parts.push(currentPart.trim().replace(/^"|"$/g, ''));
 
-                                    // Normalize Time (handle 8:00AM, 1:30 PM, etc)
-                                    if (time) {
-                                      const timeMatch = time.match(/(\d+):(\d+)\s*([AaPp][Mm])?/);
-                                      if (timeMatch) {
-                                        let [_, h, m, ampm] = timeMatch;
-                                        let hours = parseInt(h);
-                                        const mins = m.padStart(2, '0');
-                                        if (ampm) {
-                                          if (ampm.toLowerCase().includes('p') && hours < 12) hours += 12;
-                                          if (ampm.toLowerCase().includes('a') && hours === 12) hours = 0;
+                                      if (parts.length < 2) continue;
+
+                                      let day = parts[0];
+                                      let time = parts[1] || '09:00';
+                                      const emoji = parts[2] || '📅';
+                                      const title = parts[3] || 'Activity';
+                                      const description = parts[4] || '';
+
+                                      // Smart Day Mapping (Clean up labels and handle Week X: Monday)
+                                      if (day) {
+                                        const dow = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                                        const matchDay = dow.find(d => day.toLowerCase().includes(d.toLowerCase()));
+                                        const matchWeek = day.match(/Week\s*(\d+)/i);
+
+                                        if (matchWeek && matchDay) {
+                                          isRotatingImport = true;
+                                          // Map "Week 2: Monday" to "Day 6" (assuming 5-day school week)
+                                          const weekNum = parseInt(matchWeek[1]);
+                                          const dayIndex = dow.indexOf(matchDay); // 1 = Mon, 5 = Fri
+                                          if (dayIndex >= 1 && dayIndex <= 5) {
+                                            day = `Day ${(weekNum - 1) * 5 + dayIndex}`;
+                                          }
+                                        } else if (matchDay) {
+                                          day = matchDay; // Strip "Prefixed Monday" to just "Monday"
+                                        } else if (day.toLowerCase().includes('day')) {
+                                          isRotatingImport = true;
                                         }
-                                        time = `${String(hours).padStart(2, '0')}:${mins}`;
+                                      }
+
+                                      // Normalize Time (handle 8:00AM, 1:30 PM, etc)
+                                      if (time) {
+                                        const timeMatch = time.match(/(\d+):(\d+)\s*([AaPp][Mm])?/);
+                                        if (timeMatch) {
+                                          let [_, h, m, ampm] = timeMatch;
+                                          let hours = parseInt(h);
+                                          const mins = m.padStart(2, '0');
+                                          if (ampm) {
+                                            if (ampm.toLowerCase().includes('p') && hours < 12) hours += 12;
+                                            if (ampm.toLowerCase().includes('a') && hours === 12) hours = 0;
+                                          }
+                                          time = `${String(hours).padStart(2, '0')}:${mins}`;
+                                        }
+                                      }
+
+                                      if (!newTemplate[day]) newTemplate[day] = [];
+                                      newTemplate[day].push({
+                                        id: Math.random().toString(36).substr(2, 9),
+                                        time,
+                                        emoji,
+                                        title,
+                                        description
+                                      });
+
+                                      if (day.startsWith('Day ')) {
+                                        const num = parseInt(day.replace('Day ', ''));
+                                        if (!isNaN(num)) maxCycleDay = Math.max(maxCycleDay, num);
                                       }
                                     }
 
-                                    if (!newTemplate[day]) newTemplate[day] = [];
-                                    newTemplate[day].push({
-                                      id: Math.random().toString(36).substr(2, 9),
-                                      time,
-                                      emoji,
-                                      title,
-                                      description
-                                    });
-
-                                    if (day.startsWith('Day ')) {
-                                      const num = parseInt(day.replace('Day ', ''));
-                                      if (!isNaN(num)) maxCycleDay = Math.max(maxCycleDay, num);
+                                    setScheduleTemplate(newTemplate);
+                                    let newSettings = { ...scheduleSettings };
+                                    if (isRotatingImport) newSettings.mode = 'rotating';
+                                    if (maxCycleDay > (scheduleSettings.cycleLength || 5) || isRotatingImport) {
+                                      newSettings.cycleLength = maxCycleDay;
                                     }
-                                  }
-
-                                  setScheduleTemplate(newTemplate);
-                                  if (maxCycleDay > (scheduleSettings.cycleLength || 5)) {
-                                    setScheduleSettings({ ...scheduleSettings, mode: 'rotating', cycleLength: maxCycleDay });
-                                  }
+                                    setScheduleSettings(newSettings);
                                   alert('Schedule imported successfully!');
                                 };
                                 reader.readAsText(file);
@@ -8035,7 +8041,16 @@
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type]; let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20); if (type === 'GROUP_MAKER') startY -= 80; if (type === 'SCHEDULE') startY -= 60; if (type === 'SEAT_PICKER') startY = 30; let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20); if (type === 'SEAT_PICKER') startX += 60; const position = { x: startX, y: startY };
+        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type];
+        let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20);
+        if (type === 'GROUP_MAKER') startY -= 80;
+        if (type === 'SCHEDULE') startY -= 60;
+        if (type === 'SEAT_PICKER') startY = 30;
+        if (type === 'QR') startY = 20;
+        let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20);
+        if (type === 'SEAT_PICKER') startX += 60;
+        if (type === 'QR') startX = (window.innerWidth / 2) - (size.width / 2);
+        const position = { x: startX, y: startY };
         let fontSize = 36;
         if (type === 'RANDOMIZER') fontSize = 20;
         if (type === 'GROUP_MAKER') fontSize = 20;
