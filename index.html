@@ -648,7 +648,7 @@
       WEBCAM: { width: 320, height: 240 },
       DICE: { width: 300, height: 320 },
       TRAFFIC: { width: 220, height: 360 },
-      QR: { width: 400, height: 300 },
+      QR: { width: 500, height: 400 },
       VOTE: { width: 400, height: 350 },
       DRAWING: { width: 900, height: 550 },
       SCHEDULE: { width: 380, height: 500 },
@@ -6392,98 +6392,98 @@
                                 const file = e.target.files[0];
                                 if (!file) return;
                                 const reader = new FileReader();
-                                                                  reader.onload = (event) => {
-                                    const text = event.target.result;
-                                    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-                                    if (lines.length <= 1) return;
+                                reader.onload = (event) => {
+                                  const text = event.target.result;
+                                  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+                                  if (lines.length <= 1) return;
 
-                                    const newTemplate = {}; // Wipe existing template for a clean import
-                                    let maxCycleDay = scheduleSettings.cycleLength || 5;
-                                    let isRotatingImport = false;
+                                  const newTemplate = {}; // Wipe existing template for a clean import
+                                  let maxCycleDay = scheduleSettings.cycleLength || 5;
+                                  let isRotatingImport = false;
 
-                                    // Skip header
-                                    for (let i = 1; i < lines.length; i++) {
-                                      // Robust CSV split to handle commas inside quotes
-                                      const parts = [];
-                                      let currentPart = '';
-                                      let inQuotes = false;
-                                      for (let char of lines[i]) {
-                                        if (char === '"') inQuotes = !inQuotes;
-                                        else if (char === ',' && !inQuotes) {
-                                          parts.push(currentPart.trim().replace(/^"|"$/g, ''));
-                                          currentPart = '';
-                                        } else {
-                                          currentPart += char;
-                                        }
+                                  // Skip header
+                                  for (let i = 1; i < lines.length; i++) {
+                                    // Robust CSV split to handle commas inside quotes
+                                    const parts = [];
+                                    let currentPart = '';
+                                    let inQuotes = false;
+                                    for (let char of lines[i]) {
+                                      if (char === '"') inQuotes = !inQuotes;
+                                      else if (char === ',' && !inQuotes) {
+                                        parts.push(currentPart.trim().replace(/^"|"$/g, ''));
+                                        currentPart = '';
+                                      } else {
+                                        currentPart += char;
                                       }
-                                      parts.push(currentPart.trim().replace(/^"|"$/g, ''));
+                                    }
+                                    parts.push(currentPart.trim().replace(/^"|"$/g, ''));
 
-                                      if (parts.length < 2) continue;
+                                    if (parts.length < 2) continue;
 
-                                      let day = parts[0];
-                                      let time = parts[1] || '09:00';
-                                      const emoji = parts[2] || '📅';
-                                      const title = parts[3] || 'Activity';
-                                      const description = parts[4] || '';
+                                    let day = parts[0];
+                                    let time = parts[1] || '09:00';
+                                    const emoji = parts[2] || '📅';
+                                    const title = parts[3] || 'Activity';
+                                    const description = parts[4] || '';
 
-                                      // Smart Day Mapping (Clean up labels and handle Week X: Monday)
-                                      if (day) {
-                                        const dow = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                                        const matchDay = dow.find(d => day.toLowerCase().includes(d.toLowerCase()));
-                                        const matchWeek = day.match(/Week\s*(\d+)/i);
+                                    // Smart Day Mapping (Clean up labels and handle Week X: Monday)
+                                    if (day) {
+                                      const dow = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                                      const matchDay = dow.find(d => day.toLowerCase().includes(d.toLowerCase()));
+                                      const matchWeek = day.match(/Week\s*(\d+)/i);
 
-                                        if (matchWeek && matchDay) {
-                                          isRotatingImport = true;
-                                          // Map "Week 2: Monday" to "Day 6" (assuming 5-day school week)
-                                          const weekNum = parseInt(matchWeek[1]);
-                                          const dayIndex = dow.indexOf(matchDay); // 1 = Mon, 5 = Fri
-                                          if (dayIndex >= 1 && dayIndex <= 5) {
-                                            day = `Day ${(weekNum - 1) * 5 + dayIndex}`;
-                                          }
-                                        } else if (matchDay) {
-                                          day = matchDay; // Strip "Prefixed Monday" to just "Monday"
-                                        } else if (day.toLowerCase().includes('day')) {
-                                          isRotatingImport = true;
+                                      if (matchWeek && matchDay) {
+                                        isRotatingImport = true;
+                                        // Map "Week 2: Monday" to "Day 6" (assuming 5-day school week)
+                                        const weekNum = parseInt(matchWeek[1]);
+                                        const dayIndex = dow.indexOf(matchDay); // 1 = Mon, 5 = Fri
+                                        if (dayIndex >= 1 && dayIndex <= 5) {
+                                          day = `Day ${(weekNum - 1) * 5 + dayIndex}`;
                                         }
-                                      }
-
-                                      // Normalize Time (handle 8:00AM, 1:30 PM, etc)
-                                      if (time) {
-                                        const timeMatch = time.match(/(\d+):(\d+)\s*([AaPp][Mm])?/);
-                                        if (timeMatch) {
-                                          let [_, h, m, ampm] = timeMatch;
-                                          let hours = parseInt(h);
-                                          const mins = m.padStart(2, '0');
-                                          if (ampm) {
-                                            if (ampm.toLowerCase().includes('p') && hours < 12) hours += 12;
-                                            if (ampm.toLowerCase().includes('a') && hours === 12) hours = 0;
-                                          }
-                                          time = `${String(hours).padStart(2, '0')}:${mins}`;
-                                        }
-                                      }
-
-                                      if (!newTemplate[day]) newTemplate[day] = [];
-                                      newTemplate[day].push({
-                                        id: Math.random().toString(36).substr(2, 9),
-                                        time,
-                                        emoji,
-                                        title,
-                                        description
-                                      });
-
-                                      if (day.startsWith('Day ')) {
-                                        const num = parseInt(day.replace('Day ', ''));
-                                        if (!isNaN(num)) maxCycleDay = Math.max(maxCycleDay, num);
+                                      } else if (matchDay) {
+                                        day = matchDay; // Strip "Prefixed Monday" to just "Monday"
+                                      } else if (day.toLowerCase().includes('day')) {
+                                        isRotatingImport = true;
                                       }
                                     }
 
-                                    setScheduleTemplate(newTemplate);
-                                    let newSettings = { ...scheduleSettings };
-                                    if (isRotatingImport) newSettings.mode = 'rotating';
-                                    if (maxCycleDay > (scheduleSettings.cycleLength || 5) || isRotatingImport) {
-                                      newSettings.cycleLength = maxCycleDay;
+                                    // Normalize Time (handle 8:00AM, 1:30 PM, etc)
+                                    if (time) {
+                                      const timeMatch = time.match(/(\d+):(\d+)\s*([AaPp][Mm])?/);
+                                      if (timeMatch) {
+                                        let [_, h, m, ampm] = timeMatch;
+                                        let hours = parseInt(h);
+                                        const mins = m.padStart(2, '0');
+                                        if (ampm) {
+                                          if (ampm.toLowerCase().includes('p') && hours < 12) hours += 12;
+                                          if (ampm.toLowerCase().includes('a') && hours === 12) hours = 0;
+                                        }
+                                        time = `${String(hours).padStart(2, '0')}:${mins}`;
+                                      }
                                     }
-                                    setScheduleSettings(newSettings);
+
+                                    if (!newTemplate[day]) newTemplate[day] = [];
+                                    newTemplate[day].push({
+                                      id: Math.random().toString(36).substr(2, 9),
+                                      time,
+                                      emoji,
+                                      title,
+                                      description
+                                    });
+
+                                    if (day.startsWith('Day ')) {
+                                      const num = parseInt(day.replace('Day ', ''));
+                                      if (!isNaN(num)) maxCycleDay = Math.max(maxCycleDay, num);
+                                    }
+                                  }
+
+                                  setScheduleTemplate(newTemplate);
+                                  let newSettings = { ...scheduleSettings };
+                                  if (isRotatingImport) newSettings.mode = 'rotating';
+                                  if (maxCycleDay > (scheduleSettings.cycleLength || 5) || isRotatingImport) {
+                                    newSettings.cycleLength = maxCycleDay;
+                                  }
+                                  setScheduleSettings(newSettings);
                                   alert('Schedule imported successfully!');
                                 };
                                 reader.readAsText(file);
