@@ -1,11 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Play, RotateCw, Edit3 } from 'lucide-react';
 
+const COUNTDOWN_THEMES: Record<string, { bar: string; setup: string; icon: string; title: string; border: string; focus: string; btn: string; shadow: string; swatch: string }> = {
+    purple: { bar: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)', setup: 'linear-gradient(135deg, #eef2ff 0%, #e8e0ff 100%)', icon: 'linear-gradient(135deg, #6366f1, #7c3aed)', title: '#312e81', border: '#e0e7ff', focus: '#6366f1', btn: 'linear-gradient(135deg, #6366f1, #7c3aed)', shadow: 'rgba(99, 102, 241, 0.35)', swatch: '#7c3aed' },
+    blue: { bar: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #2563eb 100%)', setup: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', icon: 'linear-gradient(135deg, #2563eb, #3b82f6)', title: '#1e3a5f', border: '#bfdbfe', focus: '#3b82f6', btn: 'linear-gradient(135deg, #2563eb, #3b82f6)', shadow: 'rgba(59, 130, 246, 0.35)', swatch: '#3b82f6' },
+    teal: { bar: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #0f766e 100%)', setup: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)', icon: 'linear-gradient(135deg, #0d9488, #14b8a6)', title: '#134e4a', border: '#99f6e4', focus: '#14b8a6', btn: 'linear-gradient(135deg, #0d9488, #14b8a6)', shadow: 'rgba(20, 184, 166, 0.35)', swatch: '#14b8a6' },
+    green: { bar: 'linear-gradient(135deg, #15803d 0%, #22c55e 50%, #16a34a 100%)', setup: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', icon: 'linear-gradient(135deg, #16a34a, #22c55e)', title: '#14532d', border: '#bbf7d0', focus: '#22c55e', btn: 'linear-gradient(135deg, #16a34a, #22c55e)', shadow: 'rgba(34, 197, 94, 0.35)', swatch: '#22c55e' },
+    orange: { bar: 'linear-gradient(135deg, #c2410c 0%, #f97316 50%, #ea580c 100%)', setup: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', icon: 'linear-gradient(135deg, #ea580c, #f97316)', title: '#7c2d12', border: '#fed7aa', focus: '#f97316', btn: 'linear-gradient(135deg, #ea580c, #f97316)', shadow: 'rgba(249, 115, 22, 0.35)', swatch: '#f97316' },
+    red: { bar: 'linear-gradient(135deg, #b91c1c 0%, #ef4444 50%, #dc2626 100%)', setup: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', icon: 'linear-gradient(135deg, #dc2626, #ef4444)', title: '#7f1d1d', border: '#fecaca', focus: '#ef4444', btn: 'linear-gradient(135deg, #dc2626, #ef4444)', shadow: 'rgba(239, 68, 68, 0.35)', swatch: '#ef4444' },
+    pink: { bar: 'linear-gradient(135deg, #be185d 0%, #ec4899 50%, #db2777 100%)', setup: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)', icon: 'linear-gradient(135deg, #db2777, #ec4899)', title: '#831843', border: '#fbcfe8', focus: '#ec4899', btn: 'linear-gradient(135deg, #db2777, #ec4899)', shadow: 'rgba(236, 72, 153, 0.35)', swatch: '#ec4899' },
+    slate: { bar: 'linear-gradient(135deg, #1e293b 0%, #475569 50%, #334155 100%)', setup: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', icon: 'linear-gradient(135deg, #334155, #475569)', title: '#0f172a', border: '#cbd5e1', focus: '#475569', btn: 'linear-gradient(135deg, #334155, #475569)', shadow: 'rgba(71, 85, 105, 0.35)', swatch: '#475569' },
+};
+
 const CountdownWidget = ({ widget, updateData, updateSize }) => {
     const data = widget.data || {};
     const eventName = data.eventName || '';
     const targetDate = data.targetDate || '';
     const isRunning = data.isRunning || false;
+    const colorTheme = data.colorTheme || 'purple';
+    const theme = COUNTDOWN_THEMES[colorTheme] || COUNTDOWN_THEMES.purple;
 
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
@@ -50,14 +63,14 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
         updateData(widget.id, { isRunning: false });
         // Revert to compact form
         if (updateSize) {
-            updateSize(widget.id, { width: 280, height: 280 });
+            updateSize(widget.id, { width: 280, height: 320 });
         }
     };
 
     const handleReset = () => {
         updateData(widget.id, { eventName: '', targetDate: '', isRunning: false });
         if (updateSize) {
-            updateSize(widget.id, { width: 280, height: 280 });
+            updateSize(widget.id, { width: 280, height: 320 });
         }
     };
 
@@ -70,7 +83,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                 ref={containerRef}
                 className="flex items-center h-full w-full"
                 style={{
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)',
+                    background: theme.bar,
                     padding: '0 24px',
                     overflow: 'hidden',
                     transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -175,7 +188,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
             ref={containerRef}
             className="flex flex-col h-full items-center justify-center"
             style={{
-                background: 'linear-gradient(135deg, #eef2ff 0%, #e8e0ff 100%)',
+                background: theme.setup,
                 padding: 20,
                 transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
@@ -185,12 +198,12 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                 width: 56,
                 height: 56,
                 borderRadius: 16,
-                background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
+                background: theme.icon,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 16,
-                boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
+                marginBottom: 12,
+                boxShadow: `0 8px 24px ${theme.shadow}`,
             }}>
                 <Clock size={28} color="white" />
             </div>
@@ -198,12 +211,34 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
             <h3 style={{
                 fontSize: 15,
                 fontWeight: 800,
-                color: '#312e81',
-                marginBottom: 16,
+                color: theme.title,
+                marginBottom: 12,
                 letterSpacing: '-0.01em',
             }}>
                 Event Countdown
             </h3>
+
+            {/* Color Theme Picker */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {Object.entries(COUNTDOWN_THEMES).map(([key, t]) => (
+                    <button
+                        key={key}
+                        onClick={() => updateData(widget.id, { colorTheme: key })}
+                        title={key.charAt(0).toUpperCase() + key.slice(1)}
+                        style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            background: t.swatch,
+                            border: colorTheme === key ? '3px solid white' : '2px solid transparent',
+                            boxShadow: colorTheme === key ? `0 0 0 2px ${t.swatch}, 0 2px 8px ${t.shadow}` : '0 1px 3px rgba(0,0,0,0.15)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            transform: colorTheme === key ? 'scale(1.15)' : 'scale(1)',
+                        }}
+                    />
+                ))}
+            </div>
 
             {/* Event Name */}
             <input
@@ -215,7 +250,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: 10,
-                    border: '2px solid #e0e7ff',
+                    border: `2px solid ${theme.border}`,
                     fontSize: 14,
                     fontWeight: 600,
                     color: '#1e293b',
@@ -225,8 +260,8 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                     textAlign: 'center',
                     transition: 'border-color 0.2s',
                 }}
-                onFocus={(e) => (e.target.style.borderColor = '#6366f1')}
-                onBlur={(e) => (e.target.style.borderColor = '#e0e7ff')}
+                onFocus={(e) => (e.target.style.borderColor = theme.focus)}
+                onBlur={(e) => (e.target.style.borderColor = theme.border)}
             />
 
             {/* Date/Time Picker */}
@@ -238,18 +273,18 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: 10,
-                    border: '2px solid #e0e7ff',
+                    border: `2px solid ${theme.border}`,
                     fontSize: 13,
                     fontWeight: 600,
                     color: '#475569',
                     outline: 'none',
                     background: 'white',
-                    marginBottom: 16,
+                    marginBottom: 14,
                     textAlign: 'center',
                     transition: 'border-color 0.2s',
                 }}
-                onFocus={(e) => (e.target.style.borderColor = '#6366f1')}
-                onBlur={(e) => (e.target.style.borderColor = '#e0e7ff')}
+                onFocus={(e) => (e.target.style.borderColor = theme.focus)}
+                onBlur={(e) => (e.target.style.borderColor = theme.border)}
             />
 
             {/* Start Button */}
@@ -264,7 +299,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                     border: 'none',
                     background: (!eventName.trim() || !targetDate)
                         ? '#cbd5e1'
-                        : 'linear-gradient(135deg, #6366f1, #7c3aed)',
+                        : theme.btn,
                     color: 'white',
                     fontSize: 14,
                     fontWeight: 800,
@@ -276,7 +311,7 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                     transition: 'all 0.2s',
                     boxShadow: (!eventName.trim() || !targetDate)
                         ? 'none'
-                        : '0 6px 20px rgba(99, 102, 241, 0.35)',
+                        : `0 6px 20px ${theme.shadow}`,
                 }}
             >
                 <Play size={16} /> Start Countdown
