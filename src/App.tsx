@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
@@ -133,7 +133,12 @@ const App = () => {
     const [dockOrder, setDockOrder] = useState(() => {
         try {
             const parsed = JSON.parse(localStorage.getItem('homeroom_dock_order'));
-            return Array.isArray(parsed) ? parsed : INIT_DOCK_ORDER;
+            if (!Array.isArray(parsed)) return INIT_DOCK_ORDER;
+            // Remove types that no longer exist in DOCK_LABELS (e.g. unfinished GOALS)
+            const cleaned = parsed.filter(t => DOCK_LABELS[t]);
+            // Append any new types from INIT_DOCK_ORDER that the user doesn't have yet
+            const missing = INIT_DOCK_ORDER.filter(t => !cleaned.includes(t));
+            return [...cleaned, ...missing];
         } catch { return INIT_DOCK_ORDER; }
     });
 
@@ -150,6 +155,10 @@ const App = () => {
     const [clockStyle, setClockStyle] = useState('12h');
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
     const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+
+    // Guards for cloud sync
+    const cloudLoaded = useRef(false);   // true once initial cloud data is fetched
+    const savingRef = useRef(false);     // true while a save is in-flight (to ignore own realtime events)
 
     // Access Control Gating
     useEffect(() => {
@@ -224,43 +233,73 @@ const App = () => {
                 // Load Widgets (Slide 0 for now)
                 const slides = await dataService.getSlides(user.id);
                 if (slides && slides.length > 0) {
-                    // Merge with existing if needed, but for now replace or set if empty
                     const loadedWidgets = slides[0].widgets;
                     if (Array.isArray(loadedWidgets)) setWidgets(loadedWidgets);
-                } else {
-                    // Create initial slide if none
-                    // await dataService.saveSlide(user.id, 0, []);
                 }
 
                 // Load Rosters
                 const rosters = await dataService.getRosters(user.id);
                 if (rosters && Array.isArray(rosters) && rosters.length > 0) {
-                    setAllRosters(rosters.map(r => ({ ...r, active: true }))); // Ensure structure match
-                    // If active ID is not in fetched rosters, verify
+                    setAllRosters(rosters.map(r => ({ ...r, active: true })));
                 }
             } catch (e) {
                 console.error("Error loading cloud data", e);
             }
+
+            // Mark cloud as loaded AFTER data is fetched — this unblocks the save effect
+            cloudLoaded.current = true;
         };
 
         if (!isCheckingPro) loadCloudData();
     }, [isCheckingPro]);
 
-    // Sync Widgets to Cloud
+    // Sync Widgets to Cloud (guarded: only runs after cloud data has loaded)
     useEffect(() => {
+        if (!cloudLoaded.current) return; // Don't save until initial cloud data is loaded
+
         const saveWidgetsToCloud = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
             try {
+                savingRef.current = true;
                 await dataService.saveSlide(user.id, 0, widgets);
             } catch (e) {
                 console.error("Failed to save widgets", e);
+            } finally {
+                // Small delay before clearing the flag so the realtime echo is ignored
+                setTimeout(() => { savingRef.current = false; }, 500);
             }
         };
 
         const timeoutId = setTimeout(saveWidgetsToCloud, 2000); // 2s Debounce
         return () => clearTimeout(timeoutId);
     }, [widgets]);
+
+    // Realtime cross-tab sync for widgets
+    useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase
+            .channel('slides-realtime')
+            .on(
+                'postgres_changes' as any,
+                { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` },
+                (payload: any) => {
+                    // Ignore our own writes
+                    if (savingRef.current) return;
+                    const newWidgets = payload.new?.widgets;
+                    if (Array.isArray(newWidgets)) {
+                        cloudLoaded.current = true;
+                        setWidgets(newWidgets);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
 
 
     // Onboarding
