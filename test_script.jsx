@@ -1,295 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HomeRoom Pro</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            indigo: {
-              50: 'var(--accent-50)',
-              100: 'var(--accent-100)',
-              200: 'var(--accent-200)',
-              300: 'var(--accent-300)',
-              400: 'var(--accent-400)',
-              500: 'var(--accent-500)',
-              600: 'var(--accent-600)',
-              700: 'var(--accent-700)',
-              800: 'var(--accent-800)',
-              900: 'var(--accent-900)',
-            },
-            purple: {
-              50: 'var(--accent-50)',
-              100: 'var(--accent-100)',
-              200: 'var(--accent-200)',
-              300: 'var(--accent-300)',
-              400: 'var(--accent-400)',
-              500: 'var(--accent-500)',
-              600: 'var(--accent-600)',
-              700: 'var(--accent-700)',
-              800: 'var(--accent-800)',
-              900: 'var(--accent-900)',
-            },
-            blue: {
-              50: 'var(--accent-50)',
-              100: 'var(--accent-100)',
-              200: 'var(--accent-200)',
-              300: 'var(--accent-300)',
-              400: 'var(--accent-400)',
-              500: 'var(--accent-500)',
-              600: 'var(--accent-600)',
-              700: 'var(--accent-700)',
-              800: 'var(--accent-800)',
-              900: 'var(--accent-900)',
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Lexend:wght@300;400;500;600;700;800&family=VT323&family=Oswald:wght@500;700&family=Caveat:wght@400;700&family=Bangers&display=swap"
-    rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    supabaseClient = null;
-    try {
-      window.supabaseClient = window.supabase.createClient(
-        'https://lguewieabkrjgsobufjd.supabase.co',
-        'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO'
-      );
-    } catch (e) {
-      console.warn('Supabase init failed:', e);
-    }
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Lexend', 'Poppins', sans-serif;
-      overflow: hidden;
-    }
-
-    /* Ensure consistent emoji rendering across all systems */
-    .emoji {
-      font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-
-    /* Wobble animation for dock edit mode */
-    @keyframes wobble {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      25% {
-        transform: rotate(-2deg);
-      }
-
-      75% {
-        transform: rotate(2deg);
-      }
-
-      100% {
-        transform: rotate(0deg);
-      }
-    }
-
-    .animate-wobble {
-      animation: wobble 0.3s infinite linear;
-    }
-
-    /* Flip Clock Animations */
-    @keyframes flip-down {
-      0% {
-        transform: rotateX(0deg);
-      }
-
-      100% {
-        transform: rotateX(-180deg);
-      }
-    }
-
-    .flip-card {
-      perspective: 1000px;
-    }
-
-    .flip-half {
-      backface-visibility: hidden;
-      transform-origin: bottom;
-    }
-
-    .flip-animate {
-      animation: flip-down 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    }
-
-    /* Restore list styles for Notes widget contenteditable area */
-    [contenteditable] ul {
-      list-style-type: disc;
-      padding-left: 1.5rem;
-      margin: 0.5rem 0;
-    }
-
-    [contenteditable] ol {
-      list-style-type: decimal;
-      padding-left: 1.5rem;
-      margin: 0.5rem 0;
-    }
-
-    [contenteditable] li {
-      margin: 0.25rem 0;
-    }
-  </style>
-  <!-- Babel for JSX (Pinned stable version) -->
-  <script src="https://unpkg.com/@babel/standalone@7.25.9/babel.min.js" crossorigin></script>
-  <!-- Import Map -->
-  <script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@18.2.0",
-      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-      "react-dom": "https://esm.sh/react-dom@18.2.0",
-      "lucide-react": "https://esm.sh/lucide-react@0.447.0?deps=react@18.2.0"
-    }
-  }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    (function () {
-      const url = 'https://lguewieabkrjgsobufjd.supabase.co';
-      const key = 'sb_publishable_5GO3bYshKEh_MWebMvDCiQ_Ti7ivGWO';
-
-      window.CookieStorage = {
-        getItem: (key) => {
-          const name = key + "=";
-          const ca = document.cookie.split(';');
-          for (let i = 0; i < ca.length; i++) {
-            let c = ca[i].trim();
-            if (c.indexOf(name) === 0) {
-              try { return decodeURIComponent(c.substring(name.length)); }
-              catch (e) { return c.substring(name.length); }
-            }
-          }
-          return null;
-        },
-        setItem: (key, value) => {
-          const d = new Date();
-          d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
-          const expires = "expires=" + d.toUTCString();
-          const host = window.location.hostname;
-          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-
-          // v2.7: Strip large session data to essential tokens only
-          let processedValue = value;
-          try {
-            if (value && value.length > 3000) {
-              const parsed = JSON.parse(value);
-              // If it looks like a Supabase session, strip to essentials
-              if (parsed.access_token && parsed.refresh_token) {
-                // IMPORTANT: Must keep user object for _emitInitialSession to work
-                let minUser = parsed.user;
-                if (minUser && typeof minUser === 'object') {
-                  // optimization: remove large identities array to save space
-                  const { identities, ...rest } = minUser;
-                  minUser = rest;
-                }
-
-                const stripped = {
-                  access_token: parsed.access_token,
-                  refresh_token: parsed.refresh_token,
-                  expires_at: parsed.expires_at,
-                  expires_in: parsed.expires_in,
-                  token_type: parsed.token_type || 'bearer',
-                  user: minUser
-                };
-                processedValue = JSON.stringify(stripped);
-                console.log('CookieStorage v2.8: Stripped session (keeping user) from', value.length, 'to', processedValue.length, 'bytes');
-              }
-            }
-          } catch (e) {
-            // Not JSON, use original value
-          }
-
-          // Aggressive Clear
-          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
-
-          let cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; SameSite=Lax; Secure`;
-          if (!isLocal && host.includes('ourhomeroom.app')) {
-            // v2.7: Use leading dot for explicit cross-subdomain sharing
-            cookieStr = `${key}=${encodeURIComponent(processedValue)}; ${expires}; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
-          }
-          document.cookie = cookieStr;
-          console.log('CookieStorage v2.7 Set:', key, 'size:', processedValue.length);
-        },
-        removeItem: (key) => {
-          const host = window.location.hostname;
-          const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure`;
-          if (!isLocal && host.includes('ourhomeroom.app')) {
-            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.ourhomeroom.app; SameSite=Lax; Secure`;
-          }
-        }
-      };
-      try {
-        window.supabaseClient = window.supabase.createClient(url, key, {
-          auth: {
-            storage: window.CookieStorage,
-            autoRefreshToken: true,
-            persistSession: true,
-            detectSessionInUrl: true,
-            storageKey: 'homeroom-auth-token',
-          }
-        });
-      } catch (e) {
-        console.error("Supabase Init Error:", e);
-      }
-    })();
-  </script>
-  <script>
-    // Global error trapping for white screen debugging
-    window.onerror = function (msg, url, line, col, error) {
-      const errDiv = document.createElement('div');
-      errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:red;color:white;z-index:999999;padding:10px;font-family:monospace;font-size:12px;';
-      errDiv.innerHTML = '<strong>GLOBAL ERROR:</strong> ' + msg + ' <br/> at ' + url + ':' + line + ':' + col;
-      document.body.appendChild(errDiv);
-      return false;
-    };
-    window.onunhandledrejection = function (event) {
-      const errDiv = document.createElement('div');
-      errDiv.style.cssText = 'position:fixed;top:40px;left:0;width:100%;background:orange;color:white;z-index:999999;padding:10px;font-family:monospace;font-size:12px;';
-      errDiv.innerHTML = '<strong>PROMISE REJECTION:</strong> ' + (event.reason ? event.reason.message || event.reason : 'Unknown rejection');
-      document.body.appendChild(errDiv);
-    };
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-</head>
-
-<body>
-  <div id="root"></div>
-
-  <script type="text/babel" data-presets="react" data-type="module">
     import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
     import { createRoot } from 'react-dom/client';
     import { createPortal } from 'react-dom';
@@ -302,7 +11,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search, Calculator
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search, Calculator, Play, RotateCcw
     } from 'lucide-react';
 
     const TimerIcon = Timer;
@@ -541,11 +250,11 @@
 
     const CLOCK_STYLES = [
       { id: 'standard', name: 'Standard', preview: '12:00' },
-      { id: 'analog', name: 'Analog', preview: '🕐' },
-      { id: 'modern-analog', name: 'Modern Analog', preview: '⌚' },
+      { id: 'analog', name: 'Analog', preview: 'ðŸ•' },
+      { id: 'modern-analog', name: 'Modern Analog', preview: 'âŒš' },
       { id: 'bighour', name: 'Big Hour', preview: '12 00' },
       { id: 'modern', name: 'Modern Digital', preview: '12:00' },
-      { id: 'retro', name: 'RETRO', preview: '📅' }
+      { id: 'retro', name: 'RETRO', preview: 'ðŸ“…' }
     ];
 
     // --- STORAGE SERVICE ---
@@ -2658,7 +2367,7 @@
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{isMinimized ? <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{widgetLabel}</span> : <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto" />}</div>
           <div className="flex items-center gap-1 z-10">
             {onSpotlight && (<button onClick={(e) => { e.stopPropagation(); onSpotlight(id); }} className={`p-1 rounded transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Spotlight"> <Lightbulb size={14} /> </button>)}
-            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title={isMinimized ? "Restore" : "Minimize"}> <span className="font-bold text-sm leading-none">{isMinimized ? '+' : '−'}</span> </button>)}
+            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title={isMinimized ? "Restore" : "Minimize"}> <span className="font-bold text-sm leading-none">{isMinimized ? '+' : 'âˆ’'}</span> </button>)}
             <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> </button>
           </div>
         </div>}
@@ -3088,11 +2797,11 @@
 
     const MARBLE_THEMES = {
       classic: { name: 'Classic', items: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'], type: 'color' },
-      sports: { name: 'Sports', items: ['⚽', '🏀', '🏈', '⚾', '🎾'], type: 'emoji' },
-      minecraft: { name: 'Minecraft', items: ['🟩', '💎', '🧱', '🧟', '🔵'], type: 'emoji' },
-      space: { name: 'Space', items: ['🚀', '🪐', '🌑', '👽', '🌠'], type: 'emoji' },
-      animals: { name: 'Animals', items: ['🐶', '🐱', '🦊', '🦁', '🐼'], type: 'emoji' },
-      candy: { name: 'Candy', items: ['🍬', '🍭', '🍩', '🍫', '🍪'], type: 'emoji' }
+      sports: { name: 'Sports', items: ['âš½', 'ðŸ€', 'ðŸˆ', 'âš¾', 'ðŸŽ¾'], type: 'emoji' },
+      minecraft: { name: 'Minecraft', items: ['ðŸŸ©', 'ðŸ’Ž', 'ðŸ§±', 'ðŸ§Ÿ', 'ðŸ”µ'], type: 'emoji' },
+      space: { name: 'Space', items: ['ðŸš€', 'ðŸª', 'ðŸŒ‘', 'ðŸ‘½', 'ðŸŒ '], type: 'emoji' },
+      animals: { name: 'Animals', items: ['ðŸ¶', 'ðŸ±', 'ðŸ¦Š', 'ðŸ¦', 'ðŸ¼'], type: 'emoji' },
+      candy: { name: 'Candy', items: ['ðŸ¬', 'ðŸ­', 'ðŸ©', 'ðŸ«', 'ðŸª'], type: 'emoji' }
     };
 
     const MARBLE_SOUNDS = {
@@ -3338,7 +3047,7 @@
                   )}
                 </div>
                 <div className="absolute -top-10 scale-0 group-hover:scale-100 bg-white/95 backdrop-blur-sm text-indigo-900 text-[10px] font-black px-3 py-1.5 rounded-xl transition-all duration-300 whitespace-nowrap shadow-xl border border-white">
-                  DROP ONE ✨
+                  DROP ONE âœ¨
                 </div>
               </button>
             </div>
@@ -3461,28 +3170,28 @@
 
     const SOUND_ASSETS = {
       transitions: [
-        { id: 'bell', name: 'Bell', icon: '🔔', url: 'https://cdn.freesound.org/previews/339/339810_5121236-lq.mp3' },
-        { id: 'chime', name: 'Chime', icon: '✨', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }
+        { id: 'bell', name: 'Bell', icon: 'ðŸ””', url: 'https://cdn.freesound.org/previews/339/339810_5121236-lq.mp3' },
+        { id: 'chime', name: 'Chime', icon: 'âœ¨', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' }
       ],
       celebrations: [
-        { id: 'applause', name: 'Applause', icon: '👏', url: 'https://assets.mixkit.co/sfx/preview/mixkit-audience-clapping-and-cheering-466.mp3' },
-        { id: 'fanfare', name: 'Fanfare', icon: '🎺', url: 'https://assets.mixkit.co/sfx/preview/mixkit-animated-small-group-applause-523.mp3' },
-        { id: 'cheer', name: 'Cheer', icon: '🎉', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cheering-crowd-loud-whistle-461.mp3' },
-        { id: 'levelup', name: 'Level Up', icon: '⬆️', url: 'https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3' },
-        { id: 'magic', name: 'Magic', icon: '🪄', url: 'https://assets.mixkit.co/sfx/preview/mixkit-fairy-dust-magic-wand-2956.mp3' }
+        { id: 'applause', name: 'Applause', icon: 'ðŸ‘', url: 'https://assets.mixkit.co/sfx/preview/mixkit-audience-clapping-and-cheering-466.mp3' },
+        { id: 'fanfare', name: 'Fanfare', icon: 'ðŸŽº', url: 'https://assets.mixkit.co/sfx/preview/mixkit-animated-small-group-applause-523.mp3' },
+        { id: 'cheer', name: 'Cheer', icon: 'ðŸŽ‰', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cheering-crowd-loud-whistle-461.mp3' },
+        { id: 'levelup', name: 'Level Up', icon: 'â¬†ï¸', url: 'https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3' },
+        { id: 'magic', name: 'Magic', icon: 'ðŸª„', url: 'https://assets.mixkit.co/sfx/preview/mixkit-fairy-dust-magic-wand-2956.mp3' }
       ],
       fun: [
-        { id: 'airhorn', name: 'Air Horn', icon: '📢', url: 'https://assets.mixkit.co/sfx/preview/mixkit-air-horn-sound-7466.mp3' },
-        { id: 'laugh', name: 'Laugh', icon: '😂', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-voice-laugh-343.mp3' },
-        { id: 'cricket', name: 'Cricket', icon: '🦗', url: 'https://assets.mixkit.co/sfx/preview/mixkit-crickets-and-insects-in-the-wild-ambience-124.mp3' },
-        { id: 'drumroll', name: 'Drum Roll', icon: '🥁', url: 'https://assets.mixkit.co/sfx/preview/mixkit-drum-roll-566.mp3' },
-        { id: 'boing', name: 'Boing', icon: '🌀', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-boing-2862.mp3' }
+        { id: 'airhorn', name: 'Air Horn', icon: 'ðŸ“¢', url: 'https://assets.mixkit.co/sfx/preview/mixkit-air-horn-sound-7466.mp3' },
+        { id: 'laugh', name: 'Laugh', icon: 'ðŸ˜‚', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-voice-laugh-343.mp3' },
+        { id: 'cricket', name: 'Cricket', icon: 'ðŸ¦—', url: 'https://assets.mixkit.co/sfx/preview/mixkit-crickets-and-insects-in-the-wild-ambience-124.mp3' },
+        { id: 'drumroll', name: 'Drum Roll', icon: 'ðŸ¥', url: 'https://assets.mixkit.co/sfx/preview/mixkit-drum-roll-566.mp3' },
+        { id: 'boing', name: 'Boing', icon: 'ðŸŒ€', url: 'https://assets.mixkit.co/sfx/preview/mixkit-cartoon-boing-2862.mp3' }
       ],
       focus: [
-        { id: 'rain', name: 'Rain', icon: '🌧️', url: 'https://cdn.freesound.org/previews/531/531947_7694833-lq.mp3', loop: true },
-        { id: 'piano', name: 'Piano', icon: '🎹', url: 'https://cdn.freesound.org/previews/610/610787_12908482-lq.mp3', loop: true },
-        { id: 'forest', name: 'Forest', icon: '🌲', url: 'https://cdn.freesound.org/previews/573/573577_12716336-lq.mp3', loop: true },
-        { id: 'lofi', name: 'Lo-Fi', icon: '🎧', url: 'https://cdn.freesound.org/previews/558/558836_2595059-lq.mp3', loop: true }
+        { id: 'rain', name: 'Rain', icon: 'ðŸŒ§ï¸', url: 'https://cdn.freesound.org/previews/531/531947_7694833-lq.mp3', loop: true },
+        { id: 'piano', name: 'Piano', icon: 'ðŸŽ¹', url: 'https://cdn.freesound.org/previews/610/610787_12908482-lq.mp3', loop: true },
+        { id: 'forest', name: 'Forest', icon: 'ðŸŒ²', url: 'https://cdn.freesound.org/previews/573/573577_12716336-lq.mp3', loop: true },
+        { id: 'lofi', name: 'Lo-Fi', icon: 'ðŸŽ§', url: 'https://cdn.freesound.org/previews/558/558836_2595059-lq.mp3', loop: true }
       ]
     };
 
@@ -3530,9 +3239,9 @@
       const calculate = (a, b, op) => {
         switch (op) {
           case '+': return a + b;
-          case '−': return a - b;
-          case '×': return a * b;
-          case '÷': return b !== 0 ? a / b : 0;
+          case 'âˆ’': return a - b;
+          case 'Ã—': return a * b;
+          case 'Ã·': return b !== 0 ? a / b : 0;
           default: return b;
         }
       };
@@ -3568,22 +3277,22 @@
 
       const buttons = [
         { label: 'C', type: 'func', action: clear },
-        { label: '±', type: 'func', action: toggleSign },
+        { label: 'Â±', type: 'func', action: toggleSign },
         { label: '%', type: 'func', action: inputPercent },
-        { label: '÷', type: 'op', action: () => performOperation('÷') },
+        { label: 'Ã·', type: 'op', action: () => performOperation('Ã·') },
         { label: '7', type: 'num', action: () => inputDigit('7') },
         { label: '8', type: 'num', action: () => inputDigit('8') },
         { label: '9', type: 'num', action: () => inputDigit('9') },
-        { label: '×', type: 'op', action: () => performOperation('×') },
+        { label: 'Ã—', type: 'op', action: () => performOperation('Ã—') },
         { label: '4', type: 'num', action: () => inputDigit('4') },
         { label: '5', type: 'num', action: () => inputDigit('5') },
         { label: '6', type: 'num', action: () => inputDigit('6') },
-        { label: '−', type: 'op', action: () => performOperation('−') },
+        { label: 'âˆ’', type: 'op', action: () => performOperation('âˆ’') },
         { label: '1', type: 'num', action: () => inputDigit('1') },
         { label: '2', type: 'num', action: () => inputDigit('2') },
         { label: '3', type: 'num', action: () => inputDigit('3') },
         { label: '+', type: 'op', action: () => performOperation('+') },
-        { label: '⌫', type: 'func', action: backspace },
+        { label: 'âŒ«', type: 'func', action: backspace },
         { label: '0', type: 'num', action: () => inputDigit('0') },
         { label: '.', type: 'num', action: inputDecimal },
         { label: '=', type: 'eq', action: handleEquals },
@@ -3682,7 +3391,7 @@
             <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)', marginRight: 24, flexShrink: 0 }} />
             <div className="flex items-center flex-1 justify-center" style={{ gap: 6 }}>
               {isExpired ? (
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', textAlign: 'center' }}>🎉 Time's Up!</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', textAlign: 'center' }}>ðŸŽ‰ Time's Up!</div>
               ) : (
                 <>
                   <CountdownUnit value={timeLeft.days} label="DAYS" />
@@ -4294,7 +4003,7 @@
       const count = activeStudents.length;
       const scaledFS = (fontSize / 16) * 14;
 
-      // Responsive column calculation — prefer balanced rows
+      // Responsive column calculation â€” prefer balanced rows
       useEffect(() => {
         if (!containerRef.current) return;
 
@@ -4629,7 +4338,7 @@
     // ============================================================
     // ENHANCED DRAWING WIDGET - With speed-sensitive pen, text, emojis
     // ============================================================
-    const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎'];
+    const DRAWING_EMOJIS = ['â­', 'â¤ï¸', 'âœ…', 'âŒ', 'ðŸ‘', 'ðŸ‘Ž', 'ðŸŽ¯', 'ðŸ†', 'ðŸ”¥', 'ðŸ’¡', 'ðŸ“Œ', 'ðŸŽ¨', 'ðŸ“„', 'ðŸŒŸ', 'âœ¨', 'ðŸŽ‰', 'ðŸ’¯', 'ðŸ‘€', 'ðŸ¤”', 'ðŸ’ª', 'ðŸŒˆ', 'âš¡', 'ðŸŽ', 'ðŸ˜Š', 'ðŸ™Œ', 'ðŸŽµ', 'ðŸŒ¸', 'ðŸŽ', 'ðŸš€', 'ðŸ’Ž'];
 
     const DrawingWidget = ({ widget, updateData }) => {
       const { color = '#000000', brushSize = 8, tool = 'pen', textItems = [], emojiItems = [], imageItems = [], drawOffset = { x: 0, y: 0 } } = widget.data;
@@ -5339,7 +5048,7 @@
       };
 
       const updateItem = (index, field, value) => { const newItems = [...items]; newItems[index] = { ...newItems[index], [field]: value }; saveItems(newItems); };
-      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
+      const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: 'ðŸ“š', title: 'New Activity', description: '' }; const newItems = [...items, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveItems(newItems); };
       const removeItem = (index) => { const newItems = items.filter((_, i) => i !== index); saveItems(newItems); };
 
       const handleDragStart = (index) => { setDragIndex(index); };
@@ -5495,7 +5204,7 @@
                       <div className="cursor-pointer hover:scale-110 transition-transform active:scale-95 p-1 rounded-lg hover:bg-indigo-50"
                         style={{ fontSize: emojiSize + 'px' }}
                         onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}>
-                        {item.emoji || '📚'}
+                        {item.emoji || 'ðŸ“š'}
                       </div>
                       {emojiPickerIndex === index && <div className="absolute left-0 top-full mt-2 z-[100] bg-white rounded-xl shadow-2xl border border-slate-100 p-2 w-56 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100" onClick={(e) => e.stopPropagation()}><div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-2xl p-2 rounded-lg hover:bg-indigo-50 transition-colors ${item.emoji === emoji ? 'bg-indigo-100' : ''}`}>{emoji}</button>))} </div></div>}
                     </div>
@@ -5627,7 +5336,7 @@
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-              <h2 className="text-2xl font-bold mb-2">Welcome to HomeRoom! 🍎</h2>
+              <h2 className="text-2xl font-bold mb-2">Welcome to HomeRoom! ðŸŽ</h2>
               <p className="opacity-90 text-sm">Let's set up your class roster. You can change this anytime.</p>
             </div>
             <div className="p-6">
@@ -5835,7 +5544,7 @@
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 focus:bg-white transition-all font-medium text-gray-800"
-                    placeholder="••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   />
                   {mode === 'login' && (
                     <div className="flex justify-end mt-2">
@@ -6363,7 +6072,7 @@
       };
 
       const addScheduleItem = (day) => {
-        const newItem = { id: Date.now().toString(), time: '09:00', emoji: '📚', title: 'New Activity', description: '' };
+        const newItem = { id: Date.now().toString(), time: '09:00', emoji: 'ðŸ“š', title: 'New Activity', description: '' };
         setScheduleTemplate(prev => ({ ...prev, [day]: [...(prev[day] || []), newItem] }));
       };
 
@@ -6710,7 +6419,7 @@
                                     let dayLabel = originalDayStr;
                                     let day = originalDayStr;
                                     let time = parts[1] || '09:00';
-                                    const emoji = parts[2] || '📅';
+                                    const emoji = parts[2] || 'ðŸ“…';
                                     const title = parts[3] || 'Activity';
                                     const description = parts[4] || '';
 
@@ -6938,7 +6647,7 @@
                               className="text-lg cursor-pointer hover:scale-110 transition-transform p-1 rounded hover:bg-gray-200 emoji"
                               onClick={() => setSettingsEmojiPickerIndex(settingsEmojiPickerIndex === index ? null : index)}
                             >
-                              {item.emoji || 'ðŸ“š'}
+                              {item.emoji || 'Ã°Å¸â€œÅ¡'}
                             </div>
                             {settingsEmojiPickerIndex === index && (
                               <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-2 w-48 max-h-40 overflow-y-auto custom-scrollbar">
@@ -9002,7 +8711,4 @@
     } else {
       root.render(<App />);
     }
-  </script>
-</body>
-
-</html>
+  
