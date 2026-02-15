@@ -302,7 +302,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search, Calculator, Play, RotateCcw
     } from 'lucide-react';
 
     const TimerIcon = Timer;
@@ -514,8 +514,9 @@
       SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
       YOUTUBE: { label: 'Embed', icon: <Youtube /> },
       CALENDAR: { label: 'Calendar', icon: <Calendar /> },
-      MARBLE_JAR: { label: 'Goals', icon: <JarIcon /> },
-      SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> }
+      SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
+      CALCULATOR: { label: 'Calc', icon: <Calculator /> },
+      COUNTDOWN: { label: 'Countdown', icon: <Clock /> }
     };
 
     const WindowIcon = ({ size = 16 }) => (
@@ -570,10 +571,10 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN'] };
 
-        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'MARBLE_JAR', 'SOUNDBOARD'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'];
+        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
 
         // If it's a flat array (from Supabase or old storage)
@@ -586,15 +587,14 @@
 
         // If it's already an object
         if (saved && saved.main && saved.drawer) {
-          const currentIds = [...saved.main, ...saved.drawer];
+          // Remove types that no longer exist in DOCK_LABELS (e.g. removed MARBLE_JAR)
+          const cleanedMain = saved.main.filter(id => DOCK_LABELS[id]);
+          const cleanedDrawer = saved.drawer.filter(id => DOCK_LABELS[id]);
+          const currentIds = [...cleanedMain, ...cleanedDrawer];
           const missing = allDefaults.filter(id => !currentIds.includes(id));
 
-          // Force inject missing new widgets (MARBLE_JAR, SOUNDBOARD)
-          if (missing.length > 0) {
-            return { ...saved, drawer: [...saved.drawer, ...missing] };
-          }
-
-          return saved;
+          // Append any missing new widgets to the drawer
+          return { main: cleanedMain, drawer: [...cleanedDrawer, ...missing] };
         }
 
         return { main: mainDefaults, drawer: drawerDefaults };
@@ -655,7 +655,9 @@
       YOUTUBE: { width: 480, height: 360 },
       CALENDAR: { width: 320, height: 380 },
       MARBLE_JAR: { width: 400, height: 500 },
-      SOUNDBOARD: { width: 600, height: 500 }
+      SOUNDBOARD: { width: 600, height: 500 },
+      CALCULATOR: { width: 280, height: 380 },
+      COUNTDOWN: { width: 280, height: 280 }
     };
 
     // --- COMPONENTS ---
@@ -3482,6 +3484,242 @@
         { id: 'forest', name: 'Forest', icon: '🌲', url: 'https://cdn.freesound.org/previews/573/573577_12716336-lq.mp3', loop: true },
         { id: 'lofi', name: 'Lo-Fi', icon: '🎧', url: 'https://cdn.freesound.org/previews/558/558836_2595059-lq.mp3', loop: true }
       ]
+    };
+
+    // --- CALCULATOR WIDGET ---
+    const CalculatorWidget = ({ widget, updateData }) => {
+      const BASELINE_WIDTH = 280;
+      const [display, setDisplay] = useState(widget.data?.display || '0');
+      const [prevValue, setPrevValue] = useState(widget.data?.prevValue ?? null);
+      const [operator, setOperator] = useState(widget.data?.operator ?? null);
+      const [waitingForOperand, setWaitingForOperand] = useState(false);
+      const [expression, setExpression] = useState(widget.data?.expression || '');
+      const containerRef = useRef(null);
+      const [scale, setScale] = useState(1);
+
+      useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const w = entry.contentRect.width;
+            setScale(Math.max(0.5, Math.min(1.5, w / BASELINE_WIDTH)));
+          }
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+      }, []);
+
+      const s = (base) => Math.round(base * scale);
+
+      const inputDigit = (digit) => {
+        if (waitingForOperand) { setDisplay(digit); setWaitingForOperand(false); }
+        else { setDisplay(display === '0' ? digit : display + digit); }
+      };
+
+      const inputDecimal = () => {
+        if (waitingForOperand) { setDisplay('0.'); setWaitingForOperand(false); return; }
+        if (!display.includes('.')) setDisplay(display + '.');
+      };
+
+      const clear = () => { setDisplay('0'); setPrevValue(null); setOperator(null); setWaitingForOperand(false); setExpression(''); };
+      const toggleSign = () => { const val = parseFloat(display); if (val !== 0) setDisplay(String(-val)); };
+      const inputPercent = () => { setDisplay(String(parseFloat(display) / 100)); };
+      const backspace = () => { setDisplay(display.length > 1 ? display.slice(0, -1) : '0'); };
+
+      const calculate = (a, b, op) => {
+        switch (op) {
+          case '+': return a + b;
+          case '−': return a - b;
+          case '×': return a * b;
+          case '÷': return b !== 0 ? a / b : 0;
+          default: return b;
+        }
+      };
+
+      const formatResult = (val) => {
+        const str = String(val);
+        return str.length > 12 ? parseFloat(val.toPrecision(10)).toString() : str;
+      };
+
+      const performOperation = (nextOp) => {
+        const inputValue = parseFloat(display);
+        if (prevValue === null) {
+          setPrevValue(inputValue);
+          setExpression(`${display} ${nextOp}`);
+        } else if (operator) {
+          const result = calculate(prevValue, inputValue, operator);
+          const resultStr = formatResult(result);
+          setPrevValue(result); setDisplay(resultStr);
+          setExpression(`${resultStr} ${nextOp}`);
+        }
+        setOperator(nextOp); setWaitingForOperand(true);
+      };
+
+      const handleEquals = () => {
+        const inputValue = parseFloat(display);
+        if (operator && prevValue !== null) {
+          const result = calculate(prevValue, inputValue, operator);
+          const resultStr = formatResult(result);
+          setExpression(`${expression} ${display} =`);
+          setDisplay(resultStr); setPrevValue(null); setOperator(null); setWaitingForOperand(true);
+        }
+      };
+
+      const buttons = [
+        { label: 'C', type: 'func', action: clear },
+        { label: '±', type: 'func', action: toggleSign },
+        { label: '%', type: 'func', action: inputPercent },
+        { label: '÷', type: 'op', action: () => performOperation('÷') },
+        { label: '7', type: 'num', action: () => inputDigit('7') },
+        { label: '8', type: 'num', action: () => inputDigit('8') },
+        { label: '9', type: 'num', action: () => inputDigit('9') },
+        { label: '×', type: 'op', action: () => performOperation('×') },
+        { label: '4', type: 'num', action: () => inputDigit('4') },
+        { label: '5', type: 'num', action: () => inputDigit('5') },
+        { label: '6', type: 'num', action: () => inputDigit('6') },
+        { label: '−', type: 'op', action: () => performOperation('−') },
+        { label: '1', type: 'num', action: () => inputDigit('1') },
+        { label: '2', type: 'num', action: () => inputDigit('2') },
+        { label: '3', type: 'num', action: () => inputDigit('3') },
+        { label: '+', type: 'op', action: () => performOperation('+') },
+        { label: '⌫', type: 'func', action: backspace },
+        { label: '0', type: 'num', action: () => inputDigit('0') },
+        { label: '.', type: 'num', action: inputDecimal },
+        { label: '=', type: 'eq', action: handleEquals },
+      ];
+
+      const getButtonStyle = (type) => {
+        const base = { borderRadius: s(10), fontSize: s(18), fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: `${s(8)}px ${s(4)}px` };
+        switch (type) {
+          case 'num': return { ...base, background: '#f8fafc', color: '#1e293b' };
+          case 'op': return { ...base, background: '#6366f1', color: 'white' };
+          case 'eq': return { ...base, background: '#4f46e5', color: 'white' };
+          case 'func': return { ...base, background: '#e2e8f0', color: '#475569' };
+          default: return base;
+        }
+      };
+
+      const displayFontSize = display.length > 10 ? s(20) : display.length > 7 ? s(26) : s(34);
+
+      return (
+        <div ref={containerRef} className="flex flex-col h-full" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)' }}>
+          <div style={{ padding: `${s(12)}px ${s(14)}px ${s(4)}px`, flexShrink: 0 }}>
+            <div style={{ fontSize: s(11), color: '#94a3b8', fontWeight: 500, minHeight: s(16), textAlign: 'right', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{expression || '\u00A0'}</div>
+            <div style={{ fontSize: displayFontSize, fontWeight: 800, color: '#1e293b', textAlign: 'right', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', lineHeight: 1.2, minHeight: s(42), display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '-0.02em' }}>{display}</div>
+          </div>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: s(5), padding: `${s(6)}px ${s(10)}px ${s(10)}px` }}>
+            {buttons.map((btn, i) => (
+              <button key={i} onClick={btn.action} style={getButtonStyle(btn.type)} className="hover:brightness-95 active:scale-95">{btn.label}</button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // --- COUNTDOWN WIDGET ---
+    const CountdownUnit = ({ value, label }) => (
+      <div style={{ textAlign: 'center', minWidth: 54 }}>
+        <div style={{ fontSize: 32, fontWeight: 900, color: 'white', lineHeight: 1, fontFamily: "'Inter', system-ui, monospace", letterSpacing: '-0.03em', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>{String(value).padStart(2, '0')}</div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginTop: 4 }}>{label}</div>
+      </div>
+    );
+    const CountdownSeparator = () => (
+      <div style={{ fontSize: 24, fontWeight: 800, color: 'rgba(255,255,255,0.3)', lineHeight: 1, paddingBottom: 10, userSelect: 'none' }}>:</div>
+    );
+
+    const CountdownWidget = ({ widget, updateData, updateLayout }) => {
+      const data = widget.data || {};
+      const eventName = data.eventName || '';
+      const targetDate = data.targetDate || '';
+      const isRunning = data.isRunning || false;
+      const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
+      const containerRef = useRef(null);
+
+      useEffect(() => {
+        if (!isRunning || !targetDate) return;
+        const tick = () => {
+          const now = new Date().getTime();
+          const target = new Date(targetDate).getTime();
+          const diff = target - now;
+          if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 }); return; }
+          setTimeLeft({
+            days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+            hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+            minutes: Math.floor((diff / (1000 * 60)) % 60),
+            seconds: Math.floor((diff / 1000) % 60),
+            total: diff
+          });
+        };
+        tick();
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+      }, [isRunning, targetDate]);
+
+      const handleStart = () => {
+        if (!eventName.trim() || !targetDate) return;
+        updateData(widget.id, { isRunning: true });
+        if (updateLayout) updateLayout(widget.id, widget.position, { width: 700, height: 110 });
+      };
+      const handleEdit = () => {
+        updateData(widget.id, { isRunning: false });
+        if (updateLayout) updateLayout(widget.id, widget.position, { width: 280, height: 280 });
+      };
+      const handleReset = () => {
+        updateData(widget.id, { eventName: '', targetDate: '', isRunning: false });
+        if (updateLayout) updateLayout(widget.id, widget.position, { width: 280, height: 280 });
+      };
+
+      const isExpired = isRunning && targetDate && timeLeft.total <= 0;
+
+      if (isRunning) {
+        return (
+          <div ref={containerRef} className="flex items-center h-full w-full" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)', padding: '0 24px', overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+            <div className="shrink-0" style={{ marginRight: 20, maxWidth: '25%' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, marginBottom: 4 }}>Countdown</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{eventName || 'Event'}</div>
+            </div>
+            <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)', marginRight: 24, flexShrink: 0 }} />
+            <div className="flex items-center flex-1 justify-center" style={{ gap: 6 }}>
+              {isExpired ? (
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', textAlign: 'center' }}>🎉 Time's Up!</div>
+              ) : (
+                <>
+                  <CountdownUnit value={timeLeft.days} label="DAYS" />
+                  <CountdownSeparator />
+                  <CountdownUnit value={timeLeft.hours} label="HRS" />
+                  <CountdownSeparator />
+                  <CountdownUnit value={timeLeft.minutes} label="MIN" />
+                  <CountdownSeparator />
+                  <CountdownUnit value={timeLeft.seconds} label="SEC" />
+                </>
+              )}
+            </div>
+            <div className="flex shrink-0" style={{ gap: 8, marginLeft: 16 }}>
+              <button onClick={handleEdit} className="hover:brightness-110 active:scale-95" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 12px', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s' }}>
+                <Edit3 size={13} /> Edit
+              </button>
+              <button onClick={handleReset} className="hover:brightness-110 active:scale-95" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 8px', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }} title="Reset">
+                <RotateCcw size={13} />
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div ref={containerRef} className="flex flex-col h-full items-center justify-center" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #e8e0ff 100%)', padding: 20, transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)' }}>
+            <Clock size={28} color="white" />
+          </div>
+          <h3 style={{ fontSize: 15, fontWeight: 800, color: '#312e81', marginBottom: 16, letterSpacing: '-0.01em' }}>Event Countdown</h3>
+          <input type="text" value={eventName} onChange={(e) => updateData(widget.id, { eventName: e.target.value })} placeholder="Event name..." style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '2px solid #e0e7ff', fontSize: 14, fontWeight: 600, color: '#1e293b', outline: 'none', background: 'white', marginBottom: 10, textAlign: 'center', transition: 'border-color 0.2s' }} onFocus={(e) => (e.target.style.borderColor = '#6366f1')} onBlur={(e) => (e.target.style.borderColor = '#e0e7ff')} />
+          <input type="datetime-local" value={targetDate} onChange={(e) => updateData(widget.id, { targetDate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '2px solid #e0e7ff', fontSize: 13, fontWeight: 600, color: '#475569', outline: 'none', background: 'white', marginBottom: 16, textAlign: 'center', transition: 'border-color 0.2s' }} onFocus={(e) => (e.target.style.borderColor = '#6366f1')} onBlur={(e) => (e.target.style.borderColor = '#e0e7ff')} />
+          <button onClick={handleStart} disabled={!eventName.trim() || !targetDate} className="active:scale-95" style={{ width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: (!eventName.trim() || !targetDate) ? '#cbd5e1' : 'linear-gradient(135deg, #6366f1, #7c3aed)', color: 'white', fontSize: 14, fontWeight: 800, cursor: (!eventName.trim() || !targetDate) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s', boxShadow: (!eventName.trim() || !targetDate) ? 'none' : '0 6px 20px rgba(99, 102, 241, 0.35)' }}>
+            <Play size={16} /> Start Countdown
+          </button>
+        </div>
+      );
     };
 
     const SoundboardWidget = ({ widget, updateData }) => {
@@ -8139,7 +8377,7 @@
           }
         }
 
-        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] }; if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false }; if (type === 'WEBCAM') data = { ...data, isMirrored: true, isActive: true }; if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false }; if (type === 'TRAFFIC') data = { ...data, activeLight: null }; if (type === 'QR') data = { ...data, url: '' }; if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] }; if (type === 'DRAWING') { startY += 80; position.y = startY; data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null }; } if (type === 'SCHEDULE') { const template = getScheduleTemplate(); const today = DAYS_OF_WEEK[new Date().getDay()]; data = { ...data, items: template[today] || [] }; } if (type === 'YOUTUBE') { data = { ...data, youtubeUrl: '' }; } if (type === 'CLOCK') { data = { ...data, style: 'standard', isGlassy: 'clear' }; } if (type === 'CALENDAR') { data = { ...data, isGlassy: true }; } if (type === 'MARBLE_JAR') { data = { ...data, title: 'Classroom Goal', marbles: 0, goalCount: 50, theme: 'classic', sound: 'clink', jarColor: 'standard' }; } if (type === 'SOUNDBOARD') { data = { ...data }; } data = { ...data, ...extraData }; const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false }; setWidgets(prev => [...prev, newWidget]); setMaxZIndex(prev => prev + 1); setSelectedId(id);
+        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] }; if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false }; if (type === 'WEBCAM') data = { ...data, isMirrored: true, isActive: true }; if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false }; if (type === 'TRAFFIC') data = { ...data, activeLight: null }; if (type === 'QR') data = { ...data, url: '' }; if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] }; if (type === 'DRAWING') { startY += 80; position.y = startY; data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null }; } if (type === 'SCHEDULE') { const template = getScheduleTemplate(); const today = DAYS_OF_WEEK[new Date().getDay()]; data = { ...data, items: template[today] || [] }; } if (type === 'YOUTUBE') { data = { ...data, youtubeUrl: '' }; } if (type === 'CLOCK') { data = { ...data, style: 'standard', isGlassy: 'clear' }; } if (type === 'CALENDAR') { data = { ...data, isGlassy: true }; } if (type === 'MARBLE_JAR') { data = { ...data, title: 'Classroom Goal', marbles: 0, goalCount: 50, theme: 'classic', sound: 'clink', jarColor: 'standard' }; } if (type === 'SOUNDBOARD') { data = { ...data }; } if (type === 'CALCULATOR') { data = { ...data, display: '0', prevValue: null, operator: null, expression: '' }; } if (type === 'COUNTDOWN') { data = { ...data, eventName: '', targetDate: '', isRunning: false }; } data = { ...data, ...extraData }; const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false }; setWidgets(prev => [...prev, newWidget]); setMaxZIndex(prev => prev + 1); setSelectedId(id);
       };
       // Paste Listener
       useEffect(() => {
@@ -8407,6 +8645,8 @@
           case 'CLOCK': return <ClockWidget {...props} isGlassy={props.extraProps.isGlassy} />;
           case 'MARBLE_JAR': return <MarbleJarWidget {...props} />;
           case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
+          case 'CALCULATOR': return <CalculatorWidget {...props} />;
+          case 'COUNTDOWN': return <CountdownWidget {...props} />;
           default: return null;
         }
       };
