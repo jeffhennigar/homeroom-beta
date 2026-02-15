@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Play, RotateCw, Edit3, Settings } from 'lucide-react';
+import { Clock, Play, RotateCw, Settings } from 'lucide-react';
 
 const COUNTDOWN_THEMES: Record<string, { bar: string; setup: string; icon: string; title: string; border: string; focus: string; btn: string; shadow: string; swatch: string }> = {
     purple: { bar: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)', setup: 'linear-gradient(135deg, #eef2ff 0%, #e8e0ff 100%)', icon: 'linear-gradient(135deg, #6366f1, #7c3aed)', title: '#312e81', border: '#e0e7ff', focus: '#6366f1', btn: 'linear-gradient(135deg, #6366f1, #7c3aed)', shadow: 'rgba(99, 102, 241, 0.35)', swatch: '#7c3aed' },
@@ -22,22 +22,18 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
     const theme = COUNTDOWN_THEMES[colorTheme] || COUNTDOWN_THEMES.purple;
 
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
-    const [showMenu, setShowMenu] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Live countdown tick
     useEffect(() => {
         if (!isRunning || !targetDate) return;
         const tick = () => {
             const now = new Date().getTime();
             const target = new Date(targetDate).getTime();
             const diff = target - now;
-
             if (diff <= 0) {
                 setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
                 return;
             }
-
             setTimeLeft({
                 days: Math.floor(diff / (1000 * 60 * 60 * 24)),
                 hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
@@ -46,7 +42,6 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                 total: diff
             });
         };
-
         tick();
         const interval = setInterval(tick, 1000);
         return () => clearInterval(interval);
@@ -55,23 +50,17 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
     const handleStart = () => {
         if (!eventName.trim() || !targetDate) return;
         updateData(widget.id, { isRunning: true });
-        if (updateSize) {
-            updateSize(widget.id, { width: 740, height: 110 });
-        }
+        if (updateSize) updateSize(widget.id, { width: 780, height: 120 });
     };
 
     const handleEdit = () => {
         updateData(widget.id, { isRunning: false });
-        if (updateSize) {
-            updateSize(widget.id, { width: 280, height: 320 });
-        }
+        if (updateSize) updateSize(widget.id, { width: 290, height: 360 });
     };
 
     const handleReset = () => {
         updateData(widget.id, { eventName: '', targetDate: '', isRunning: false });
-        if (updateSize) {
-            updateSize(widget.id, { width: 280, height: 320 });
-        }
+        if (updateSize) updateSize(widget.id, { width: 290, height: 360 });
     };
 
     const isExpired = isRunning && targetDate && timeLeft.total <= 0;
@@ -81,21 +70,13 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
         const barContent = (
             <>
                 <div className="shrink-0" style={{ marginRight: 20, maxWidth: scrollText ? 'none' : '25%', whiteSpace: 'nowrap' }}>
-                    <div style={{
-                        fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)',
-                        textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, marginBottom: 4,
-                    }}>Countdown</div>
-                    <div style={{
-                        fontSize: 18, fontWeight: 800, color: 'white',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2,
-                    }}>{eventName || 'Event'}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, marginBottom: 4 }}>Countdown</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>{eventName || 'Event'}</div>
                 </div>
                 <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)', marginRight: 24, marginLeft: scrollText ? 24 : 0, flexShrink: 0 }} />
                 <div className="flex items-center justify-center" style={{ gap: 6, flexShrink: 0 }}>
                     {isExpired ? (
-                        <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', textAlign: 'center' }}>
-                            🎉 Time's Up!
-                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', textAlign: 'center' }}>🎉 Time's Up!</div>
                     ) : (
                         <>
                             <CountdownUnit value={timeLeft.days} label="DAYS" />
@@ -113,24 +94,15 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
         );
 
         return (
-            <div
-                ref={containerRef}
-                className="h-full w-full"
-                style={{ background: theme.bar, overflow: 'visible', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}
-                onMouseLeave={() => setShowMenu(false)}
-            >
+            <div ref={containerRef} className="h-full w-full" style={{ background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
                 {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>}
                 <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24, overflow: 'hidden' } : { padding: '0 24px', overflow: 'hidden' }}>
                     {barContent}
                 </div>
-
-                {/* Settings cog — visible on hover */}
-                <div
-                    style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-                    onMouseEnter={() => { }}
-                >
+                {/* Settings cog — click goes directly to edit */}
+                <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
                     <button
-                        onClick={() => setShowMenu(!showMenu)}
+                        onClick={handleEdit}
                         className="hover:brightness-110 active:scale-95"
                         style={{
                             width: 32, height: 32, borderRadius: 8,
@@ -140,47 +112,10 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                             transition: 'all 0.2s', opacity: 0,
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={(e) => { if (!showMenu) e.currentTarget.style.opacity = '0'; }}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
                     >
                         <Settings size={16} />
                     </button>
-                    {showMenu && (
-                        <div style={{
-                            position: 'absolute', top: 36, right: 0,
-                            background: 'white', borderRadius: 10,
-                            boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-                            padding: 4, minWidth: 130, zIndex: 20,
-                        }}>
-                            <button
-                                onClick={() => { setShowMenu(false); handleEdit(); }}
-                                style={{
-                                    width: '100%', padding: '8px 12px', borderRadius: 8,
-                                    border: 'none', background: 'transparent', color: '#334155',
-                                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', gap: 8,
-                                    transition: 'background 0.15s',
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <Edit3 size={14} /> Edit
-                            </button>
-                            <button
-                                onClick={() => { setShowMenu(false); handleReset(); }}
-                                style={{
-                                    width: '100%', padding: '8px 12px', borderRadius: 8,
-                                    border: 'none', background: 'transparent', color: '#ef4444',
-                                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', gap: 8,
-                                    transition: 'background 0.15s',
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <RotateCw size={14} /> Reset
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
         );
@@ -193,18 +128,11 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
             className="flex flex-col h-full items-center justify-center"
             style={{ background: theme.setup, padding: 20, transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
         >
-            {/* Icon */}
-            <div style={{
-                width: 56, height: 56, borderRadius: 16, background: theme.icon,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 12, boxShadow: `0 8px 24px ${theme.shadow}`,
-            }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: theme.icon, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, boxShadow: `0 8px 24px ${theme.shadow}` }}>
                 <Clock size={28} color="white" />
             </div>
 
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: theme.title, marginBottom: 12, letterSpacing: '-0.01em' }}>
-                Event Countdown
-            </h3>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: theme.title, marginBottom: 12, letterSpacing: '-0.01em' }}>Event Countdown</h3>
 
             {/* Color Theme Picker */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -224,105 +152,40 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
                 ))}
             </div>
 
-            {/* Event Name */}
-            <input
-                type="text"
-                value={eventName}
-                onChange={(e) => updateData(widget.id, { eventName: e.target.value })}
-                placeholder="Event name..."
-                style={{
-                    width: '100%', padding: '10px 14px', borderRadius: 10,
-                    border: `2px solid ${theme.border}`, fontSize: 14, fontWeight: 600,
-                    color: '#1e293b', outline: 'none', background: 'white',
-                    marginBottom: 10, textAlign: 'center', transition: 'border-color 0.2s',
-                }}
-                onFocus={(e) => (e.target.style.borderColor = theme.focus)}
-                onBlur={(e) => (e.target.style.borderColor = theme.border)}
-            />
+            <input type="text" value={eventName} onChange={(e) => updateData(widget.id, { eventName: e.target.value })} placeholder="Event name..." style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: `2px solid ${theme.border}`, fontSize: 14, fontWeight: 600, color: '#1e293b', outline: 'none', background: 'white', marginBottom: 10, textAlign: 'center', transition: 'border-color 0.2s' }} onFocus={(e) => (e.target.style.borderColor = theme.focus)} onBlur={(e) => (e.target.style.borderColor = theme.border)} />
 
-            {/* Date/Time Picker */}
-            <input
-                type="datetime-local"
-                value={targetDate}
-                onChange={(e) => updateData(widget.id, { targetDate: e.target.value })}
-                style={{
-                    width: '100%', padding: '10px 14px', borderRadius: 10,
-                    border: `2px solid ${theme.border}`, fontSize: 13, fontWeight: 600,
-                    color: '#475569', outline: 'none', background: 'white',
-                    marginBottom: 14, textAlign: 'center', transition: 'border-color 0.2s',
-                }}
-                onFocus={(e) => (e.target.style.borderColor = theme.focus)}
-                onBlur={(e) => (e.target.style.borderColor = theme.border)}
-            />
+            <input type="datetime-local" value={targetDate} onChange={(e) => updateData(widget.id, { targetDate: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: `2px solid ${theme.border}`, fontSize: 13, fontWeight: 600, color: '#475569', outline: 'none', background: 'white', marginBottom: 14, textAlign: 'center', transition: 'border-color 0.2s' }} onFocus={(e) => (e.target.style.borderColor = theme.focus)} onBlur={(e) => (e.target.style.borderColor = theme.border)} />
 
             {/* Scroll Text Toggle */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer', userSelect: 'none' }}>
-                <div
-                    onClick={() => updateData(widget.id, { scrollText: !scrollText })}
-                    style={{
-                        width: 36, height: 20, borderRadius: 10,
-                        background: scrollText ? theme.swatch : '#cbd5e1',
-                        position: 'relative', transition: 'background 0.2s',
-                        cursor: 'pointer', flexShrink: 0,
-                    }}
-                >
-                    <div style={{
-                        width: 16, height: 16, borderRadius: '50%', background: 'white',
-                        position: 'absolute', top: 2, left: scrollText ? 18 : 2,
-                        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                    }} />
+                <div onClick={() => updateData(widget.id, { scrollText: !scrollText })} style={{ width: 36, height: 20, borderRadius: 10, background: scrollText ? theme.swatch : '#cbd5e1', position: 'relative', transition: 'background 0.2s', cursor: 'pointer', flexShrink: 0 }}>
+                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'white', position: 'absolute', top: 2, left: scrollText ? 18 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 700, color: theme.title, opacity: 0.7 }}>Scroll text</span>
             </label>
 
-            {/* Start Button */}
-            <button
-                onClick={handleStart}
-                disabled={!eventName.trim() || !targetDate}
-                className="active:scale-95"
-                style={{
-                    width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none',
-                    background: (!eventName.trim() || !targetDate) ? '#cbd5e1' : theme.btn,
-                    color: 'white', fontSize: 14, fontWeight: 800,
-                    cursor: (!eventName.trim() || !targetDate) ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'all 0.2s',
-                    boxShadow: (!eventName.trim() || !targetDate) ? 'none' : `0 6px 20px ${theme.shadow}`,
-                }}
-            >
+            <button onClick={handleStart} disabled={!eventName.trim() || !targetDate} className="active:scale-95" style={{ width: '100%', padding: '12px 20px', borderRadius: 12, border: 'none', background: (!eventName.trim() || !targetDate) ? '#cbd5e1' : theme.btn, color: 'white', fontSize: 14, fontWeight: 800, cursor: (!eventName.trim() || !targetDate) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s', boxShadow: (!eventName.trim() || !targetDate) ? 'none' : `0 6px 20px ${theme.shadow}` }}>
                 <Play size={16} /> Start Countdown
             </button>
+
+            {(eventName || targetDate) && (
+                <button onClick={handleReset} className="active:scale-95" style={{ width: '100%', padding: '8px 16px', borderRadius: 10, border: 'none', background: 'transparent', color: theme.title, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: 0.5, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'} onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}>
+                    <RotateCw size={12} /> Reset
+                </button>
+            )}
         </div>
     );
 };
 
-// ── Sub-components for the running bar ──
-
 const CountdownUnit = ({ value, label }: { value: number; label: string }) => (
     <div style={{ textAlign: 'center', minWidth: 54 }}>
-        <div style={{
-            fontSize: 32, fontWeight: 900, color: 'white', lineHeight: 1,
-            fontFamily: "'Inter', system-ui, monospace", letterSpacing: '-0.03em',
-            textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        }}>
-            {String(value).padStart(2, '0')}
-        </div>
-        <div style={{
-            fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
-            letterSpacing: '0.12em', marginTop: 4,
-        }}>
-            {label}
-        </div>
+        <div style={{ fontSize: 32, fontWeight: 900, color: 'white', lineHeight: 1, fontFamily: "'Inter', system-ui, monospace", letterSpacing: '-0.03em', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>{String(value).padStart(2, '0')}</div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginTop: 4 }}>{label}</div>
     </div>
 );
 
 const Separator = () => (
-    <div style={{
-        fontSize: 24, fontWeight: 800, color: 'rgba(255,255,255,0.3)',
-        lineHeight: 1, paddingBottom: 10, userSelect: 'none',
-    }}>
-        :
-    </div>
+    <div style={{ fontSize: 24, fontWeight: 800, color: 'rgba(255,255,255,0.3)', lineHeight: 1, paddingBottom: 10, userSelect: 'none' }}>:</div>
 );
 
 export default CountdownWidget;
