@@ -431,7 +431,7 @@ const App = () => {
                             theme: THEME_COLORS[accentColor] || THEME_COLORS.indigo,
                             textColor: background?.textColor || 'text-slate-800'
                         };
-                        const props = { widget: w, updateData: updateWidgetData, updateSize: (id, sz) => updateWidgetLayout(id, sz), roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId, extraProps };
+                        const props = { widget: w, updateData: (data) => updateWidgetData(w.id, data), updateSize: (sz) => updateWidgetLayout(w.id, sz), roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId, extraProps };
                         switch (w.type) {
                             case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
                             case 'TIMER': return <TimerWidget {...props} />;
@@ -449,7 +449,7 @@ const App = () => {
                             case 'YOUTUBE': return <YouTubeWidget {...props} />;
                             case 'CALCULATOR': return <CalculatorWidget {...props} />;
                             case 'COUNTDOWN': return <CountdownWidget {...props} />;
-                            case 'POLYPAD': return <PolypadWidget />;
+                            case 'POLYPAD': return <PolypadWidget {...props} />;
                             case 'RANDOMIZER': // Random student picker
                                 return (
                                     <div className="flex flex-col h-full bg-white p-4 items-center justify-center text-center">

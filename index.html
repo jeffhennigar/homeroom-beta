@@ -8117,7 +8117,7 @@
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
                   const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
@@ -8157,7 +8157,7 @@
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
                   const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
