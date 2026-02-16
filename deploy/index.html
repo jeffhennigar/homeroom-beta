@@ -658,7 +658,8 @@
       MARBLE_JAR: { width: 400, height: 500 },
       SOUNDBOARD: { width: 600, height: 500 },
       CALCULATOR: { width: 280, height: 380 },
-      COUNTDOWN: { width: 300, height: 400 }
+      COUNTDOWN: { width: 300, height: 400 },
+      POLYPAD: { width: 800, height: 600 }
     };
 
     // --- COMPONENTS ---
@@ -9183,7 +9184,7 @@
           case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
           case 'CALCULATOR': return <CalculatorWidget {...props} />;
           case 'COUNTDOWN': return <CountdownWidget {...props} />;
-          case 'POLYPAD': return <PolypadWidget />;
+          case 'POLYPAD': return <PolypadWidget {...props} />;
           default: return null;
         }
       };
