@@ -1890,6 +1890,11 @@
           analyser.fftSize = 256;
           const bufferLength = analyser.frequencyBinCount;
           dataArrayRef.current = new Uint8Array(bufferLength);
+
+          if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+          }
+
           analyze();
         } catch (e) {
           console.error('Mic Error: ' + e.message);
@@ -3488,7 +3493,8 @@
     };
 
     // --- CALCULATOR WIDGET ---
-    const CalculatorWidget = ({ widget, updateData }) => {
+    const CalculatorWidget = ({ widget, updateData, extraProps }) => {
+      const theme = extraProps?.theme || { 500: '#6366f1', 600: '#4f46e5' };
       const BASELINE_WIDTH = 280;
       const [display, setDisplay] = useState(widget.data?.display || '0');
       const [prevValue, setPrevValue] = useState(widget.data?.prevValue ?? null);
@@ -3594,8 +3600,8 @@
         const base = { borderRadius: s(10), fontSize: s(18), fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: `${s(8)}px ${s(4)}px` };
         switch (type) {
           case 'num': return { ...base, background: '#f8fafc', color: '#1e293b' };
-          case 'op': return { ...base, background: '#6366f1', color: 'white' };
-          case 'eq': return { ...base, background: '#4f46e5', color: 'white' };
+          case 'op': return { ...base, background: theme[500], color: 'white' };
+          case 'eq': return { ...base, background: theme[600], color: 'white' };
           case 'func': return { ...base, background: '#e2e8f0', color: '#475569' };
           default: return base;
         }
@@ -9076,7 +9082,7 @@
             title={!isDockLocked ? "Drag to reorder" : info.label}
           >
             {!isDockLocked && <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 shadow-sm"><GripVertical size={10} /></div>}
-            <div className={`p-1.5 rounded-xl text-slate-600 transition-colors ${!isDockLocked ? 'bg-blue-100' : 'bg-white/80 group-hover:bg-white group-hover:text-blue-600 shadow-sm'}`}>
+            <div className={`w-12 h-12 flex items-center justify-center rounded-xl text-slate-600 transition-colors ${!isDockLocked ? 'bg-blue-100' : 'bg-white/80 group-hover:bg-white group-hover:text-blue-600 shadow-sm'}`}>
               {info.icon}
             </div>
             <span className="text-[10px] font-bold text-slate-700 group-hover:text-slate-900">{info.label}</span>
@@ -9109,7 +9115,9 @@
             onOpenSettings: () => { setSettingsInitialTab('appearance'); setShowSettingsModal(true); },
             isGlassy: widget.data?.isGlassy || isClockGlassy,
             showDate: widget.data?.showDate !== undefined ? widget.data.showDate : showClockDate,
-            textColor: currentBg?.textColor || 'text-slate-800'
+            textColor: currentBg?.textColor || 'text-slate-800',
+            accentColor: accentColor,
+            theme: THEME_COLORS[accentColor] || THEME_COLORS.indigo
           }
         };
 
