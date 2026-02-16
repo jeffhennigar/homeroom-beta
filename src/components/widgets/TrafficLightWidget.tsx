@@ -36,6 +36,11 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
             analyser.fftSize = 256;
             const bufferLength = analyser.frequencyBinCount;
             dataArrayRef.current = new Uint8Array(bufferLength);
+
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
             analyze();
         } catch (e) {
             console.error(e);

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const BASELINE_WIDTH = 280;
 
-const CalculatorWidget = ({ widget, updateData }) => {
+const CalculatorWidget = ({ widget, updateData, extraProps }: { widget: any, updateData: any, extraProps?: any }) => {
+    const theme = extraProps?.theme || { 500: '#6366f1', 600: '#4f46e5' };
     const [display, setDisplay] = useState(widget.data?.display || '0');
     const [prevValue, setPrevValue] = useState<number | null>(widget.data?.prevValue ?? null);
     const [operator, setOperator] = useState<string | null>(widget.data?.operator ?? null);
@@ -160,8 +161,8 @@ const CalculatorWidget = ({ widget, updateData }) => {
         };
         switch (type) {
             case 'num': return { ...base, background: '#f8fafc', color: '#1e293b' };
-            case 'op': return { ...base, background: '#6366f1', color: 'white' };
-            case 'eq': return { ...base, background: '#4f46e5', color: 'white' };
+            case 'op': return { ...base, background: theme[500], color: 'white' };
+            case 'eq': return { ...base, background: theme[600], color: 'white' };
             case 'func': return { ...base, background: '#e2e8f0', color: '#475569' };
             default: return base;
         }

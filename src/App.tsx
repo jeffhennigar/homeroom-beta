@@ -108,6 +108,19 @@ const WIDGET_SIZES = {
     POLYPAD: { width: 800, height: 600 }
 };
 
+const THEME_COLORS: Record<string, any> = {
+    indigo: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+    blue: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+    emerald: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 500: '#10b981', 600: '#059669', 700: '#047857' },
+    teal: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
+    orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' },
+    red: { 50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
+    pink: { 50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 500: '#ec4899', 600: '#db2777', 700: '#be185d' },
+    purple: { 50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce' },
+    amber: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 500: '#f59e0b', 600: '#d97706', 700: '#b45309' },
+    slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 500: '#64748b', 600: '#475569', 700: '#334155' }
+};
+
 const App = () => {
     // Global Persisted State
     const [allRosters, setAllRosters] = useState(() => {
@@ -159,6 +172,7 @@ const App = () => {
     const [user, setUser] = useState<any>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [clockStyle, setClockStyle] = useState('12h');
+    const [accentColor, setAccentColor] = useState(() => localStorage.getItem('homeroom_accent_color') || 'indigo');
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
     const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
@@ -412,7 +426,12 @@ const App = () => {
                     {...w.data} // Pass locked/minimized/transparent
                 >
                     {(() => {
-                        const props = { widget: w, updateData: updateWidgetData, updateSize: (id, sz) => updateWidgetLayout(id, sz), roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId };
+                        const extraProps = {
+                            accentColor,
+                            theme: THEME_COLORS[accentColor] || THEME_COLORS.indigo,
+                            textColor: background?.textColor || 'text-slate-800'
+                        };
+                        const props = { widget: w, updateData: updateWidgetData, updateSize: (id, sz) => updateWidgetLayout(id, sz), roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId, extraProps };
                         switch (w.type) {
                             case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
                             case 'TIMER': return <TimerWidget {...props} />;
@@ -504,7 +523,7 @@ const App = () => {
                             className="p-3 text-slate-600 hover:text-indigo-600 hover:bg-white rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10"
                             title={DOCK_LABELS[type].label}
                         >
-                            <div className="transition-transform group-hover:-translate-y-1">{DOCK_LABELS[type].icon}</div>
+                            <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-1">{DOCK_LABELS[type].icon}</div>
                             <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
                                 {DOCK_LABELS[type].label}
                             </span>
