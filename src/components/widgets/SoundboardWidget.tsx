@@ -11,8 +11,7 @@ import {
     ExternalLink,
     Settings,
     X,
-    Maximize2,
-    Trash2
+    Maximize2
 } from 'lucide-react';
 
 interface Sound {
@@ -50,7 +49,7 @@ const SOUNDS: Sound[] = [
     { id: 'yeah', file: '/sounds/Yeah!.wav', label: 'Yeah!', emoji: '🙌', cat: 'sfx' },
 ];
 
-const SoundboardWidget = ({ widget, updateData }) => {
+const SoundboardWidget = ({ widget, updateData }: { widget: any, updateData: (data: any) => void }) => {
     const [players, setPlayers] = useState<Record<string, Player>>(() => {
         const initial: Record<string, Player> = {};
         SOUNDS.forEach(s => {
@@ -87,39 +86,38 @@ const SoundboardWidget = ({ widget, updateData }) => {
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
+            // Stop visualizer loop
             if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+            // Cleanup audio tailored for this use case: stop all on unmount
+            stopAll();
+            if (audioCtxRef.current) audioCtxRef.current.close();
         };
     }, []);
 
-    // Initialize Audio Context
+    // Initialize Audio Context (Lazy interaction)
     const initAudio = useCallback(async () => {
-        if (audioCtxRef.current) {
-            if (audioCtxRef.current.state === 'suspended') {
-                await audioCtxRef.current.resume();
-            }
-            return;
-        }
-
-        try {
-            const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-            const ctx = new AudioContextClass();
+        if (!audioCtxRef.current) {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            const ctx = new AudioContext();
             audioCtxRef.current = ctx;
 
             const masterGain = ctx.createGain();
             masterGain.gain.value = masterVolume;
+            masterGain.connect(ctx.destination);
             masterGainRef.current = masterGain;
 
             const analyser = ctx.createAnalyser();
-            analyser.fftSize = 256;
-            analyser.smoothingTimeConstant = 0.8;
+            analyser.fftSize = 128; // Smaller FFT for snappier bars
+            analyser.smoothingTimeConstant = 0.5;
             analyserRef.current = analyser;
 
             masterGain.connect(analyser);
-            analyser.connect(ctx.destination);
 
             startVisualization();
-        } catch (e) {
-            console.error("Failed to init audio context", e);
+        }
+
+        if (audioCtxRef.current?.state === 'suspended') {
+            await audioCtxRef.current.resume();
         }
     }, [masterVolume]);
 
@@ -142,79 +140,102 @@ const SoundboardWidget = ({ widget, updateData }) => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const isAnyPlaying = Object.values(players).some((p: Player) => p.isPlaying);
-            const barCount = 64;
+            const barCount = 32; // Fewer bars for cleaner look
             const barW = (canvas.width / barCount) * 0.8;
             const gap = (canvas.width / barCount) * 0.2;
 
             for (let i = 0; i < barCount; i++) {
                 let val = dataArr[i] / 255;
+                if (!isAnyPlaying) val = Math.max(0.05, val * 0.1); // Keep a tiny hum visible
 
-                // Dim if nothing playing
-                if (!isAnyPlaying) val *= 0.1;
-
-                const barH = val * canvas.height * 0.9;
+                const barH = Math.max(2, val * canvas.height);
                 const x = i * (barW + gap);
                 const y = canvas.height - barH;
 
-                ctx.fillStyle = `hsl(${260 + (i / barCount) * 60}, 75%, ${50 + val * 20}%)`;
+                ctx.fillStyle = isAnyPlaying ? `hsl(${220 + (i / barCount) * 60}, 90%, 60%)` : '#cbd5e1';
                 ctx.fillRect(x, y, barW, barH);
-
-                // Reflection
-                ctx.fillStyle = `hsla(${260 + (i / barCount) * 60}, 75%, 50%, 0.1)`;
-                ctx.fillRect(x, canvas.height - (barH * 0.2), barW, barH * 0.2);
             }
         };
-
         draw();
     };
 
-    useEffect(() => {
-        return () => {
-            if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
-            // We don't necessarily want to close the audio context on widget close if multiple might exist,
-            // but usually there's only one.
-        };
-    }, []);
-
     const fetchAndDecode = async (id: string, url: string) => {
-        if (!audioCtxRef.current) return;
-
         setPlayers(prev => ({ ...prev, [id]: { ...prev[id], loading: true } }));
 
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("Fetch failed");
+            // Updated fetch with CORS mode
+            const response = await fetch(url, { mode: 'cors' });
+            if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
             const arrayBuffer = await response.arrayBuffer();
+
+            if (!audioCtxRef.current) throw new Error("No AudioContext");
             const buffer = await audioCtxRef.current.decodeAudioData(arrayBuffer);
 
             if (mountedRef.current) {
                 setPlayers(prev => ({
                     ...prev,
-                    [id]: {
-                        ...prev[id],
-                        buffer,
-                        loading: false,
-                        fallback: false
-                    }
+                    [id]: { ...prev[id], buffer, loading: false, fallback: false }
                 }));
+                // Auto-play after load
+                playSound(id, buffer);
             }
         } catch (err) {
+            console.warn(`AudioBuffer failed for ${id} (${url}), falling back to HTMLAudio:`, err);
             if (mountedRef.current) {
-                console.warn(`AudioBuffer failed for ${id}, using fallback:`, err);
                 const audio = new Audio(url);
-                audio.preload = 'auto';
+                audio.crossOrigin = "anonymous"; // Important for CORS
+                audio.volume = masterVolume;
 
                 setPlayers(prev => ({
                     ...prev,
-                    [id]: {
-                        ...prev[id],
-                        audioElement: audio,
-                        fallback: true,
-                        loading: false
-                    }
+                    [id]: { ...prev[id], audioElement: audio, fallback: true, loading: false }
                 }));
+                // Auto-play fallback
+                audio.play().catch(e => console.error("Fallback play failed", e));
+                setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: true } }));
+
+                audio.onended = () => {
+                    if (players[id].looping) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    } else {
+                        setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: false } }));
+                    }
+                };
             }
         }
+    };
+
+    const playSound = async (id: string, buffer: AudioBuffer) => {
+        if (!audioCtxRef.current || !masterGainRef.current) return;
+
+        // Stop existing source if any
+        if (players[id].source) {
+            try { players[id].source.stop(); } catch (e) { }
+        }
+
+        const source = audioCtxRef.current.createBufferSource();
+        source.buffer = buffer;
+        source.loop = players[id].looping;
+
+        const gainNode = audioCtxRef.current.createGain();
+        gainNode.gain.value = players[id].volume;
+
+        source.connect(gainNode);
+        gainNode.connect(masterGainRef.current);
+
+        source.start(0);
+
+        setPlayers(prev => ({
+            ...prev,
+            [id]: { ...prev[id], source, gainNode, isPlaying: true }
+        }));
+
+        source.onended = () => {
+            if (!players[id].looping) {
+                setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: false } }));
+            }
+        };
     };
 
     const togglePlay = async (id: string) => {
@@ -223,342 +244,179 @@ const SoundboardWidget = ({ widget, updateData }) => {
         const s = SOUNDS.find(x => x.id === id);
         if (!s) return;
 
-        if (!p.buffer && !p.fallback && !p.loading) {
-            await fetchAndDecode(id, s.file);
-        }
-
-        const updatedPlayers = { ...players };
-        const player = updatedPlayers[id];
-
-        if (player.isPlaying) {
-            pauseSound(id, player);
-        } else {
-            playSound(id, player);
-        }
-
-        setPlayers(updatedPlayers);
-    };
-
-    const playSound = (id: string, p: Player) => {
-        if (!audioCtxRef.current || !masterGainRef.current) return;
-
-        if (p.fallback && p.audioElement) {
-            p.audioElement.volume = p.volume * masterVolume;
-            p.audioElement.loop = p.looping;
-            p.audioElement.play().catch(console.error);
-
-            p.audioElement.onended = () => {
-                if (!p.looping) {
-                    setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: false } }));
-                }
-            };
-        } else if (p.buffer) {
-            if (p.source) p.source.stop();
-
-            const source = audioCtxRef.current.createBufferSource();
-            source.buffer = p.buffer;
-            source.loop = p.looping;
-
-            if (!p.gainNode) {
-                const gain = audioCtxRef.current.createGain();
-                gain.gain.value = p.volume;
-                gain.connect(masterGainRef.current);
-                p.gainNode = gain;
+        if (p.isPlaying) {
+            // Stop
+            if (p.fallback && p.audioElement) {
+                p.audioElement.pause();
+                p.audioElement.currentTime = 0;
+            } else if (p.source) {
+                try { p.source.stop(); } catch (e) { }
             }
-
-            source.connect(p.gainNode);
-            source.start(0, p.offset % p.buffer.duration);
-
-            p.source = source;
-            p.startTime = audioCtxRef.current.currentTime;
-
-            source.onended = () => {
-                setPlayers(prev => {
-                    // Check if this source is still the current one and if looping is disabled in the *current* state
-                    if (prev[id].source === source && !prev[id].looping) {
-                        return { ...prev, [id]: { ...prev[id], isPlaying: false, offset: 0, source: null } };
-                    }
-                    return prev;
-                });
-            };
-        }
-        p.isPlaying = true;
-    };
-
-    const pauseSound = (id: string, p: Player) => {
-        if (p.fallback && p.audioElement) {
-            p.audioElement.pause();
+            setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: false } }));
         } else {
-            if (p.source) {
-                p.source.stop();
-                if (audioCtxRef.current) {
-                    p.offset += (audioCtxRef.current.currentTime - p.startTime);
-                }
-                p.source = null;
+            // Play
+            if (!p.buffer && !p.fallback) {
+                if (!p.loading) fetchAndDecode(id, s.file);
+            } else if (p.fallback && p.audioElement) {
+                p.audioElement.volume = masterVolume;
+                p.audioElement.loop = p.looping;
+                p.audioElement.play().catch(e => console.error(e));
+                setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: true } }));
+            } else if (p.buffer) {
+                playSound(id, p.buffer);
             }
         }
-        p.isPlaying = false;
     };
 
     const stopAll = () => {
-        const updated = { ...players };
-        Object.keys(updated).forEach(id => {
-            if (updated[id].isPlaying) {
-                pauseSound(id, updated[id]);
+        Object.keys(players).forEach(id => {
+            const p = players[id];
+            if (p.isPlaying) {
+                if (p.fallback && p.audioElement) {
+                    p.audioElement.pause();
+                    p.audioElement.currentTime = 0;
+                } else if (p.source) {
+                    try { p.source.stop(); } catch (e) { }
+                }
             }
-            updated[id].offset = 0;
         });
-        setPlayers(updated);
-    };
-
-    const updateVol = (id: string, val: number) => {
         setPlayers(prev => {
-            const p = { ...prev[id], volume: val };
-            if (p.gainNode) p.gainNode.gain.value = val;
-            if (p.fallback && p.audioElement) {
-                p.audioElement.volume = val * masterVolume;
-            }
-            return { ...prev, [id]: p };
+            const next = { ...prev };
+            Object.keys(next).forEach(k => next[k].isPlaying = false);
+            return next;
         });
     };
 
     const toggleLoop = (id: string) => {
         setPlayers(prev => {
-            const p = { ...prev[id], looping: !prev[id].looping };
-            if (p.source) p.source.loop = p.looping;
-            if (p.fallback && p.audioElement) p.audioElement.loop = p.looping;
-            return { ...prev, [id]: p };
+            const next = { ...prev };
+            const wasLooping = next[id].looping;
+            next[id].looping = !wasLooping;
+
+            // Update active source
+            if (next[id].source) next[id].source.loop = !wasLooping;
+            if (next[id].audioElement) next[id].audioElement.loop = !wasLooping;
+
+            return next;
         });
     };
 
-    const convertUrlToEmbed = (url: string) => {
-        if (!url) return null;
-        url = url.trim();
-        if (url.includes('youtube.com') || url.includes('youtu.be')) {
-            let v = '', l = '';
-            if (url.includes('v=')) v = url.split('v=')[1].split('&')[0];
-            else if (url.includes('youtu.be/')) v = url.split('youtu.be/')[1].split('?')[0];
-            if (url.includes('list=')) l = url.split('list=')[1].split('&')[0];
-            const host = "www.yout-ube.com";
-            if (l && (!v || url.includes('/playlist'))) return `https://${host}/embed/videoseries?list=${l}&rel=0&showinfo=1`;
-            return `https://${host}/embed/${v}?rel=0&showinfo=1${l ? '&list=' + l : ''}`;
-        }
-        if (url.includes('spotify.com')) return url.replace('spotify.com/', 'spotify.com/embed/');
-        return null;
+    const updateMasterVolume = (val: number) => {
+        setMasterVolume(val);
+        if (masterGainRef.current) masterGainRef.current.gain.value = val;
+        // Update fallbacks
+        Object.values(players).forEach(p => {
+            if (p.audioElement) p.audioElement.volume = val;
+        });
     };
 
-    const handleEmbedLoad = () => {
-        const src = convertUrlToEmbed(embedUrl);
-        if (src) {
-            setShowEmbed(true);
-            updateData(widget.id, { embedUrl });
-        }
-    };
-
+    // --- RENDER ---
     return (
-        <div className="flex flex-col h-full bg-slate-900/40 backdrop-blur-xl text-white overflow-hidden rounded-xl border border-white/10 custom-scrollbar">
+        <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
             {/* Visualizer Header */}
-            <div className="relative h-24 bg-black/20 overflow-hidden shrink-0">
-                <canvas
-                    ref={canvasRef}
-                    width={widget.width || window.innerWidth}
-                    height={96}
-                    className="w-full h-full"
-                />
-                <div className="absolute inset-0 flex items-center justify-between px-4 pointer-events-none">
-                    <div className="flex flex-col">
-                        <span className="text-xs font-black uppercase tracking-widest text-white/50">Frequency</span>
-                        <span className="font-bold text-lg">Soundboard</span>
+            <div className="h-24 bg-slate-900 relative shrink-0">
+                <canvas ref={canvasRef} width={600} height={100} className="w-full h-full opacity-60" />
+                <div className="absolute inset-0 flex items-center justify-between px-4 z-10">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white"><Music size={16} /></div>
+                        <span className="text-white font-bold text-sm">Soundboard</span>
                     </div>
-                    <div className="flex items-center gap-4 pointer-events-auto bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-xl">
-                        <Volume2 size={16} className="text-white/50" />
+                    <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-lg border border-slate-700">
+                        <Volume2 size={16} className="text-slate-400" />
                         <input
-                            type="range"
-                            min="0" max="1" step="0.01"
+                            type="range" min="0" max="1" step="0.05"
                             value={masterVolume}
-                            onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                setMasterVolume(val);
-                                if (masterGainRef.current) masterGainRef.current.gain.value = val;
-                            }}
-                            className="w-24 accent-indigo-500 h-1 bg-white/10 rounded-full appearance-none cursor-pointer"
+                            onChange={(e) => updateMasterVolume(parseFloat(e.target.value))}
+                            className="w-20 accent-indigo-500 h-1.5"
                         />
-                        <button
-                            onClick={stopAll}
-                            className="p-1.5 bg-red-500/80 hover:bg-red-500 rounded-full transition-colors shadow-lg"
-                            title="Stop All"
-                        >
-                            <Square size={14} fill="currentColor" />
+                        <button onClick={stopAll} className="p-1.5 hover:bg-red-500/20 text-red-400 rounded-md transition-colors" title="Stop All">
+                            <Square size={16} fill="currentColor" />
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                {/* Ambience Section */}
-                <section>
-                    <div className="flex items-center gap-2 mb-3">
-                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Ambience</h3>
-                        <div className="h-px flex-1 bg-white/5" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        {SOUNDS.filter(s => s.cat === 'bg').map(s => (
-                            <SoundCard
-                                key={s.id}
-                                sound={s}
-                                player={players[s.id]}
-                                onToggle={() => togglePlay(s.id)}
-                                onVolChange={(v) => updateVol(s.id, v)}
-                                onLoopToggle={() => toggleLoop(s.id)}
-                            />
-                        ))}
-                    </div>
-                </section>
+            {/* Sound Grid - Compact 4-col */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                <div className="grid grid-cols-4 gap-3">
+                    {SOUNDS.map(sound => {
+                        const p = players[sound.id];
+                        const isActive = p.isPlaying;
+                        const isLooping = p.looping;
 
-                {/* SFX Section */}
-                <section>
-                    <div className="flex items-center gap-2 mb-3">
-                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-orange-400">Sound Effects</h3>
-                        <div className="h-px flex-1 bg-white/5" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        {SOUNDS.filter(s => s.cat === 'sfx').map(s => (
-                            <SoundCard
-                                key={s.id}
-                                sound={s}
-                                player={players[s.id]}
-                                onToggle={() => togglePlay(s.id)}
-                                onVolChange={(v) => updateVol(s.id, v)}
-                                onLoopToggle={() => toggleLoop(s.id)}
-                            />
-                        ))}
-                    </div>
-                </section>
+                        return (
+                            <div key={sound.id} className={`relative group flex flex-col items-center justify-between p-2 rounded-xl border transition-all ${isActive ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                                {/* Play Button (Main Interaction) */}
+                                <button
+                                    onClick={() => togglePlay(sound.id)}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-1 transition-transform active:scale-95 ${isActive ? 'bg-indigo-500 text-white shadow-lg scale-105' : 'bg-slate-100 text-slate-700 group-hover:bg-white border border-transparent group-hover:border-slate-200'}`}
+                                >
+                                    {p.loading ? <RefreshCw size={20} className="animate-spin text-indigo-500" /> : (isActive ? sound.emoji : sound.emoji)}
+                                </button>
 
-                {/* External Media Section */}
-                <section className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 flex items-center gap-2">
-                            <Youtube size={14} /> External Media
-                        </h3>
-                        {showEmbed && (
-                            <button
-                                onClick={() => setIsEmbedMinimized(!isEmbedMinimized)}
-                                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-white"
-                            >
-                                {isEmbedMinimized ? <Maximize2 size={14} /> : <X size={14} />}
-                            </button>
+                                {/* Controls Row (Loop) */}
+                                <div className="flex items-center gap-1">
+                                    {sound.cat === 'bg' && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); toggleLoop(sound.id); }}
+                                            className={`p-1 rounded-md text-[10px] uppercase font-bold tracking-wider transition-colors ${isLooping ? 'bg-indigo-100 text-indigo-600' : 'text-slate-300 hover:text-slate-500'}`}
+                                            title="Toggle Loop"
+                                        >
+                                            {isLooping ? 'Loop' : '1-Shot'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Status Indicator */}
+                                {isActive && <div className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Embed Section (Compact) */}
+            <div className="border-t bg-white px-4 py-2 shrink-0">
+                {!showEmbed ? (
+                    <button onClick={() => setShowEmbed(true)} className="w-full py-2 flex items-center justify-center gap-2 text-xs font-bold text-slate-500 hover:bg-slate-50 rounded-lg dashed border-2 border-slate-200 border-dashed">
+                        <Youtube size={14} /> Add YouTube / Spotify
+                    </button>
+                ) : (
+                    <div className="flex flex-col gap-2">
+                        {isEmbedMinimized ? (
+                            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg">
+                                <span className="text-xs font-bold text-slate-600 truncate flex-1 min-w-0">{embedUrl || "No Media"}</span>
+                                <div className="flex gap-1">
+                                    <button onClick={() => setIsEmbedMinimized(false)} className="p-1 hover:bg-slate-200 rounded"><Maximize2 size={14} /></button>
+                                    <button onClick={() => { setShowEmbed(false); setEmbedUrl(""); updateData({ embedUrl: "" }); }} className="p-1 hover:bg-red-100 text-red-500 rounded"><X size={14} /></button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Paste YouTube or Spotify URL"
+                                        className="flex-1 text-xs border rounded px-2 py-1 outline-none focus:border-indigo-500"
+                                        value={embedUrl}
+                                        onChange={(e) => { setEmbedUrl(e.target.value); updateData({ embedUrl: e.target.value }); }}
+                                    />
+                                    <button onClick={() => setIsEmbedMinimized(true)} className="p-1 hover:bg-slate-100 rounded text-slate-500"><Settings size={14} /></button>
+                                    <button onClick={() => { setShowEmbed(false); setEmbedUrl(""); updateData({ embedUrl: "" }); }} className="p-1 hover:bg-red-50 text-red-500 rounded"><X size={14} /></button>
+                                </div>
+                                {embedUrl && (
+                                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                                        <iframe
+                                            width="100%" height="100%"
+                                            src={embedUrl.includes('spotify') ? embedUrl.replace('/track/', '/embed/track/') : embedUrl.replace('watch?v=', 'embed/')}
+                                            frameBorder="0" allow="autoplay; encrypted-media" allowFullScreen
+                                        />
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
-
-                    <div className="flex gap-2 mb-4">
-                        <input
-                            type="text"
-                            placeholder="YouTube or Spotify link..."
-                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/50 transition-colors"
-                            value={embedUrl}
-                            onChange={(e) => setEmbedUrl(e.target.value)}
-                        />
-                        <button
-                            onClick={handleEmbedLoad}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-lg"
-                        >
-                            Load
-                        </button>
-                    </div>
-
-                    {showEmbed && !isEmbedMinimized && (
-                        <div className="relative aspect-video rounded-xl overflow-hidden bg-black/40 border border-white/10 shadow-2xl">
-                            <iframe
-                                src={convertUrlToEmbed(embedUrl) || ""}
-                                className="absolute inset-0 w-full h-full"
-                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                loading="lazy"
-                            />
-                        </div>
-                    )}
-
-                    {!showEmbed && (
-                        <div className="h-24 flex items-center justify-center border-2 border-dashed border-white/5 rounded-xl text-white/20 text-xs italic">
-                            Paste a link to embed media
-                        </div>
-                    )}
-                </section>
-            </div>
-        </div>
-    );
-};
-
-interface SoundCardProps {
-    sound: Sound;
-    player: Player;
-    onToggle: () => void;
-    onVolChange: (v: number) => void;
-    onLoopToggle: () => void;
-}
-
-const SoundCard: React.FC<SoundCardProps> = ({ sound, player, onToggle, onVolChange, onLoopToggle }) => {
-    return (
-        <div className={`
-      relative group p-3 rounded-2xl border transition-all duration-300
-      ${player.isPlaying
-                ? (sound.cat === 'bg' ? 'bg-indigo-500/10 border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-orange-500/10 border-orange-500/40 shadow-[0_0_20px_rgba(249,115,22,0.2)]')
-                : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/[0.08]'}
-    `}>
-            {player.loading && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
-                    <RefreshCw size={18} className="animate-spin text-white/40" />
-                </div>
-            )}
-
-            <div className="flex flex-col items-center gap-2">
-                <div className={`
-          text-3xl transition-transform duration-300 
-          ${player.isPlaying ? 'scale-110' : 'group-hover:scale-105'}
-        `}>
-                    {sound.emoji}
-                </div>
-                <span className="text-[10px] font-bold text-center truncate w-full opacity-70 mb-1">{sound.label}</span>
-
-                <div className="flex items-center gap-1.5 w-full">
-                    <button
-                        onClick={onToggle}
-                        className={`
-              flex-1 h-9 flex items-center justify-center rounded-xl transition-all active:scale-95 border
-              ${player.isPlaying
-                                ? 'bg-white text-black border-white'
-                                : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}
-            `}
-                    >
-                        {player.isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
-                    </button>
-                    <button
-                        onClick={onLoopToggle}
-                        className={`
-              w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-95 border
-              ${player.looping
-                                ? (sound.cat === 'bg' ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-orange-500 text-white border-orange-400')
-                                : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}
-            `}
-                        title="Loop"
-                    >
-                        <RefreshCw size={12} className={player.looping ? 'opacity-100' : 'opacity-30'} />
-                    </button>
-                </div>
-
-                <div className="flex items-center gap-2 w-full mt-1.5 px-1">
-                    <Volume2 size={10} className="opacity-30 shrink-0" />
-                    <input
-                        type="range"
-                        min="0" max="1" step="0.01"
-                        value={player.volume}
-                        onChange={(e) => onVolChange(parseFloat(e.target.value))}
-                        className={`
-              flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer
-              ${sound.cat === 'bg' ? 'accent-indigo-400' : 'accent-orange-400'}
-            `}
-                    />
-                </div>
+                )}
             </div>
         </div>
     );
