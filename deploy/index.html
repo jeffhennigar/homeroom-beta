@@ -3801,7 +3801,7 @@
             buffer: null,
             source: null,
             gainNode: null,
-            looping: false, // Default to false, controlled by global toggle for new plays
+            looping: false,
             isPlaying: false,
             offset: 0,
             startTime: 0,
@@ -3933,13 +3933,9 @@
             }));
 
             audio.play().catch(e => console.error("Fallback play failed", e));
-            setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: true, looping: isGlobalLoop } })); // Set initial loop state
+            setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: true, looping: isGlobalLoop } }));
 
             audio.onended = () => {
-              // We need to check the current looping state from the ref or state
-              // But since we are inside a closure, we should rely on the player object's state if we updated it
-              // The audio element's loop property is robust.
-              // But we need to sync React state.
               if (!audio.loop) {
                 setPlayers(prev => ({ ...prev, [id]: { ...prev[id], isPlaying: false } }));
               }
@@ -3957,7 +3953,7 @@
 
         const source = audioCtxRef.current.createBufferSource();
         source.buffer = buffer;
-        source.loop = isGlobalLoop; // Use global setting
+        source.loop = isGlobalLoop;
 
         const gainNode = audioCtxRef.current.createGain();
         gainNode.gain.value = players[id].volume;
@@ -3975,7 +3971,6 @@
         source.onended = () => {
           if (!source.loop) {
             setPlayers(prev => {
-              // Only update if this source is still the active one
               if (prev[id].source === source) return { ...prev, [id]: { ...prev[id], isPlaying: false } };
               return prev;
             });
@@ -4032,9 +4027,6 @@
       const toggleGlobalLoop = () => {
         const nextLoop = !isGlobalLoop;
         setIsGlobalLoop(nextLoop);
-        // Optionally update currently playing sounds? 
-        // The user asked for a toggle, usually this affects future plays or existing ones.
-        // Let's make it affect existing ones too for immediate satisfaction.
         setPlayers(prev => {
           const next = { ...prev };
           Object.keys(next).forEach(id => {
@@ -4055,6 +4047,28 @@
         Object.values(players).forEach(p => {
           if (p.audioElement) p.audioElement.volume = val;
         });
+      };
+
+      // --- Helper for YouTube Embeds ---
+      const getEmbedUrl = (url) => {
+        if (!url) return "";
+        if (url.includes('spotify')) {
+          return url.replace('/track/', '/embed/track/');
+        }
+        // Handle YouTube variants
+        let videoId = "";
+        if (url.includes('youtu.be/')) {
+          videoId = url.split('youtu.be/')[1]?.split('?')[0];
+        } else if (url.includes('watch?v=')) {
+          videoId = url.split('watch?v=')[1]?.split('&')[0];
+        } else if (url.includes('/embed/')) {
+          videoId = url.split('/embed/')[1]?.split('?')[0];
+        }
+
+        if (videoId) {
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
+        return url;
       };
 
       return (
@@ -4138,7 +4152,7 @@
                       <div className="aspect-video bg-black rounded-lg overflow-hidden border border-slate-200 shadow-sm">
                         <iframe
                           width="100%" height="100%"
-                          src={embedUrl.includes('spotify') ? embedUrl.replace('/track/', '/embed/track/') : embedUrl.replace('watch?v=', 'embed/')}
+                          src={getEmbedUrl(embedUrl)}
                           frameBorder="0" allow="autoplay; encrypted-media" allowFullScreen
                         />
                       </div>
