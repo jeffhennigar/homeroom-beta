@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock, Volume2
+    Info, Calculator, Clock, Volume2, Ruler
 } from 'lucide-react';
 
 // Components
@@ -12,7 +12,7 @@ import DiceWidget from './components/widgets/DiceWidget';
 import SeatPickerWidget from './components/widgets/SeatPickerWidget';
 import GroupMakerWidget from './components/widgets/GroupMakerWidget';
 import TextWidget from './components/widgets/TextWidget';
-import TrafficLightWidget from './components/widgets/TrafficLightWidget'; // Missing in imports? No I created it.
+import TrafficLightWidget from './components/widgets/TrafficLightWidget';
 import VoteWidget from './components/widgets/VoteWidget';
 import WhiteboardWidget from './components/widgets/WhiteboardWidget';
 import ScheduleWidget from './components/widgets/ScheduleWidget';
@@ -21,6 +21,7 @@ import YouTubeWidget from './components/widgets/YouTubeWidget';
 import CalculatorWidget from './components/widgets/CalculatorWidget';
 import CountdownWidget from './components/widgets/CountdownWidget';
 import SoundboardWidget from './components/widgets/SoundboardWidget';
+import PolypadWidget from './components/widgets/PolypadWidget';
 import SettingsModal from './components/settings/SettingsModal';
 import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
 import { supabase } from './services/supabaseClient';
@@ -68,12 +69,13 @@ const DOCK_LABELS = {
     YOUTUBE: { label: 'Embed', icon: <Youtube /> },
     CALCULATOR: { label: 'Calc', icon: <Calculator /> },
     COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
-    SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> }
+    SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
+    POLYPAD: { label: 'Polypad', icon: <Ruler /> }
 };
 
 const DEFAULT_NAMES = ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5"];
 
-const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'YOUTUBE', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD'];
+const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'YOUTUBE', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD'];
 
 const BACKGROUNDS = [
     { id: 'default', name: 'Original', type: 'preset', preview: 'bg-gradient-to-br from-blue-200 to-orange-200', style: {}, textColor: 'text-slate-800' },
@@ -102,7 +104,8 @@ const WIDGET_SIZES = {
     YOUTUBE: { width: 480, height: 360 },
     CALCULATOR: { width: 280, height: 380 },
     COUNTDOWN: { width: 280, height: 280 },
-    SOUNDBOARD: { width: 440, height: 500 }
+    SOUNDBOARD: { width: 440, height: 500 },
+    POLYPAD: { width: 800, height: 600 }
 };
 
 const App = () => {
@@ -427,6 +430,7 @@ const App = () => {
                             case 'YOUTUBE': return <YouTubeWidget {...props} />;
                             case 'CALCULATOR': return <CalculatorWidget {...props} />;
                             case 'COUNTDOWN': return <CountdownWidget {...props} />;
+                            case 'POLYPAD': return <PolypadWidget />;
                             case 'RANDOMIZER': // Random student picker
                                 return (
                                     <div className="flex flex-col h-full bg-white p-4 items-center justify-center text-center">
