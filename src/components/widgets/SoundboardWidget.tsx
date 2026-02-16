@@ -91,9 +91,24 @@ const SoundboardWidget = ({ widget, updateData }: { widget: any, updateData: (da
 
     const [masterVolume, setMasterVolume] = useState(0.8);
     const [isGlobalLoop, setIsGlobalLoop] = useState(false);
+    const [recentStreams, setRecentStreams] = useState<string[]>(widget.data?.recentStreams || []);
     const [embedUrl, setEmbedUrl] = useState(widget.data?.embedUrl || "");
     const [showEmbed, setShowEmbed] = useState(!!widget.data?.embedUrl);
     const [isEmbedMinimized, setIsEmbedMinimized] = useState(widget.data?.isEmbedMinimized || false);
+
+    const updateEmbed = (url: string) => {
+        setEmbedUrl(url);
+        if (url.trim()) {
+            setRecentStreams(prev => {
+                const filtered = prev.filter(x => x !== url);
+                const next = [url, ...filtered].slice(0, 6);
+                updateData({ ...widget.data, embedUrl: url, recentStreams: next });
+                return next;
+            });
+        } else {
+            updateData({ ...widget.data, embedUrl: "" });
+        }
+    };
 
     const audioCtxRef = useRef<AudioContext | null>(null);
     const masterGainRef = useRef<GainNode | null>(null);
@@ -420,11 +435,39 @@ const SoundboardWidget = ({ widget, updateData }: { widget: any, updateData: (da
                                         placeholder="Paste YouTube or Spotify URL"
                                         className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 outline-none focus:border-indigo-500 text-slate-700"
                                         value={embedUrl}
-                                        onChange={(e) => { setEmbedUrl(e.target.value); updateData({ embedUrl: e.target.value }); }}
+                                        onChange={(e) => updateEmbed(e.target.value)}
                                     />
                                     <button onClick={() => setIsEmbedMinimized(true)} className="p-1 hover:bg-slate-100 rounded text-slate-500"><Settings size={14} /></button>
-                                    <button onClick={() => { setShowEmbed(false); setEmbedUrl(""); updateData({ embedUrl: "" }); }} className="p-1 hover:bg-red-50 text-red-500 rounded"><X size={14} /></button>
+                                    <button onClick={() => { setShowEmbed(false); setEmbedUrl(""); updateData({ ...widget.data, embedUrl: "" }); }} className="p-1 hover:bg-red-50 text-red-500 rounded"><X size={14} /></button>
                                 </div>
+
+                                {/* Recently Played Bar */}
+                                {recentStreams.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mt-1 border-t border-slate-100 pt-2">
+                                        {recentStreams.map((url, i) => {
+                                            const isSpotify = url.includes('spotify');
+                                            const id = url.split(/[?v=/]/).filter(Boolean).pop()?.slice(0, 8);
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setEmbedUrl(url)}
+                                                    className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition-all group max-w-[120px]"
+                                                    title={url}
+                                                >
+                                                    {isSpotify ? (
+                                                        <Music size={12} className="text-emerald-500" />
+                                                    ) : (
+                                                        <Youtube size={12} className="text-red-500" />
+                                                    )}
+                                                    <span className="text-[10px] font-bold text-slate-500 truncate group-hover:text-indigo-600">
+                                                        {isSpotify ? 'Spotify' : 'YouTube'} • {id}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
                                 {embedUrl && (
                                     <div className="aspect-video bg-black rounded-lg overflow-hidden border border-slate-200 shadow-sm">
                                         <iframe
