@@ -40,8 +40,8 @@ interface Player {
 const SOUNDS: Sound[] = [
     { id: 'light-piano', file: '/sounds/Light Piano.mp3', label: 'Light Piano', emoji: '🎹', cat: 'bg' },
     { id: 'light-rain', file: '/sounds/Light Rain.mp3', label: 'Light Rain', emoji: '🌧️', cat: 'bg' },
-    { id: 'ocean-waves', file: '/sounds/Ocean Waves.wav', label: 'Ocean Waves', emoji: '🌊', cat: 'bg' },
-    { id: 'rain-storm', file: '/sounds/Rain Storm.mp3', label: 'Rain Storm', emoji: '⛈️', cat: 'bg' },
+    { id: 'ocean-waves', file: 'https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg', label: 'Ocean Waves', emoji: '🌊', cat: 'bg' },
+    { id: 'rain-storm', file: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg', label: 'Rain Storm', emoji: '⛈️', cat: 'bg' },
     { id: 'spa1', file: '/sounds/Spa1.mp3', label: 'Spa Vibes 1', emoji: '🧖', cat: 'bg' },
     { id: 'spa2', file: '/sounds/Spa2.mp3', label: 'Spa Vibes 2', emoji: '💆', cat: 'bg' },
     { id: 'laugh1', file: '/sounds/Single Child Laughing.wav', label: 'Kid Laugh', emoji: '😂', cat: 'sfx' },
