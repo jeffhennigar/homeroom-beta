@@ -4,7 +4,7 @@ const PolypadWidget: React.FC = () => {
     return (
         <div className="flex flex-col h-full bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm relative">
             <iframe
-                src="https://polypad.amplify.com/embed/p#numbers"
+                src="https://polypad.amplify.com/embed/#numbers"
                 className="flex-1 w-full h-full border-none"
                 title="Polypad"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; camera; microphone; clipboard-read; clipboard-write"
