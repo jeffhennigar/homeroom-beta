@@ -8529,16 +8529,7 @@
               last_modified
             };
 
-            const {
-              accent_color,
-              last_modified: _lm,
-              grid_enabled: _ge,
-              schedule: _s,
-              schedule_overrides: _so,
-              clock_style: _cs,
-              ...safeProfilePayload
-            } = profilePayload; // Strip columns missing from DB schema to avoid errors
-            const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, ...safeProfilePayload });
+            const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, ...profilePayload });
             if (profileError) throw profileError;
 
             setLastSyncError(null);
