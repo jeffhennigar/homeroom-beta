@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock
+    Info, Calculator, Clock, Volume2
 } from 'lucide-react';
 
 // Components
@@ -20,6 +20,7 @@ import QRCodeWidget from './components/widgets/QRCodeWidget';
 import YouTubeWidget from './components/widgets/YouTubeWidget';
 import CalculatorWidget from './components/widgets/CalculatorWidget';
 import CountdownWidget from './components/widgets/CountdownWidget';
+import SoundboardWidget from './components/widgets/SoundboardWidget';
 import SettingsModal from './components/settings/SettingsModal';
 import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
 import { supabase } from './services/supabaseClient';
@@ -66,12 +67,13 @@ const DOCK_LABELS = {
     SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
     YOUTUBE: { label: 'Embed', icon: <Youtube /> },
     CALCULATOR: { label: 'Calc', icon: <Calculator /> },
-    COUNTDOWN: { label: 'Countdown', icon: <Clock /> }
+    COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
+    SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> }
 };
 
 const DEFAULT_NAMES = ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5"];
 
-const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'YOUTUBE', 'CALCULATOR', 'COUNTDOWN'];
+const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'YOUTUBE', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD'];
 
 const BACKGROUNDS = [
     { id: 'default', name: 'Original', type: 'preset', preview: 'bg-gradient-to-br from-blue-200 to-orange-200', style: {}, textColor: 'text-slate-800' },
@@ -99,7 +101,8 @@ const WIDGET_SIZES = {
     SCHEDULE: { width: 380, height: 500 },
     YOUTUBE: { width: 480, height: 360 },
     CALCULATOR: { width: 280, height: 380 },
-    COUNTDOWN: { width: 280, height: 280 }
+    COUNTDOWN: { width: 280, height: 280 },
+    SOUNDBOARD: { width: 440, height: 500 }
 };
 
 const App = () => {
@@ -408,7 +411,7 @@ const App = () => {
                     {(() => {
                         const props = { widget: w, updateData: updateWidgetData, updateSize: (id, sz) => updateWidgetLayout(id, sz), roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId };
                         switch (w.type) {
-                            // case 'NOTES': return <NotesWidget {...props} />; // Assuming NotesWidget, StopwatchWidget, CalculatorWidget are defined elsewhere or will be added
+                            case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
                             case 'TIMER': return <TimerWidget {...props} />;
                             // case 'STOPWATCH': return <StopwatchWidget {...props} />;
                             // case 'CALCULATOR': return <CalculatorWidget {...props} />;
