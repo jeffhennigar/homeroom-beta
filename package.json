@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:single": "vite build --mode singlefile",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "powershell -ExecutionPolicy Bypass -File ./deploy_pro.ps1"
   },
   "dependencies": {
     "@google/genai": "^1.33.0",
