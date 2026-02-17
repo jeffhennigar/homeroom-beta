@@ -3513,8 +3513,7 @@
         const observer = new ResizeObserver((entries) => {
           for (const entry of entries) {
             const w = entry.contentRect.width;
-            // Determine baseline based on current width to prevent "jump" during transition
-            const effectiveBaseline = w > 450 ? 540 : 280;
+            const effectiveBaseline = w > 400 ? 600 : 280;
             setScale(Math.max(0.5, Math.min(1.5, w / effectiveBaseline)));
           }
         });
@@ -3535,7 +3534,7 @@
         const newState = !isScientific;
         setIsScientific(newState);
         if (updateLayout) {
-          const newWidth = newState ? 600 : 320;
+          const newWidth = newState ? 600 : 280;
           const newHeight = newState ? 400 : 390;
           updateLayout(widget.id, widget.position, { ...widget.size, width: newWidth, height: newHeight });
         }
@@ -6112,8 +6111,8 @@
                 <div className="pt-2 flex flex-wrap gap-1.5 justify-center w-full">
                   {[
                     { name: "UFLI Blending", url: "https://research.dwi.ufl.edu/op.n/file/bca9ju45kvvrvoan/?embed", color: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
-                    { name: "Base-10 Blocks", url: "https://www.didax.com/apps/base-ten-blocks", color: "bg-orange-50 text-orange-600 hover:bg-orange-100" },
-                    { name: "Blooket", url: "https://www.blooket.com", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
+                    { name: "Base-10 Blocks", url: "https://apps.mathlearningcenter.org/number-pieces/", color: "bg-orange-50 text-orange-600 hover:bg-orange-100" },
+                    { name: "Polypad", url: "https://mathigon.org/polypad/embed", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
                   ].map(l => (
                     <button
                       key={l.name}
