@@ -6419,7 +6419,7 @@
       );
     };
 
-    const AppearanceSettings = ({ currentBg, onSelect, isGridEnabled, onToggleGrid, myBackgrounds, onAddCustom, onDeleteCustom, clockStyle, setClockStyle, showDate, setShowDate, isGlassy, setIsGlassy, accentColor, setAccentColor }) => {
+    const AppearanceSettings = ({ currentBg, onSelect, isGridEnabled, onToggleGrid, myBackgrounds, onAddCustom, onDeleteCustom, clockStyle, setClockStyle, showClockDate, setShowClockDate, is24Hour, setIs24Hour, isGlassy, setIsGlassy, accentColor, setAccentColor }) => {
       const [customUrl, setCustomUrl] = useState('');
       const [dragActive, setDragActive] = useState(false);
       const [applyToAll, setApplyToAll] = useState(false);
@@ -7244,8 +7244,10 @@
                     onDeleteCustom={onDeleteCustomBg}
                     clockStyle={clockStyle}
                     setClockStyle={setClockStyle}
-                    showDate={showClockDate}
-                    setShowDate={setShowClockDate}
+                    showClockDate={showClockDate}
+                    setShowClockDate={setShowClockDate}
+                    is24Hour={is24Hour}
+                    setIs24Hour={setIs24Hour}
                     isGlassy={isClockGlassy}
                     setIsGlassy={setIsClockGlassy}
                     accentColor={accentColor}
