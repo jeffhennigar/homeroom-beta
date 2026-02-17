@@ -516,8 +516,7 @@
       CALENDAR: { label: 'Calendar', icon: <Calendar /> },
       SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
       CALCULATOR: { label: 'Calc', icon: <Calculator /> },
-      COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
-      POLYPAD: { label: 'Polypad', icon: <Ruler /> }
+      COUNTDOWN: { label: 'Countdown', icon: <Clock /> }
     };
 
     const WindowIcon = ({ size = 16 }) => (
@@ -658,8 +657,7 @@
       MARBLE_JAR: { width: 400, height: 500 },
       SOUNDBOARD: { width: 600, height: 500 },
       CALCULATOR: { width: 280, height: 390 },
-      COUNTDOWN: { width: 300, height: 400 },
-      POLYPAD: { width: 800, height: 600 }
+      COUNTDOWN: { width: 300, height: 400 }
     };
 
     // --- COMPONENTS ---
@@ -4322,22 +4320,6 @@
       );
     };
 
-    const PolypadWidget = () => {
-      return (
-        <div className="flex flex-col h-full bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm relative">
-          <iframe
-            src="https://polypad.amplify.com/embed/#numbers"
-            className="flex-1 w-full h-full border-none"
-            title="Polypad"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; camera; microphone; clipboard-read; clipboard-write"
-            allowFullScreen
-          />
-          <div className="h-6 bg-slate-50 border-t border-slate-200 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Materials created using Polypad by Amplify</span>
-          </div>
-        </div>
-      );
-    };
 
     const TimerWidget = ({ widget, updateData }) => {
       const data = widget.data || {};
@@ -8251,7 +8233,7 @@
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
                   const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
@@ -8291,7 +8273,7 @@
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
                   const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
@@ -9318,7 +9300,6 @@
           case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
           case 'CALCULATOR': return <CalculatorWidget {...props} />;
           case 'COUNTDOWN': return <CountdownWidget {...props} />;
-          case 'POLYPAD': return <PolypadWidget {...props} />;
           default: return null;
         }
       };
