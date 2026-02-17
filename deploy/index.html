@@ -3512,7 +3512,7 @@
         const observer = new ResizeObserver((entries) => {
           for (const entry of entries) {
             const w = entry.contentRect.width;
-            const effectiveBaseline = w > 450 ? 540 : 280;
+            const effectiveBaseline = w > 400 ? 600 : 280;
             setScale(Math.max(0.5, Math.min(1.5, w / effectiveBaseline)));
           }
         });
@@ -3533,7 +3533,7 @@
         const newState = !isScientific;
         setIsScientific(newState);
         if (updateLayout) {
-          const newWidth = newState ? 600 : 320;
+          const newWidth = newState ? 600 : 280;
           const newHeight = newState ? 400 : 390;
           updateLayout(widget.id, widget.position, { ...widget.size, width: newWidth, height: newHeight });
         }
