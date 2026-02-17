@@ -3494,16 +3494,17 @@
     };
 
     // --- CALCULATOR WIDGET ---
-    const CalculatorWidget = ({ widget, updateData, extraProps }) => {
+    const CalculatorWidget = ({ widget, updateData, updateLayout, extraProps }) => {
       const theme = extraProps?.theme || { 500: '#6366f1', 600: '#4f46e5' };
-      const BASELINE_WIDTH = 280;
-      const [display, setDisplay] = useState(widget.data?.display || '0');
-      const [prevValue, setPrevValue] = useState(widget.data?.prevValue ?? null);
-      const [operator, setOperator] = useState(widget.data?.operator ?? null);
-      const [waitingForOperand, setWaitingForOperand] = useState(false);
-      const [expression, setExpression] = useState(widget.data?.expression || '');
+      const [isScientific, setIsScientific] = useState(widget.data?.isScientific || false);
+      const [currentOperand, setCurrentOperand] = useState(widget.data?.currentOperand || '0');
+      const [previousOperand, setPreviousOperand] = useState(widget.data?.previousOperand || '');
+      const [operation, setOperation] = useState(widget.data?.operation || undefined);
+      const [overwrite, setOverwrite] = useState(false);
       const containerRef = useRef(null);
       const [scale, setScale] = useState(1);
+
+      const BASELINE_WIDTH = isScientific ? 540 : 280;
 
       useEffect(() => {
         const el = containerRef.current;
@@ -3516,110 +3517,214 @@
         });
         observer.observe(el);
         return () => observer.disconnect();
-      }, []);
+      }, [isScientific]);
 
-      const s = (base) => Math.round(base * scale);
+      // Persist state
+      useEffect(() => {
+        const timeout = setTimeout(() => {
+          updateData(widget.id, { currentOperand, previousOperand, operation, isScientific });
+        }, 500);
+        return () => clearTimeout(timeout);
+      }, [currentOperand, previousOperand, operation, isScientific]);
 
-      const inputDigit = (digit) => {
-        if (waitingForOperand) { setDisplay(digit); setWaitingForOperand(false); }
-        else { setDisplay(display === '0' ? digit : display + digit); }
-      };
-
-      const inputDecimal = () => {
-        if (waitingForOperand) { setDisplay('0.'); setWaitingForOperand(false); return; }
-        if (!display.includes('.')) setDisplay(display + '.');
-      };
-
-      const clear = () => { setDisplay('0'); setPrevValue(null); setOperator(null); setWaitingForOperand(false); setExpression(''); };
-      const toggleSign = () => { const val = parseFloat(display); if (val !== 0) setDisplay(String(-val)); };
-      const inputPercent = () => { setDisplay(String(parseFloat(display) / 100)); };
-      const backspace = () => { setDisplay(display.length > 1 ? display.slice(0, -1) : '0'); };
-
-      const calculate = (a, b, op) => {
-        switch (op) {
-          case '+': return a + b;
-          case '−': return a - b;
-          case '×': return a * b;
-          case '÷': return b !== 0 ? a / b : 0;
-          default: return b;
+      const toggleScientific = (e) => {
+        e.stopPropagation();
+        const newState = !isScientific;
+        setIsScientific(newState);
+        if (updateLayout) {
+          const newWidth = newState ? 600 : 320;
+          updateLayout(widget.id, widget.position, { ...widget.size, width: newWidth });
         }
       };
 
-      const formatResult = (val) => {
-        const str = String(val);
-        return str.length > 12 ? parseFloat(val.toPrecision(10)).toString() : str;
+      const clear = () => {
+        setCurrentOperand('0');
+        setPreviousOperand('');
+        setOperation(undefined);
+        setOverwrite(false);
       };
 
-      const performOperation = (nextOp) => {
-        const inputValue = parseFloat(display);
-        if (prevValue === null) {
-          setPrevValue(inputValue);
-          setExpression(`${display} ${nextOp}`);
-        } else if (operator) {
-          const result = calculate(prevValue, inputValue, operator);
-          const resultStr = formatResult(result);
-          setPrevValue(result); setDisplay(resultStr);
-          setExpression(`${resultStr} ${nextOp}`);
+      const deleteDigit = () => {
+        if (overwrite) {
+          setCurrentOperand('0');
+          setOverwrite(false);
+          return;
         }
-        setOperator(nextOp); setWaitingForOperand(true);
+        if (currentOperand === '0') return;
+        const newVal = currentOperand.length > 1 ? currentOperand.slice(0, -1) : '0';
+        setCurrentOperand(newVal);
       };
 
-      const handleEquals = () => {
-        const inputValue = parseFloat(display);
-        if (operator && prevValue !== null) {
-          const result = calculate(prevValue, inputValue, operator);
-          const resultStr = formatResult(result);
-          setExpression(`${expression} ${display} =`);
-          setDisplay(resultStr); setPrevValue(null); setOperator(null); setWaitingForOperand(true);
-        }
-      };
-
-      const buttons = [
-        { label: 'C', type: 'func', action: clear },
-        { label: '±', type: 'func', action: toggleSign },
-        { label: '%', type: 'func', action: inputPercent },
-        { label: '÷', type: 'op', action: () => performOperation('÷') },
-        { label: '7', type: 'num', action: () => inputDigit('7') },
-        { label: '8', type: 'num', action: () => inputDigit('8') },
-        { label: '9', type: 'num', action: () => inputDigit('9') },
-        { label: '×', type: 'op', action: () => performOperation('×') },
-        { label: '4', type: 'num', action: () => inputDigit('4') },
-        { label: '5', type: 'num', action: () => inputDigit('5') },
-        { label: '6', type: 'num', action: () => inputDigit('6') },
-        { label: '−', type: 'op', action: () => performOperation('−') },
-        { label: '1', type: 'num', action: () => inputDigit('1') },
-        { label: '2', type: 'num', action: () => inputDigit('2') },
-        { label: '3', type: 'num', action: () => inputDigit('3') },
-        { label: '+', type: 'op', action: () => performOperation('+') },
-        { label: '⌫', type: 'func', action: backspace },
-        { label: '0', type: 'num', action: () => inputDigit('0') },
-        { label: '.', type: 'num', action: inputDecimal },
-        { label: '=', type: 'eq', action: handleEquals },
-      ];
-
-      const getButtonStyle = (type) => {
-        const base = { borderRadius: s(10), fontSize: s(18), fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: `${s(8)}px ${s(4)}px` };
-        switch (type) {
-          case 'num': return { ...base, background: '#f8fafc', color: '#1e293b' };
-          case 'op': return { ...base, background: theme[500], color: 'white' };
-          case 'eq': return { ...base, background: theme[600], color: 'white' };
-          case 'func': return { ...base, background: '#e2e8f0', color: '#475569' };
-          default: return base;
+      const appendNumber = (number) => {
+        if (overwrite) {
+          setCurrentOperand(number);
+          setOverwrite(false);
+        } else {
+          if (number === '.' && currentOperand.includes('.')) return;
+          if (currentOperand === '0' && number !== '.') {
+            setCurrentOperand(number);
+          } else {
+            setCurrentOperand(currentOperand + number);
+          }
         }
       };
 
-      const displayFontSize = display.length > 10 ? s(20) : display.length > 7 ? s(26) : s(34);
+      const chooseOperation = (op) => {
+        if (currentOperand === '') return;
+        if (previousOperand !== '') {
+          compute();
+        }
+        setOperation(op);
+        setPreviousOperand(currentOperand);
+        setOverwrite(true);
+      };
+
+      const compute = () => {
+        const prev = parseFloat(previousOperand);
+        const current = parseFloat(currentOperand);
+        if (isNaN(prev) || isNaN(current)) return;
+
+        let computation;
+        switch (operation) {
+          case '+': computation = prev + current; break;
+          case '-': computation = prev - current; break;
+          case '*': computation = prev * current; break;
+          case '/': computation = prev / current; break;
+          case '%': computation = prev % current; break;
+          case '^': computation = Math.pow(prev, current); break;
+          case 'mod': computation = prev % current; break;
+          default: return;
+        }
+
+        setCurrentOperand(String(computation));
+        setOperation(undefined);
+        setPreviousOperand('');
+        setOverwrite(true);
+      };
+
+      const scientificCompute = (func) => {
+        const current = parseFloat(currentOperand);
+        if (isNaN(current)) return;
+
+        let computation;
+        const toRadians = (deg) => deg * Math.PI / 180;
+
+        switch (func) {
+          case 'sin': computation = Math.sin(toRadians(current)); break;
+          case 'cos': computation = Math.cos(toRadians(current)); break;
+          case 'tan': computation = Math.tan(toRadians(current)); break;
+          case 'log': computation = Math.log10(current); break;
+          case 'ln': computation = Math.log(current); break;
+          case 'sqrt': computation = Math.sqrt(current); break;
+          case 'exp': computation = Math.exp(current); break;
+          case 'abs': computation = Math.abs(current); break;
+          case 'pi': computation = Math.PI; break;
+          case 'e': computation = Math.E; break;
+          case 'rand': computation = Math.random(); break;
+          default: return;
+        }
+
+        setCurrentOperand(String(computation));
+        setOverwrite(true);
+      };
+
+      const formatDisplay = (num) => {
+        if (!num) return '';
+        const str = String(num);
+        if (str.length > 12) {
+          return parseFloat(num).toPrecision(8); // Reduced precision to fit
+        }
+        return str;
+      };
+
+      const s = (val) => val * scale;
+
+      const btnStyle = (type) => ({
+        fontSize: s(isScientific ? 14 : 18),
+        borderRadius: s(8),
+        fontWeight: 600,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.1s',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+        padding: s(8)
+      });
+
+      const numStyle = { ...btnStyle(), backgroundColor: '#f8fafc', color: '#334155' }; // Slate-50/Slate-700
+      const opStyle = { ...btnStyle(), backgroundColor: theme[100] || '#e0e7ff', color: theme[700] || '#4338ca' }; // Indigo-100/700
+      const funcStyle = { ...btnStyle(), backgroundColor: '#f1f5f9', color: '#475569' }; // Slate-100/600
+      const eqStyle = { ...btnStyle(), backgroundColor: theme[500], color: 'white', boxShadow: `0 2px 4px ${theme[500]}66` };
+      const sciStyle = { ...btnStyle(), backgroundColor: '#f8fafc', color: theme[600] || '#4f46e5', fontSize: s(12), fontWeight: 700 };
 
       return (
-        <div ref={containerRef} className="flex flex-col h-full" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)' }}>
-          <div style={{ padding: `${s(12)}px ${s(14)}px ${s(4)}px`, flexShrink: 0 }}>
-            <div style={{ fontSize: s(11), color: '#94a3b8', fontWeight: 500, minHeight: s(16), textAlign: 'right', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{expression || '\u00A0'}</div>
-            <div style={{ fontSize: displayFontSize, fontWeight: 800, color: '#1e293b', textAlign: 'right', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', lineHeight: 1.2, minHeight: s(42), display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '-0.02em' }}>{display}</div>
+        <div ref={containerRef} className="flex flex-col h-full bg-slate-50 transition-all overflow-hidden relative" style={{ borderRadius: 16 }}>
+          {/* Header / Display */}
+          <div className="flex flex-col flex-shrink-0 p-4 bg-white border-b border-slate-100 relative">
+            <div className="absolute top-2 left-2 z-10">
+              <button
+                onClick={toggleScientific}
+                className={`p-1.5 rounded-lg transition-all ${isScientific ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400 hover:text-slate-600'}`}
+                title={isScientific ? "Switch to Standard" : "Switch to Scientific"}
+                style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
+              >
+                {isScientific ? '🔢' : '🔬'}
+              </button>
+            </div>
+            <div className="text-right min-h-[1.5em] text-slate-400 font-medium truncate" style={{ fontSize: s(12) }}>
+              {previousOperand} {operation}
+            </div>
+            <div className="text-right font-bold text-slate-800 truncate leading-none mt-1" style={{ fontSize: s(currentOperand.length > 10 ? 24 : 32) }}>
+              {formatDisplay(currentOperand)}
+            </div>
           </div>
-          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: s(5), padding: `${s(6)}px ${s(10)}px ${s(10)}px` }}>
-            {buttons.map((btn, i) => (
-              <button key={i} onClick={btn.action} style={getButtonStyle(btn.type)} className="hover:brightness-95 active:scale-95">{btn.label}</button>
-            ))}
+
+          {/* Buttons Area */}
+          <div className="flex-1 flex p-2 gap-2 overflow-hidden">
+
+            {/* Scientific Keypad */}
+            {isScientific && (
+              <div className="grid grid-cols-3 gap-2 flex-grow transition-all animate-in fade-in slide-in-from-left-4 duration-300" style={{ maxWidth: '45%' }}>
+                {['sin', 'cos', 'tan', 'log', 'ln', 'e', 'sqrt', '^', 'pi', 'abs', '(', ')', 'rand', 'mod', 'exp'].map(op => (
+                  <button key={op} onClick={() => {
+                    if (['^', 'mod', '(', ')'].includes(op)) chooseOperation(op); // simplified parens logic
+                    else scientificCompute(op);
+                  }} style={sciStyle} className="hover:bg-indigo-50 active:scale-95">
+                    {op}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Standard Keypad */}
+            <div className={`grid grid-cols-4 gap-2 flex-grow transition-all ${isScientific ? 'flex-shrink-0 w-[55%]' : 'w-full'}`}>
+              <button onClick={clear} style={funcStyle} className="col-span-2 hover:bg-slate-200 active:scale-95 text-red-500">AC</button>
+              <button onClick={deleteDigit} style={funcStyle} className="col-span-2 hover:bg-slate-200 active:scale-95 text-orange-500">DEL</button>
+
+              {/* Row 1 */}
+              <button onClick={() => appendNumber('7')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">7</button>
+              <button onClick={() => appendNumber('8')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">8</button>
+              <button onClick={() => appendNumber('9')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">9</button>
+              <button onClick={() => chooseOperation('/')} style={opStyle} className="hover:filter hover:brightness-105 active:scale-95">÷</button>
+
+              {/* Row 2 */}
+              <button onClick={() => appendNumber('4')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">4</button>
+              <button onClick={() => appendNumber('5')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">5</button>
+              <button onClick={() => appendNumber('6')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">6</button>
+              <button onClick={() => chooseOperation('*')} style={opStyle} className="hover:filter hover:brightness-105 active:scale-95">×</button>
+
+              {/* Row 3 */}
+              <button onClick={() => appendNumber('1')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">1</button>
+              <button onClick={() => appendNumber('2')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">2</button>
+              <button onClick={() => appendNumber('3')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">3</button>
+              <button onClick={() => chooseOperation('-')} style={opStyle} className="hover:filter hover:brightness-105 active:scale-95">−</button>
+
+              {/* Row 4 */}
+              <button onClick={() => appendNumber('0')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">0</button>
+              <button onClick={() => appendNumber('.')} style={numStyle} className="hover:bg-white active:scale-95 shadow-sm">.</button>
+              <button onClick={compute} style={eqStyle} className="hover:filter hover:brightness-110 active:scale-95">=</button>
+              <button onClick={() => chooseOperation('+')} style={opStyle} className="hover:filter hover:brightness-105 active:scale-95">+</button>
+            </div>
           </div>
         </div>
       );
@@ -5987,6 +6092,22 @@
                     onKeyDown={(e) => e.key === 'Enter' && updateData(widget.id, { url: input })}
                   />
                   <button onClick={() => updateData(widget.id, { url: input })} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm"><Check size={18} /></button>
+                </div>
+
+                <div className="pt-2 flex flex-wrap gap-1.5 justify-center w-full">
+                  {[
+                    { name: "UFLI Blending", url: "https://research.dwi.ufl.edu/op.n/file/bca9ju45kvvrvoan/?embed", color: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
+                    { name: "Base-10 Blocks", url: "https://www.didax.com/apps/base-ten-blocks", color: "bg-orange-50 text-orange-600 hover:bg-orange-100" },
+                    { name: "Blooket", url: "https://www.blooket.com", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
+                  ].map(l => (
+                    <button
+                      key={l.name}
+                      onClick={() => updateData(widget.id, { url: l.url })}
+                      className={`text-[10px] font-bold px-2 py-1.5 rounded-lg transition-colors border border-transparent hover:border-black/5 ${l.color}`}
+                    >
+                      {l.name}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
