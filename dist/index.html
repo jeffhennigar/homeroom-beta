@@ -9577,7 +9577,7 @@
 
                 {/* MAIN DOCK */}
                 <div
-                  className={`flex gap-2 py-0.5 px-2 rounded-xl border-2 transition-all duration-300 ease-in-out ${!isDockLocked ? 'bg-blue-50/50 border-dashed border-blue-200 min-w-[200px]' : 'border-transparent'}`}
+                  className={`flex gap-1 py-0.5 px-2 rounded-xl border-2 transition-all duration-300 ease-in-out ${!isDockLocked ? 'bg-blue-50/50 border-dashed border-blue-200 min-w-[200px]' : 'border-transparent'}`}
                   onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-blue-100'); }}
                   onDragLeave={(e) => e.currentTarget.classList.remove('bg-blue-100')}
                   onDrop={(e) => {
@@ -9620,7 +9620,7 @@
                   {/* DRAWER POPUP */}
                   {showMoreDrawer && (
                     <div
-                      className="absolute bottom-full right-0 mb-4 bg-white/90 backdrop-blur-xl border border-white/50 p-4 rounded-2xl shadow-2xl flex flex-wrap gap-2 w-64 z-50 animate-in slide-in-from-bottom-2 fade-in duration-200"
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white/90 backdrop-blur-xl border border-white/50 p-3 rounded-2xl shadow-2xl grid grid-cols-3 gap-2 w-max z-50 animate-in slide-in-from-bottom-2 fade-in duration-200"
                       onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-indigo-50'); }}
                       onDragLeave={(e) => e.currentTarget.classList.remove('bg-indigo-50')}
                       onDrop={(e) => {
