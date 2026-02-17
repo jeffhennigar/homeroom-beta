@@ -658,7 +658,7 @@
       CALENDAR: { width: 320, height: 380 },
       MARBLE_JAR: { width: 400, height: 500 },
       SOUNDBOARD: { width: 600, height: 500 },
-      CALCULATOR: { width: 280, height: 380 },
+      CALCULATOR: { width: 280, height: 390 },
       COUNTDOWN: { width: 300, height: 400 },
       POLYPAD: { width: 800, height: 600 }
     };
@@ -3505,7 +3505,7 @@
       const containerRef = useRef(null);
       const [scale, setScale] = useState(1);
 
-      const BASELINE_WIDTH = isScientific ? 540 : 280;
+      const BASELINE_WIDTH = 280; // Stable baseline for calculation
 
       useEffect(() => {
         const el = containerRef.current;
@@ -3513,12 +3513,14 @@
         const observer = new ResizeObserver((entries) => {
           for (const entry of entries) {
             const w = entry.contentRect.width;
-            setScale(Math.max(0.5, Math.min(1.5, w / BASELINE_WIDTH)));
+            // Determine baseline based on current width to prevent "jump" during transition
+            const effectiveBaseline = w > 450 ? 540 : 280;
+            setScale(Math.max(0.5, Math.min(1.5, w / effectiveBaseline)));
           }
         });
         observer.observe(el);
         return () => observer.disconnect();
-      }, [isScientific]);
+      }, []); // Remove isScientific dependency to stop observer restart jump
 
       // Persist state
       useEffect(() => {
@@ -3534,7 +3536,8 @@
         setIsScientific(newState);
         if (updateLayout) {
           const newWidth = newState ? 600 : 320;
-          updateLayout(widget.id, widget.position, { ...widget.size, width: newWidth });
+          const newHeight = newState ? 400 : 390;
+          updateLayout(widget.id, widget.position, { ...widget.size, width: newWidth, height: newHeight });
         }
       };
 
