@@ -6046,10 +6046,21 @@
       );
     };
 
-    const EmbedWidget = ({ widget, updateData }) => {
+    const EmbedWidget = ({ widget, updateData, updateLayout }) => {
       const { url = "", youtubeUrl = "" } = widget.data;
       const currentUrl = url || youtubeUrl;
       const [input, setInput] = useState(currentUrl);
+
+      // Auto-grow logic when content is embedded
+      useEffect(() => {
+        if (currentUrl && updateLayout && widget.size.height < 500) {
+          const targetWidth = 900;
+          const targetHeight = 550;
+          const targetX = (window.innerWidth - targetWidth) / 2;
+          const targetY = 10; // 10px from top as requested
+          updateLayout(widget.id, { x: targetX, y: targetY }, { width: targetWidth, height: targetHeight });
+        }
+      }, [currentUrl, widget.id]);
 
       const getEmbedSrc = (link) => {
         if (!link) return null;
@@ -9002,7 +9013,7 @@
       const addWidget = (type, extraData = {}) => {
         addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type];
         let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20);
-        if (type === 'GROUP_MAKER') startY -= 80;
+        if (type === 'GROUP_MAKER') startY -= 70; // 10px lower than before (-80)
         if (type === 'SCHEDULE') startY -= 60;
         if (type === 'SEAT_PICKER') startY = 30;
         if (type === 'QR') startY = 20;
