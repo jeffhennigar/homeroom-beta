@@ -9232,59 +9232,57 @@
       };
 
       // Removed legacy saveDock/handleDockDrop
-      const renderDockItem = (id, location) => {
+      const renderDockItem = (id, location = 'main') => {
         const info = DOCK_LABELS[id];
         if (!info) return null;
+
+        const isMain = location === 'main';
+        const containerClasses = isMain
+          ? `flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer group relative
+              ${!isDockLocked ? 'hover:bg-blue-50 border-2 border-dashed border-blue-300' : 'hover:bg-white/50 border-2 border-transparent'}`
+          : `flex flex-col items-center gap-0 px-1 py-1 rounded-lg transition-all cursor-pointer group hover:bg-black/5`;
+
+        const iconClasses = `flex items-center justify-center rounded-xl transition-all duration-200 ${!isDockLocked
+          ? 'bg-blue-100 text-slate-600'
+          : (isMain
+            ? (currentBg?.textColor === 'text-white' ? 'bg-white/20 backdrop-blur-sm text-white shadow-sm' : 'bg-white/80 text-slate-600 shadow-sm')
+            : 'bg-white/80 text-slate-600 shadow-sm shadow-black/5')
+          } group-hover:scale-105 active:scale-95 ${isMain ? 'w-12 h-12' : 'w-10 h-10'}`;
+
         return (
           <div
             key={id}
             draggable={!isDockLocked}
             onDragStart={(e) => {
               e.dataTransfer.setData('widgetType', id);
-              // Rotation Snap Effect for GHOST
               e.currentTarget.style.transform = "rotate(5deg) scale(1.1)";
-              // Hide source immediately after ghost generation
-              requestAnimationFrame(() => {
-                e.target.classList.add('opacity-0');
-              });
+              requestAnimationFrame(() => e.target.classList.add('opacity-0'));
             }}
             onDragEnd={(e) => {
               e.currentTarget.style.transform = "";
               e.target.classList.remove('opacity-0');
             }}
             onDragOver={(e) => {
-              if (!isDockLocked) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
+              if (!isDockLocked) { e.preventDefault(); e.stopPropagation(); }
             }}
             onDrop={(e) => {
-              if (!isDockLocked) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDockDrop(e, location, id);
-              }
+              if (!isDockLocked) { e.preventDefault(); e.stopPropagation(); handleDockDrop(e, location, id); }
             }}
             onClick={() => {
-              // When unlocked (edit mode), don't add widget on click - only drag works
               if (!isDockLocked || isDockMinimized) return;
               addWidget(id);
               if (location === 'drawer') setShowMoreDrawer(false);
             }}
-            className={`flex flex-col items-center gap-0 py-1 px-2 rounded-xl transition-all cursor-pointer group relative
-              ${!isDockLocked ? 'hover:bg-blue-50 hover:scale-105 active:scale-95 cursor-grab active:cursor-grabbing border-2 border-dashed border-blue-300' : 'hover:bg-white/50 hover:scale-110 active:scale-95 border-2 border-transparent'}`}
+            className={containerClasses}
             title={!isDockLocked ? "Drag to reorder" : info.label}
           >
-            {!isDockLocked && <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 shadow-sm"><GripVertical size={10} /></div>}
-            <div className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 ${!isDockLocked
-              ? 'bg-blue-100 text-slate-600'
-              : (location === 'main'
-                ? (currentBg?.textColor === 'text-white' ? 'bg-white/20 backdrop-blur-sm text-white shadow-sm' : 'bg-white/80 text-slate-600 shadow-sm')
-                : 'bg-white/80 text-slate-600 shadow-sm')
-              } group-hover:scale-105 active:scale-95`}>
+            {isMain && !isDockLocked && <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 shadow-sm"><GripVertical size={10} /></div>}
+            <div className={iconClasses}>
               {info.icon}
             </div>
-            <span className={`text-[10px] font-bold transition-colors duration-200 ${location === 'main' ? (currentBg?.textColor || 'text-slate-700') : 'text-slate-700'}`}>{info.label}</span>
+            <span className={`transition-colors duration-200 ${isMain ? 'text-[10px] font-bold' : 'text-[9px] font-extrabold'} ${isMain ? (currentBg?.textColor || 'text-slate-700') : 'text-slate-700'}`}>
+              {info.label}
+            </span>
           </div>
         );
       };
@@ -9665,7 +9663,7 @@
                   {/* DRAWER POPUP */}
                   {showMoreDrawer && (
                     <div
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white/90 backdrop-blur-xl border border-white/50 p-3 rounded-2xl shadow-2xl grid grid-cols-3 gap-2 w-max z-50 animate-in slide-in-from-bottom-2 fade-in duration-200"
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white/90 backdrop-blur-xl border border-white/50 p-2 rounded-2xl shadow-2xl grid grid-cols-3 gap-1 w-max z-50 animate-in slide-in-from-bottom-2 fade-in duration-200"
                       onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-indigo-50'); }}
                       onDragLeave={(e) => e.currentTarget.classList.remove('bg-indigo-50')}
                       onDrop={(e) => {
@@ -9673,11 +9671,11 @@
                         handleDockDrop(e, 'drawer');
                       }}
                     >
-                      <div className="w-full text-[10px] font-bold text-slate-400 mb-1 border-b pb-1">Additional Tools</div>
+                      <div className="col-span-3 text-[9px] font-black uppercase tracking-wider text-slate-400 mb-0.5 border-b border-slate-100 pb-0.5 px-1">Additional Tools</div>
                       {dockOrder?.drawer?.length > 0 ? (
                         dockOrder.drawer.map((id) => renderDockItem(id, 'drawer'))
                       ) : (
-                        <div className="w-full text-center py-4 text-xs text-gray-400 italic">
+                        <div className="col-span-3 text-center py-4 text-xs text-gray-400 italic">
                           {isDockLocked ? "No tools here." : "Drag tools here to hide them."}
                         </div>
                       )}
