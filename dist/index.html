@@ -7841,7 +7841,7 @@
       catch { return { mode: 'weekly', cycleLength: 6, anchorDate: new Date().toISOString().split('T')[0], anchorDay: 1 }; }
     };
 
-    const CalendarWidget = ({ widget, updateData, selectedDate, onSelectDate, isGlassy }) => {
+    const CalendarWidget = ({ widget, updateData, selectedDate, onSelectDate, isGlassy, extraProps }) => {
       const { width, height } = widget.size;
       const [viewDate, setViewDate] = useState(new Date());
 
@@ -7889,13 +7889,13 @@
           {/* Header */}
           <div className="flex justify-between items-center mb-2 shrink-0" onMouseDown={e => e.stopPropagation()}>
             <div className="flex items-center">
-              <button onClick={() => changeMonth(-1)} onMouseDown={(e) => e.stopPropagation()} className={`p-1 hover:bg-slate-100 rounded-full transition-colors ${props.extraProps.textColor === 'text-white' ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
+              <button onClick={() => changeMonth(-1)} onMouseDown={(e) => e.stopPropagation()} className={`p-1 hover:bg-slate-100 rounded-full transition-colors ${extraProps.textColor === 'text-white' ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
                 <ChevronLeft size={20} />
               </button>
-              <div className={`font-bold text-[1.1em] mx-1 whitespace-nowrap ${props.extraProps.textColor === 'text-white' ? 'text-white drop-shadow-sm' : 'text-slate-800'}`}>
+              <div className={`font-bold text-[1.1em] mx-1 whitespace-nowrap ${extraProps.textColor === 'text-white' ? 'text-white drop-shadow-sm' : 'text-slate-800'}`}>
                 {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
               </div>
-              <button onClick={() => changeMonth(1)} onMouseDown={(e) => e.stopPropagation()} className={`p-1 hover:bg-slate-100 rounded-full transition-colors ${props.extraProps.textColor === 'text-white' ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
+              <button onClick={() => changeMonth(1)} onMouseDown={(e) => e.stopPropagation()} className={`p-1 hover:bg-slate-100 rounded-full transition-colors ${extraProps.textColor === 'text-white' ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
                 <ChevronRight size={20} />
               </button>
             </div>
@@ -7904,7 +7904,7 @@
           <div className="flex-1 flex flex-col min-h-0">
             <div className="grid grid-cols-7 mb-1 shrink-0">
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                <div key={d} className={`text-center text-[0.7em] font-extrabold uppercase ${props.extraProps.textColor === 'text-white' ? 'text-white/60' : 'text-slate-400'}`}>{d}</div>
+                <div key={d} className={`text-center text-[0.7em] font-extrabold uppercase ${extraProps.textColor === 'text-white' ? 'text-white/60' : 'text-slate-400'}`}>{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1 flex-1 content-start overflow-hidden">
@@ -7914,7 +7914,7 @@
                   key={d}
                   onClick={() => onDayClick(d)}
                   className={`aspect-square flex items-center justify-center rounded-full text-[0.9em] font-medium transition-all cursor-pointer
-                        ${isSelected(d) ? 'bg-indigo-600 text-white ring-2 ring-indigo-200 shadow-lg' : isToday(d) ? 'bg-blue-100 text-blue-700' : (props.extraProps.textColor === 'text-white' ? 'text-white/90 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-50')}`}
+                        ${isSelected(d) ? 'bg-indigo-600 text-white ring-2 ring-indigo-200 shadow-lg' : isToday(d) ? 'bg-blue-100 text-blue-700' : (extraProps.textColor === 'text-white' ? 'text-white/90 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-50')}`}
                 >
                   {d}
                 </div>
