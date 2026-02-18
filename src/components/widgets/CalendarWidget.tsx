@@ -9,7 +9,8 @@ interface CalendarWidgetProps {
 
 const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, textColor = 'text-slate-800' }) => {
     const [viewDate, setViewDate] = useState(new Date());
-    const isDark = textColor === 'text-white';
+    const isGlassy = widget.data?.isGlassy;
+    const isDark = (isGlassy === 'glass' || isGlassy === 'clear') && textColor === 'text-white';
 
     const getDaysInMonth = (date: Date) => {
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -42,7 +43,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, tex
     const [viewMode, setViewMode] = useState<'calendar' | 'big'>('calendar');
 
     return (
-        <div className={`flex flex-col h-full relative p-4 group ${widget.data.isGlassy ? 'bg-white/10 backdrop-blur-md rounded-2xl border border-white/20' : 'bg-white'}`}>
+        <div className={`flex flex-col h-full relative p-4 group ${(isGlassy === 'glass' || isGlassy === 'clear') ? 'bg-white/10 backdrop-blur-md rounded-2xl border border-white/20' : 'bg-white rounded-2xl shadow-sm text-slate-800'}`}>
             {/* Header */}
             <div className={`flex justify-between items-center ${viewMode === 'calendar' ? 'mb-2' : 'mb-0'} shrink-0`}>
                 <div className="flex items-center">
