@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock
+    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown
 } from 'lucide-react';
 
 // Components
@@ -149,16 +149,39 @@ const App = () => {
         } catch { return []; }
     });
 
-    const [dockOrder, setDockOrder] = useState(() => {
+    const [dockOrder, setDockOrder] = useState<any>(() => {
         try {
             const parsed = JSON.parse(localStorage.getItem('homeroom_dock_order'));
-            if (!Array.isArray(parsed)) return INIT_DOCK_ORDER;
-            // Remove types that no longer exist in DOCK_LABELS (e.g. unfinished GOALS)
-            const cleaned = parsed.filter(t => DOCK_LABELS[t]);
-            // Append any new types from INIT_DOCK_ORDER that the user doesn't have yet
-            const missing = INIT_DOCK_ORDER.filter(t => !cleaned.includes(t));
-            return [...cleaned, ...missing];
-        } catch { return INIT_DOCK_ORDER; }
+            const mainDefaults = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT'];
+            const drawerDefaults = INIT_DOCK_ORDER.filter(id => !mainDefaults.includes(id));
+
+            if (parsed && parsed.main && parsed.drawer) {
+                // Remove non-existent types
+                const cleanedMain = parsed.main.filter((t: string) => DOCK_LABELS[t]);
+                const cleanedDrawer = parsed.drawer.filter((t: string) => DOCK_LABELS[t]);
+                const currentIds = [...cleanedMain, ...cleanedDrawer];
+                const missing = INIT_DOCK_ORDER.filter(t => !currentIds.includes(t));
+                return { main: cleanedMain, drawer: [...cleanedDrawer, ...missing] };
+            }
+
+            if (Array.isArray(parsed)) {
+                const cleaned = parsed.filter(t => DOCK_LABELS[t]);
+                const currentIds = cleaned;
+                const missing = INIT_DOCK_ORDER.filter(t => !currentIds.includes(t));
+                const all = [...cleaned, ...missing];
+                return {
+                    main: all.slice(0, 8),
+                    drawer: all.slice(8)
+                };
+            }
+
+            return { main: mainDefaults, drawer: drawerDefaults };
+        } catch {
+            return {
+                main: ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT'],
+                drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'YOUTUBE', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD']
+            };
+        }
     });
 
     const [widgets, setWidgets] = useState([]);
@@ -175,6 +198,20 @@ const App = () => {
     const [accentColor, setAccentColor] = useState(() => localStorage.getItem('homeroom_accent_color') || 'indigo');
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
     const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+
+    const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+    const drawerRef = useRef<HTMLDivElement>(null);
+
+    // Click outside listener for drawer
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+                setShowMoreDrawer(false);
+            }
+        };
+        if (showMoreDrawer) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showMoreDrawer]);
 
     // --- NEW: Pro Features & Limits ---
     const [currentSlideIndex, setCurrentSlideIndex] = useState(() => {
@@ -534,7 +571,7 @@ const App = () => {
                     <button
                         onClick={() => setCurrentSlideIndex(prev => Math.max(0, prev - 1))}
                         disabled={currentSlideIndex === 0}
-                        className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-500 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                        className={`p-1.5 hover:bg-slate-100 rounded-xl transition-all disabled:opacity-30 disabled:hover:bg-transparent ${background.textColor === 'text-white' ? 'text-slate-800' : 'text-slate-500'}`}
                     >
                         <ChevronLeft size={18} />
                     </button>
@@ -549,7 +586,7 @@ const App = () => {
                                 alert(`Pro Plan Limit: You have reached the maximum of ${SLIDE_LIMIT} dashboards.`);
                             }
                         }}
-                        className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all"
+                        className={`p-1.5 hover:bg-slate-100 rounded-xl transition-all ${background.textColor === 'text-white' ? 'text-slate-800' : 'text-slate-500'}`}
                     >
                         <ChevronRight size={18} />
                     </button>
@@ -558,7 +595,7 @@ const App = () => {
                 {/* Lock Toggle */}
                 <button
                     onClick={() => setIsLocked(!isLocked)}
-                    className={`h-11 px-4 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all border shadow-lg ${isLocked ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
+                    className={`h-11 px-4 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all border shadow-lg ${isLocked ? 'bg-amber-100/90 text-amber-700 border-amber-200 backdrop-blur-sm' : `bg-white/80 backdrop-blur-xl border-white/40 hover:border-indigo-300 ${background.textColor === 'text-white' ? 'text-slate-800' : 'text-slate-600'}`}`}
                 >
                     {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
                     {isLocked ? 'Dashboard Locked' : 'Unlocked'}
@@ -568,17 +605,17 @@ const App = () => {
             {/* Dock */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10000]">
                 <div className="backdrop-blur-2xl shadow-2xl rounded-2xl flex items-center p-2 gap-1 transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/50 relative">
-                    <div className="absolute inset-0 bg-white/20 rounded-2xl overflow-hidden -z-10 border border-white/40">
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-white/5 pointer-events-none" />
+                    <div className="absolute inset-0 bg-white/10 rounded-2xl overflow-hidden -z-10 border border-white/20">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white/5 pointer-events-none" />
                     </div>
-                    {dockOrder.map(type => (
+                    {dockOrder.main.map((type: string) => (
                         <button
                             key={type}
                             onClick={() => addWidget(type)}
                             draggable={!isDockMinimized}
                             onDragStart={(e) => { e.currentTarget.classList.add('scale-105'); }}
                             onDragEnd={(e) => { e.currentTarget.classList.remove('scale-105'); }}
-                            className="p-3 text-slate-600 hover:text-indigo-600 hover:bg-white rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10"
+                            className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}
                             title={DOCK_LABELS[type].label}
                         >
                             <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-1">{DOCK_LABELS[type].icon}</div>
@@ -587,9 +624,44 @@ const App = () => {
                             </span>
                         </button>
                     ))}
-                    <div className="w-px h-8 bg-slate-300 mx-2" />
+
+                    <div className="w-px h-8 bg-slate-400/40 mx-2" />
+
+                    {/* More Drawer Button */}
+                    <div className="relative" ref={drawerRef}>
+                        <button
+                            onClick={() => setShowMoreDrawer(!showMoreDrawer)}
+                            className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}
+                            title="More Tools"
+                        >
+                            <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-1">
+                                {showMoreDrawer ? <ChevronDown size={24} /> : <MoreHorizontal size={24} />}
+                            </div>
+                            <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
+                                More
+                            </span>
+                        </button>
+
+                        {showMoreDrawer && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-3 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 grid grid-cols-3 gap-2 min-w-[280px] z-50 animate-in slide-in-from-bottom-2 duration-200">
+                                {dockOrder.drawer.map((type: string) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => { addWidget(type); setShowMoreDrawer(false); }}
+                                        className="p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all flex flex-col items-center gap-1"
+                                    >
+                                        <div>{DOCK_LABELS[type].icon}</div>
+                                        <span className="text-[10px] font-bold">{DOCK_LABELS[type].label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-px h-8 bg-slate-400/40 mx-2" />
+
                     <div className="flex flex-col gap-1">
-                        <button onClick={() => setShowSettings(true)} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><Settings size={20} /></button>
+                        <button onClick={() => setShowSettings(true)} className={`p-2 rounded-lg hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}><Settings size={20} /></button>
                     </div>
                 </div>
             </div>
