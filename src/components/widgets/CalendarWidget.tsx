@@ -69,7 +69,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, tex
 
             {viewMode === 'calendar' ? (
                 /* Grid */
-                <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex-1 flex flex-col min-h-0 p-1">
                     {/* Days Header */}
                     <div className="grid grid-cols-7 mb-1 shrink-0">
                         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
@@ -78,7 +78,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, tex
                     </div>
 
                     {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-1 flex-1 content-start overflow-hidden">
+                    <div className="grid grid-cols-7 gap-1 flex-1 content-start">
                         {blanks.map(i => <div key={`blank-${i}`} />)}
                         {days.map(d => (
                             <div
