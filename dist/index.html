@@ -9273,10 +9273,15 @@
             title={!isDockLocked ? "Drag to reorder" : info.label}
           >
             {!isDockLocked && <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 shadow-sm"><GripVertical size={10} /></div>}
-            <div className={`w-12 h-12 flex items-center justify-center rounded-xl transition-colors ${!isDockLocked ? 'bg-blue-100 text-slate-600' : 'bg-white/80 group-hover:bg-white group-hover:text-blue-600 shadow-sm ' + (location === 'dock' ? (currentBg?.textColor || 'text-slate-600') : 'text-slate-600')}`}>
+            <div className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 ${!isDockLocked
+                ? 'bg-blue-100 text-slate-600'
+                : (location === 'dock'
+                  ? (currentBg?.textColor === 'text-white' ? 'bg-white/20 backdrop-blur-sm text-white shadow-sm' : 'bg-white/80 text-slate-600 shadow-sm')
+                  : 'bg-white/80 text-slate-600 shadow-sm')
+              } group-hover:scale-105 active:scale-95`}>
               {info.icon}
             </div>
-            <span className={`text-[10px] font-bold group-hover:text-slate-900 ${location === 'dock' ? (currentBg?.textColor || 'text-slate-700') : 'text-slate-700'}`}>{info.label}</span>
+            <span className={`text-[10px] font-bold transition-colors duration-200 ${location === 'dock' ? (currentBg?.textColor || 'text-slate-700') : 'text-slate-700'}`}>{info.label}</span>
           </div>
         );
       };
