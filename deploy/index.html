@@ -6539,7 +6539,7 @@
             {/* Custom / My Backgrounds */}
             {myBackgrounds.length > 0 && (
               <>
-                <div className="text-xs font-bold text-gray-500 uppercase mb-2">My Backgrounds</div>
+                <div className="text-xs font-bold text-gray-700 mb-2">My Backgrounds</div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   {myBackgrounds.map(bg => (
                     <button key={bg.id} onClick={() => { onSelect(bg, 'single'); }} className={`relative group rounded-xl overflow-hidden aspect-video border-2 transition-all active:scale-95 shadow-sm hover:shadow-md ${currentBg?.id === bg.id ? 'border-purple-600 ring-2 ring-purple-100' : 'border-transparent hover:border-gray-200'}`}>
@@ -6555,7 +6555,7 @@
               </>
             )}
 
-            <div className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center justify-between">
+            <div className="text-xs font-bold text-gray-700 mb-2 flex items-center justify-between">
               <span>Background Presets</span>
               <div className="flex items-center gap-2 cursor-pointer bg-gray-100 px-3 py-1.5 rounded-lg transition-colors hover:bg-gray-200" onClick={() => onToggleGrid(!isGridEnabled)}>
                 <span className="text-[10px] font-bold text-gray-600">Snap to Grid</span>
@@ -6621,7 +6621,7 @@
 
               {/* URL Input Area */}
               <div className="flex-1 flex flex-col justify-center bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <div className="text-[10px] font-bold text-gray-400 uppercase mb-2">Or Paste Image URL</div>
+                <div className="text-[10px] font-bold text-gray-700 mb-2">Or Paste Image URL</div>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -7106,11 +7106,11 @@
                         <h3 className="text-lg font-bold text-gray-800 mb-4">Create New Class</h3>
                         <div className="space-y-4 flex-1">
                           <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Class Name</label>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Class Name</label>
                             <input autoFocus type="text" value={newRosterName} onChange={e => setNewRosterName(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-purple-500 font-bold text-gray-700" placeholder="e.g., Period 2 - Science" />
                           </div>
                           <div className="flex-1 flex flex-col">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Students (Paste list)</label>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Students (Paste list)</label>
                             <textarea value={newRosterBulk} onChange={e => setNewRosterBulk(e.target.value)} className="flex-1 border-2 border-gray-200 rounded-xl p-3 outline-none focus:border-purple-500 resize-none custom-scrollbar" placeholder="Paste names here..." style={{ minHeight: '200px' }} />
                           </div>
                           <div className="flex gap-2 justify-end pt-2">
@@ -7217,7 +7217,7 @@
                             </div>
                           ) : (
                             <div className="p-0 flex flex-col">
-                              <label className="text-xs font-bold text-gray-500 uppercase mb-2">Edit Names (One per line)</label>
+                              <label className="text-xs font-bold text-gray-700 mb-2">Edit Names (One per line)</label>
                               <textarea
                                 className="border-2 border-gray-200 rounded-xl p-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all custom-scrollbar resize-none font-medium text-slate-700"
                                 rows={7}
@@ -7488,7 +7488,7 @@
                       {/* Rename Input for Rotating Mode */}
                       {scheduleSettings?.mode === 'rotating' && selectedDay && (
                         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
-                          <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider shrink-0 w-24">Label:</span>
+                          <span className="text-xs font-bold text-indigo-400 shrink-0 w-24">Label:</span>
                           <input
                             type="text"
                             value={scheduleSettings.dayLabels?.[parseInt(selectedDay.split(' ')[1]) - 1] || ''}
@@ -9273,10 +9273,10 @@
             title={!isDockLocked ? "Drag to reorder" : info.label}
           >
             {!isDockLocked && <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 shadow-sm"><GripVertical size={10} /></div>}
-            <div className={`w-12 h-12 flex items-center justify-center rounded-xl text-slate-600 transition-colors ${!isDockLocked ? 'bg-blue-100' : 'bg-white/80 group-hover:bg-white group-hover:text-blue-600 shadow-sm'}`}>
+            <div className={`w-12 h-12 flex items-center justify-center rounded-xl transition-colors ${!isDockLocked ? 'bg-blue-100 text-slate-600' : 'bg-white/80 group-hover:bg-white group-hover:text-blue-600 shadow-sm ' + (location === 'dock' ? (currentBg?.textColor || 'text-slate-600') : 'text-slate-600')}`}>
               {info.icon}
             </div>
-            <span className="text-[10px] font-bold text-slate-700 group-hover:text-slate-900">{info.label}</span>
+            <span className={`text-[10px] font-bold group-hover:text-slate-900 ${location === 'dock' ? (currentBg?.textColor || 'text-slate-700') : 'text-slate-700'}`}>{info.label}</span>
           </div>
         );
       };
@@ -9665,7 +9665,7 @@
                         handleDockDrop(e, 'drawer');
                       }}
                     >
-                      <div className="w-full text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 border-b pb-1">Additional Tools</div>
+                      <div className="w-full text-[10px] font-bold text-slate-400 mb-1 border-b pb-1">Additional Tools</div>
                       {dockOrder?.drawer?.length > 0 ? (
                         dockOrder.drawer.map((id) => renderDockItem(id, 'drawer'))
                       ) : (
