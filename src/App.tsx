@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock, Volume2, Ruler
+    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock
 } from 'lucide-react';
 
 // Components
@@ -176,6 +176,18 @@ const App = () => {
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
     const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
+    // --- NEW: Pro Features & Limits ---
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(() => {
+        try { return parseInt(localStorage.getItem('homeroom_current_slide') || '0'); } catch { return 0; }
+    });
+    const [isLocked, setIsLocked] = useState(() => localStorage.getItem('homeroom_locked') === 'true');
+    const SLIDE_LIMIT = 25;
+    const BG_LIMIT = 12;
+
+    // Persist session-local slide/lock
+    useEffect(() => { localStorage.setItem('homeroom_current_slide', currentSlideIndex.toString()); }, [currentSlideIndex]);
+    useEffect(() => { localStorage.setItem('homeroom_locked', String(isLocked)); }, [isLocked]);
+
     // Guards for cloud sync
     const cloudLoaded = useRef(false);   // true once initial cloud data is fetched
     const savingRef = useRef(false);     // true while a save is in-flight (to ignore own realtime events)
@@ -250,11 +262,15 @@ const App = () => {
             if (!user) return;
 
             try {
-                // Load Widgets (Slide 0 for now)
+                // Load Widgets for current slide
                 const slides = await dataService.getSlides(user.id);
-                if (slides && slides.length > 0) {
-                    const loadedWidgets = slides[0].widgets;
-                    if (Array.isArray(loadedWidgets)) setWidgets(loadedWidgets);
+                if (slides && Array.isArray(slides)) {
+                    const slide = slides.find(s => s.slide_index === currentSlideIndex);
+                    if (slide && Array.isArray(slide.widgets)) {
+                        setWidgets(slide.widgets);
+                    } else {
+                        setWidgets([]); // Clear if slide doesn't exist in cloud yet
+                    }
                 }
 
                 // Load Rosters
@@ -271,7 +287,7 @@ const App = () => {
         };
 
         if (!isCheckingPro) loadCloudData();
-    }, [isCheckingPro]);
+    }, [isCheckingPro, currentSlideIndex]);
 
     // Sync Widgets to Cloud (guarded: only runs after cloud data has loaded)
     useEffect(() => {
@@ -282,7 +298,7 @@ const App = () => {
             if (!user) return;
             try {
                 savingRef.current = true;
-                await dataService.saveSlide(user.id, 0, widgets);
+                await dataService.saveSlide(user.id, currentSlideIndex, widgets);
             } catch (e) {
                 console.error("Failed to save widgets", e);
             } finally {
@@ -307,10 +323,13 @@ const App = () => {
                 (payload: any) => {
                     // Ignore our own writes
                     if (savingRef.current) return;
-                    const newWidgets = payload.new?.widgets;
-                    if (Array.isArray(newWidgets)) {
-                        cloudLoaded.current = true;
-                        setWidgets(newWidgets);
+                    // Only sync if it's the current slide
+                    if (payload.new?.slide_index === currentSlideIndex) {
+                        const newWidgets = payload.new?.widgets;
+                        if (Array.isArray(newWidgets)) {
+                            cloudLoaded.current = true;
+                            setWidgets(newWidgets);
+                        }
                     }
                 }
             )
@@ -319,7 +338,7 @@ const App = () => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user]);
+    }, [user, currentSlideIndex]);
 
 
     // Onboarding
@@ -423,7 +442,8 @@ const App = () => {
                     onFocus={() => bringToFront(w.id)}
                     onRemove={removeWidget}
                     minWidth={200} minHeight={150}
-                    {...w.data} // Pass locked/minimized/transparent
+                    locked={isLocked || w.data?.locked}
+                    {...w.data} // Pass minimized/transparent etc.
                 >
                     {(() => {
                         const extraProps = {
@@ -507,6 +527,44 @@ const App = () => {
                 </DraggableResizable>
             ))}
 
+            {/* Top Bar: Slide Switcher & Lock */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-3">
+                {/* Slide Switcher */}
+                <div className="bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-1.5 flex items-center gap-1 ring-1 ring-black/5">
+                    <button
+                        onClick={() => setCurrentSlideIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentSlideIndex === 0}
+                        className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-500 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <div className="px-3 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
+                        <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">Dashboard {currentSlideIndex + 1}</span>
+                    </div>
+                    <button
+                        onClick={() => {
+                            if (currentSlideIndex < SLIDE_LIMIT - 1) {
+                                setCurrentSlideIndex(prev => prev + 1);
+                            } else {
+                                alert(`Pro Plan Limit: You have reached the maximum of ${SLIDE_LIMIT} dashboards.`);
+                            }
+                        }}
+                        className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
+
+                {/* Lock Toggle */}
+                <button
+                    onClick={() => setIsLocked(!isLocked)}
+                    className={`h-11 px-4 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all border shadow-lg ${isLocked ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}
+                >
+                    {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                    {isLocked ? 'Dashboard Locked' : 'Unlocked'}
+                </button>
+            </div>
+
             {/* Dock */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10000]">
                 <div className="backdrop-blur-2xl shadow-2xl rounded-2xl flex items-center p-2 gap-1 transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/50 relative">
@@ -566,6 +624,10 @@ const App = () => {
                 currentBackground={background}
                 setBackground={setBackground}
                 onUploadBackground={(src) => {
+                    if (customBackgrounds.length >= BG_LIMIT) {
+                        alert(`Background Limit: You have reached the max of ${BG_LIMIT} custom uploads. Please delete some before adding more.`);
+                        return;
+                    }
                     const newBg = { id: Date.now().toString(), name: 'Custom', type: 'custom', src, textColor: 'text-white' };
                     setCustomBackgrounds([...customBackgrounds, newBg]);
                     setBackground(newBg);

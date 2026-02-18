@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HomeRoom Pro</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -572,10 +572,10 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN'] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'] };
 
         const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
 
         // If it's a flat array (from Supabase or old storage)
@@ -3504,7 +3504,7 @@
       const containerRef = useRef(null);
       const [scale, setScale] = useState(1);
 
-      const BASELINE_WIDTH = 280; // Stable baseline for calculation
+      const BASELINE_WIDTH = 280;
 
       useEffect(() => {
         const el = containerRef.current;
@@ -3518,7 +3518,7 @@
         });
         observer.observe(el);
         return () => observer.disconnect();
-      }, []); // Remove isScientific dependency to stop observer restart jump
+      }, []);
 
       // Persist state
       useEffect(() => {
@@ -4321,6 +4321,7 @@
         </div>
       );
     };
+
 
     const TimerWidget = ({ widget, updateData }) => {
       const data = widget.data || {};

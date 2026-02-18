@@ -32,6 +32,9 @@ export const dataService = {
     },
 
     async saveSlide(userId: string, slideIndex: number, widgets: Widget[]) {
+        if (slideIndex < 0 || slideIndex >= 25) {
+            throw new Error('Maximum of 25 dashboards allowed');
+        }
         const { error } = await supabase
             .from('slides')
             .upsert({
