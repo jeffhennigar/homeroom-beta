@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
-import { UploadCloud, Image as ImageIcon, Trash2, Clock as ClockIcon } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, Trash2, Clock as ClockIcon, Moon, Sun } from 'lucide-react';
 import { CLOCK_STYLES } from '../../constants';
 
-const AppearanceSettings = ({ backgrounds, currentBackground, onSelectBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, clockStyle, setClockStyle }) => {
+const AppearanceSettings = ({ backgrounds, currentBackground, onSelectBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, clockStyle, setClockStyle, textColor, setTextColor }) => {
     const fileInputRef = useRef(null);
 
     const handleFileChange = (e) => {
@@ -18,18 +18,43 @@ const AppearanceSettings = ({ backgrounds, currentBackground, onSelectBackground
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                <label className="font-bold text-slate-700 flex items-center gap-2">
-                    <div className="w-4 h-4 rounded border border-indigo-300 bg-white grid grid-cols-2 gap-0.5 p-0.5">
-                        <div className="bg-indigo-400 rounded-sm" />
-                        <div className="bg-indigo-400 rounded-sm" />
-                        <div className="bg-indigo-400 rounded-sm" />
-                        <div className="bg-indigo-400 rounded-sm" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <label className="font-bold text-slate-700 flex items-center gap-2">
+                        <div className="w-4 h-4 rounded border border-indigo-300 bg-white grid grid-cols-2 gap-0.5 p-0.5">
+                            <div className="bg-indigo-400 rounded-sm" />
+                            <div className="bg-indigo-400 rounded-sm" />
+                            <div className="bg-indigo-400 rounded-sm" />
+                            <div className="bg-indigo-400 rounded-sm" />
+                        </div>
+                        Show Alignment Grid
+                    </label>
+                    <div onClick={() => setShowGrid(!showGrid)} className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${showGrid ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${showGrid ? 'translate-x-5' : 'translate-x-0'}`} />
                     </div>
-                    Show Alignment Grid
-                </label>
-                <div onClick={() => setShowGrid(!showGrid)} className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${showGrid ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-                    <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${showGrid ? 'translate-x-5' : 'translate-x-0'}`} />
+                </div>
+
+                <div className="flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <label className="font-bold text-slate-700 flex items-center gap-2">
+                        {textColor === 'text-white' ? <Sun size={18} className="text-yellow-500" /> : <Moon size={18} className="text-slate-600" />}
+                        Display Theme
+                    </label>
+                    <div className="flex gap-1 bg-white/50 p-1 rounded-lg border border-indigo-100 shadow-sm">
+                        <button
+                            onClick={() => setTextColor('text-slate-800')}
+                            className={`p-1.5 rounded-md transition-all ${textColor !== 'text-white' ? 'bg-white shadow text-orange-500' : 'text-slate-400 hover:text-slate-600'}`}
+                            title="Dark Text Mode"
+                        >
+                            <Moon size={14} />
+                        </button>
+                        <button
+                            onClick={() => setTextColor('text-white')}
+                            className={`p-1.5 rounded-md transition-all ${textColor === 'text-white' ? 'bg-slate-700 shadow text-yellow-300' : 'text-slate-400 hover:text-slate-600'}`}
+                            title="Light Text Mode"
+                        >
+                            <Sun size={14} />
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -22,6 +22,7 @@ import CalculatorWidget from './components/widgets/CalculatorWidget';
 import CountdownWidget from './components/widgets/CountdownWidget';
 import SoundboardWidget from './components/widgets/SoundboardWidget';
 import PolypadWidget from './components/widgets/PolypadWidget';
+import CalendarWidget from './components/widgets/CalendarWidget';
 import SettingsModal from './components/settings/SettingsModal';
 import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
 import { supabase } from './services/supabaseClient';
@@ -70,7 +71,8 @@ const DOCK_LABELS = {
     CALCULATOR: { label: 'Calc', icon: <Calculator /> },
     COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
     SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
-    POLYPAD: { label: 'Polypad', icon: <Ruler /> }
+    POLYPAD: { label: 'Polypad', icon: <Ruler /> },
+    CALENDAR: { label: 'Calendar', icon: <Calendar /> }
 };
 
 const DEFAULT_NAMES = ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5"];
@@ -105,7 +107,8 @@ const WIDGET_SIZES = {
     CALCULATOR: { width: 280, height: 380 },
     COUNTDOWN: { width: 280, height: 280 },
     SOUNDBOARD: { width: 440, height: 500 },
-    POLYPAD: { width: 800, height: 600 }
+    POLYPAD: { width: 800, height: 600 },
+    CALENDAR: { width: 340, height: 320 }
 };
 
 const THEME_COLORS: Record<string, any> = {
@@ -438,6 +441,17 @@ const App = () => {
         ? { backgroundImage: `url(${background.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }
         : (background.type === 'custom' ? { backgroundImage: `url(${background.src})`, backgroundSize: 'cover' } : {});
 
+    const setTextColor = (color) => {
+        setBackground(prev => ({ ...prev, textColor: color }));
+    };
+
+    const onDeleteBackground = (id) => {
+        const newCustoms = customBackgrounds.filter(b => b.id !== id);
+        setCustomBackgrounds(newCustoms);
+        localStorage.setItem('homeroom_custom_backgrounds', JSON.stringify(newCustoms));
+        if (background.id === id) setBackground(BACKGROUNDS[0]);
+    };
+
     // Render Widget Content
     // The original renderWidgetContent function was replaced by an IIFE within the map.
     // Keeping the original structure for clarity, but the actual rendering logic is now inline.
@@ -507,6 +521,7 @@ const App = () => {
                             case 'CALCULATOR': return <CalculatorWidget {...props} />;
                             case 'COUNTDOWN': return <CountdownWidget {...props} />;
                             case 'POLYPAD': return <PolypadWidget {...props} />;
+                            case 'CALENDAR': return <CalendarWidget {...props} textColor={extraProps.textColor} />;
                             case 'RANDOMIZER': // Random student picker
                                 return (
                                     <div className="flex flex-col h-full bg-white p-4 items-center justify-center text-center">
@@ -705,12 +720,7 @@ const App = () => {
                     setBackground(newBg);
                     localStorage.setItem('homeroom_custom_backgrounds', JSON.stringify([...customBackgrounds, newBg]));
                 }}
-                onDeleteBackground={(id) => {
-                    const newCustoms = customBackgrounds.filter(b => b.id !== id);
-                    setCustomBackgrounds(newCustoms);
-                    localStorage.setItem('homeroom_custom_backgrounds', JSON.stringify(newCustoms));
-                    if (background.id === id) setBackground(BACKGROUNDS[0]);
-                }}
+                onDeleteBackground={onDeleteBackground}
                 showGrid={showGrid}
                 setShowGrid={setShowGrid}
                 allRosters={allRosters}
@@ -721,6 +731,8 @@ const App = () => {
                 saveScheduleTemplate={() => { }}
                 widgets={widgets}
                 setWidgets={setWidgets}
+                textColor={background.textColor}
+                setTextColor={setTextColor}
             />
         </div>
     );

@@ -7,7 +7,7 @@ import { SCHEDULE_EMOJIS } from '../../constants';
 import { dataService } from '../../services/dataService';
 import { supabase } from '../../services/supabaseClient';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets }) => {
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets, textColor, setTextColor }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -279,6 +279,8 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                         setShowGrid={setShowGrid}
                         clockStyle={clockStyle}
                         setClockStyle={setClockStyle}
+                        textColor={textColor}
+                        setTextColor={setTextColor}
                     />
                 );
             case 'schedule':

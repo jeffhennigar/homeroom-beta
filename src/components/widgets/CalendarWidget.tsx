@@ -4,10 +4,12 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 interface CalendarWidgetProps {
     widget: any;
     updateData: (id: string, data: any) => void;
+    textColor?: string;
 }
 
-const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData }) => {
+const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, textColor = 'text-slate-800' }) => {
     const [viewDate, setViewDate] = useState(new Date());
+    const isDark = textColor === 'text-white';
 
     const getDaysInMonth = (date: Date) => {
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -51,7 +53,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData }) =
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <div className={`font-bold text-[1.1em] mx-1 whitespace-nowrap ${widget.data.isGlassy ? 'text-white' : 'text-slate-800'}`}>
+                    <div className={`font-bold text-[1.1em] mx-1 whitespace-nowrap ${isDark ? 'text-white drop-shadow-sm' : 'text-slate-800'}`}>
                         {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                     </div>
                     <button
@@ -70,7 +72,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData }) =
                     {/* Days Header */}
                     <div className="grid grid-cols-7 mb-1 shrink-0">
                         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                            <div key={d} className="text-center text-[0.7em] font-bold text-slate-400 uppercase">{d}</div>
+                            <div key={d} className={`text-center text-[0.7em] font-bold uppercase ${isDark ? 'text-white/60' : 'text-slate-400'}`}>{d}</div>
                         ))}
                     </div>
 
@@ -84,7 +86,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData }) =
                         aspect-square flex items-center justify-center rounded-full text-[0.9em] font-medium transition-all
                         ${isToday(d)
                                         ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                                        : 'text-slate-600 hover:bg-slate-50'
+                                        : isDark ? 'text-white/90 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-50'
                                     }
                     `}
                             >
@@ -96,13 +98,13 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData }) =
             ) : (
                 /* Big Date View */
                 <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative">
-                    <div className="text-[5em] font-black text-slate-800 leading-none tracking-tighter">
+                    <div className={`text-[5em] font-black leading-none tracking-tighter ${isDark ? 'text-white' : 'text-slate-800'}`}>
                         {new Date().getDate()}
                     </div>
-                    <div className="text-[1.2em] font-bold text-blue-600 uppercase tracking-widest">
+                    <div className={`text-[1.2em] font-bold uppercase tracking-widest ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
                         {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
                     </div>
-                    <div className="absolute top-2 right-2 text-xs font-bold text-slate-300">TODAY</div>
+                    <div className={`absolute top-2 right-2 text-xs font-bold ${isDark ? 'text-white/30' : 'text-slate-300'}`}>TODAY</div>
                 </div>
             )}
 
