@@ -8062,6 +8062,11 @@
       });
 
       const [slides, setSlides] = useState(() => {
+        try {
+          const globalSlides = JSON.parse(localStorage.getItem('homeroom_slides'));
+          if (Array.isArray(globalSlides) && globalSlides.length > 0) return globalSlides;
+        } catch (e) { }
+
         const active = allRosters.find(r => r.id === (localStorage.getItem('homeroom_active_roster_id') || 'default'));
         let initialSlides = active ? (active.slides || [[]]) : [[]];
         if (initialSlides.length === 1 && initialSlides[0].length === 0) {
@@ -8079,7 +8084,9 @@
         return initialSlides;
       });
 
-      const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+      const [currentSlideIndex, setCurrentSlideIndex] = useState(() => {
+        try { return parseInt(localStorage.getItem('homeroom_current_slide') || '0'); } catch { return 0; }
+      });
       const [selectedId, setSelectedId] = useState(null);
       const [spotlightId, setSpotlightId] = useState(null);
       const [maxZIndex, setMaxZIndex] = useState(10);
@@ -8439,12 +8446,9 @@
       // --- MANAGEMENT FUNCTIONS ---
       const handleSetActiveRoster = (id) => {
         if (id === activeRosterId) return;
-        setAllRosters(prev => prev.map(r => r.id === activeRosterId ? { ...r, roster, slides } : r));
         const next = allRosters.find(r => r.id === id);
         if (next) {
           setRoster(next.roster);
-          setSlides(next.slides || [[]]);
-          setCurrentSlideIndex(0);
           setActiveRosterId(id);
           localStorage.setItem('homeroom_active_roster_id', id);
         }
@@ -8481,20 +8485,14 @@
         }
 
         const newId = generateUUID();
-        const newRoster = { id: newId, name: name, roster: initialStudents, slides: initialSlides };
+        const newRoster = { id: newId, name: name, roster: initialStudents };
 
-        // 2. Update All Rosters (Save Current + Add New)
-        setAllRosters(prev => {
-          // Save current roster state to the previous active roster object
-          const updatedPrev = prev.map(r => r.id === activeRosterId ? { ...r, roster, slides } : r);
-          return [...updatedPrev, newRoster];
-        });
+        // 2. Update All Rosters
+        setAllRosters(prev => [...prev, newRoster]);
 
         // 3. Switch to New Roster Immediately
         setActiveRosterId(newId);
         setRoster(initialStudents);
-        setSlides(initialSlides);
-        setCurrentSlideIndex(0);
         localStorage.setItem('homeroom_active_roster_id', newId);
       };
 
@@ -8801,6 +8799,8 @@
         localStorage.setItem('homeroom_accent_color', accentColor);
       }, [accentColor]);
       useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
+      useEffect(() => { localStorage.setItem('homeroom_slides', JSON.stringify(slides)); }, [slides]);
+      useEffect(() => { localStorage.setItem('homeroom_current_slide', currentSlideIndex.toString()); }, [currentSlideIndex]);
       useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
       useEffect(() => { localStorage.setItem('homeroom_backup_interval', backupInterval); }, [backupInterval]);
@@ -9182,15 +9182,7 @@
           return prev;
         });
 
-        // 4. Force Persistent Save
-        try {
-          const allRostersCopy = JSON.parse(localStorage.getItem('homeroom_all_rosters') || '[]');
-          const rosterIdx = allRostersCopy.findIndex(r => r.id === activeRosterId);
-          if (rosterIdx !== -1) {
-            allRostersCopy[rosterIdx].slides = updatedSlides;
-            localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRostersCopy));
-          }
-        } catch (e) { console.error("Slide Deletion Save Error:", e); }
+        // 4. Persistence handled by useEffect
       };
 
       const duplicateCurrentSlide = () => {
@@ -9222,15 +9214,7 @@
 
         setCurrentSlideIndex(newIndex);
 
-        // Persistent Save
-        try {
-          const allRostersCopy = JSON.parse(localStorage.getItem('homeroom_all_rosters') || '[]');
-          const rosterIdx = allRostersCopy.findIndex(r => r.id === activeRosterId);
-          if (rosterIdx !== -1) {
-            allRostersCopy[rosterIdx].slides = newSlides;
-            localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRostersCopy));
-          }
-        } catch (e) { console.error("Slide Duplication Save Error:", e); }
+        // Persistent Save handled by useEffect
       };
 
       // Removed legacy saveDock/handleDockDrop
