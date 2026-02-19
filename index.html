@@ -8343,9 +8343,12 @@
                   setDockOrder(order);
                 }
               }
-              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
-              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
-              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              if (profile.schedule) {
+                const { _settings, ...template } = profile.schedule;
+                setScheduleTemplate(template);
+                if (_settings) setScheduleSettings(_settings);
+                else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              }
               if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
               if (profile.last_modified) setProfileLastModified(profile.last_modified);
             }
@@ -8391,9 +8394,13 @@
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
 
               // Complete Schedule Sync
-              if (profile.schedule) setScheduleTemplate(profile.schedule);
+              if (profile.schedule) {
+                const { _settings, ...template } = profile.schedule;
+                setScheduleTemplate(template);
+                if (_settings) setScheduleSettings(_settings);
+                else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              }
               if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
-              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
 
               if (profile.clock_style) setClockStyle(profile.clock_style);
               if (profile.accent_color) setAccentColor(profile.accent_color);
@@ -8755,9 +8762,11 @@
               background,
               slide_backgrounds: slideBackgrounds,
               my_backgrounds: customBackgrounds,
-              schedule: scheduleTemplate,
+              schedule: {
+                ...scheduleTemplate,
+                _settings: scheduleSettings
+              },
               schedule_overrides: scheduleOverrides,
-              schedule_settings: scheduleSettings,
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
@@ -8822,7 +8831,11 @@
             if (p.dock_order) setDockOrder(p.dock_order);
             if (p.schedule) setScheduleTemplate(p.schedule);
             if (p.schedule_overrides) setScheduleOverrides(p.schedule_overrides);
-            if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
+            if (p.schedule) {
+              const { _settings } = p.schedule;
+              if (_settings) setScheduleSettings(_settings);
+              else if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
+            }
             if (p.active_roster_id) setActiveRosterId(p.active_roster_id);
             addDebugLog("Realtime: Profile updated from cloud", 'success');
           }).subscribe((status) => {
