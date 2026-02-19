@@ -6778,7 +6778,7 @@
       );
     };
 
-    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onDeleteSelectedRosters, onRenameRoster, onDuplicateRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, is24Hour, setIs24Hour, accentColor, setAccentColor, backupEnabled, setBackupEnabled, cloudSyncEnabled, setCloudSyncEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings }) => {
+    const SettingsModal = ({ user, onSignOut, isSyncing, lastSyncError, onClose, onSave, downloadData, roster, allRosters, activeRosterId, onSetActiveRoster, onAddRoster, onDeleteRoster, onDeleteSelectedRosters, onRenameRoster, onDuplicateRoster, fileInputRef, initialTab = 'appearance', isGridEnabled, onToggleGrid, currentBg, onBgSelect, myBackgrounds, onAddCustomBg, onDeleteCustomBg, clockStyle, setClockStyle, showClockDate, setShowClockDate, isClockGlassy, setIsClockGlassy, is24Hour, setIs24Hour, accentColor, setAccentColor, backupEnabled, setBackupEnabled, cloudSyncEnabled, setCloudSyncEnabled, backupInterval, setBackupInterval, scheduleTemplate, setScheduleTemplate, scheduleSettings, setScheduleSettings, debugLog = [], channelStatus = {}, onHardRefresh }) => {
       const [realignDate, setRealignDate] = useState(new Date().toISOString().split('T')[0]);
       const [realignTargetDay, setRealignTargetDay] = useState(1);
       const [realignSuccess, setRealignSuccess] = useState(false);
@@ -7747,14 +7747,35 @@
                       )}
                     </div>
 
+                    {/* Channel Status */}
+                    <div className="mb-4 grid grid-cols-3 gap-2">
+                      {Object.entries(channelStatus).map(([name, status]) => (
+                        <div key={name} className="bg-slate-50 p-2 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : (status === 'error' ? 'bg-red-500' : 'bg-slate-300')}`} />
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-tighter">{name}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Integrity Counters */}
+                    <div className="bg-slate-50 rounded-xl p-3 mb-4 border border-slate-200">
+                      <div className="text-[10px] font-black uppercase text-slate-400 mb-2">Data Integrity</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                          <span>Classes:</span>
+                          <span className="text-slate-900">{allRosters.length}</span>
+                        </div>
+                        <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                          <span>Students:</span>
+                          <span className="text-slate-900">{allRosters.reduce((acc, r) => acc + (r.roster?.length || 0), 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Connectivity Test */}
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-slate-700">Connectivity Test</span>
-                        {/* TestConnectionButton assumed generic or inline defined elsewhere? No, it was used in legacy. */}
-                        {/* If TestConnectionButton was defined inside SettingsModal, I might have lost it. */}
-                        {/* I'll use a simple button instead if I can't find it. */}
-                        {/* Or I can check if it was defined. */}
                         <button onClick={async () => {
                           try {
                             const { data, error } = await supabase.from('profiles').select('count').limit(1);
@@ -7766,6 +7787,36 @@
                       <p className="text-xs text-slate-400">
                         Tests Read/Write access to your profile.
                       </p>
+                    </div>
+
+                    {/* Activity Log Terminal */}
+                    <div className="bg-slate-900 rounded-xl p-3 border border-slate-800">
+                      <h4 className="font-bold text-white text-[11px] mb-2 flex items-center justify-between">
+                        Activity Log
+                        <span className="text-[9px] text-slate-500 font-normal uppercase">Last 15 events</span>
+                      </h4>
+                      <div className="max-h-32 overflow-y-auto custom-scrollbar space-y-1 font-mono text-[10px]">
+                        {debugLog.length === 0 && <div className="text-slate-600 italic">No events recorded.</div>}
+                        {debugLog.map((log) => (
+                          <div key={log.id} className="flex gap-2">
+                            <span className="text-slate-600 shrink-0">[{log.time}]</span>
+                            <span className={log.type === 'success' ? 'text-green-400' : (log.type === 'error' ? 'text-red-400' : 'text-blue-300')}>
+                              {log.msg}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Hard Refresh */}
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        onClick={onHardRefresh}
+                        className="px-4 py-2 border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                      >
+                        <RefreshCw size={14} className="hover:rotate-180 transition-transform" />
+                        Hard Refresh (Clear Cache)
+                      </button>
                     </div>
                   </div>
                 )}
@@ -8023,6 +8074,32 @@
       const [isSyncing, setIsSyncing] = useState(false);
       const [lastSyncError, setLastSyncError] = useState(null);
       const [profileLastModified, setProfileLastModified] = useState(null);
+      const savingRef = useRef(false);
+      const cloudLoaded = useRef(false);
+
+      // Diagnostics State
+      const [debugLog, setDebugLog] = useState([]);
+      const [channelStatus, setChannelStatus] = useState({
+        slides: 'disconnected',
+        profile: 'disconnected',
+        rosters: 'disconnected'
+      });
+
+      const addDebugLog = (msg, type = 'info') => {
+        setDebugLog(prev => [{
+          id: Date.now().toString(),
+          msg,
+          time: new Date().toLocaleTimeString(),
+          type
+        }, ...prev].slice(0, 15));
+      };
+
+      const handleHardRefresh = () => {
+        if (!confirm("This will clear local cache and re-sync from the cloud. Continue?")) return;
+        addDebugLog("Starting hard refresh...", 'info');
+        localStorage.clear();
+        window.location.reload();
+      };
 
       // --- STATE DECLARATIONS ---
       const [allRosters, setAllRosters] = useState(() => {
@@ -8142,7 +8219,6 @@
       const [authLoading, setAuthLoading] = useState(true);
       const [cloudSyncEnabled, setCloudSyncEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_cloud_sync_enabled')) ?? true; } catch { return true; } });
       const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
-      const savingRef = useRef(false);
 
       // --- DERIVED STATE ---
       const currentBg = slideBackgrounds[currentSlideIndex] || background;
@@ -8329,21 +8405,25 @@
             ]);
             let mergedRosters = allRosters;
 
-            if (cloudRosters && cloudRosters.length > 0) {
+            if (cloudRosters && Array.isArray(cloudRosters)) {
               const uniqueMap = new Map();
-
-              // 1. Add Cloud rosters as the source of truth
               cloudRosters.forEach(r => uniqueMap.set(r.id, r));
 
-              // 2. Add local rosters ONLY if they don't match cloud rosters by name or ID
               allRosters.forEach(r => {
-                const alreadyExists = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
-                if (!alreadyExists && !uniqueMap.has(r.id)) {
-                  uniqueMap.set(r.id, r);
+                const alreadyExistsInCloud = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
+                if (!alreadyExistsInCloud) {
+                  const isUUID = r.id && r.id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(r.id));
+                  const sanitizedRoster = isUUID ? { ...r, id: 'default' } : r;
+                  if (!uniqueMap.has(sanitizedRoster.id) || sanitizedRoster.id === 'default') {
+                    uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
+                  }
                 }
               });
 
-              mergedRosters = Array.from(uniqueMap.values());
+              mergedRosters = Array.from(uniqueMap.values()).map(r => {
+                if (typeof r.id === 'string' && r.id.startsWith('temp-')) return { ...r, id: 'default' };
+                return r;
+              });
               setAllRosters(mergedRosters);
             }
 
@@ -8603,6 +8683,7 @@
           if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current) return;
           setIsSyncing(true);
           savingRef.current = true;
+          addDebugLog("Syncing widgets...", 'info');
           try {
             // 1. Sync Slides
             const { error: cleanupError } = await supabase.from('slides').delete().eq('user_id', user.id).gt('slide_index', slides.length - 1);
@@ -8688,6 +8769,7 @@
             if (profileError) throw profileError;
 
             setLastSyncError(null);
+            addDebugLog("Cloud sync successful", 'success');
           } catch (e) {
             console.error("Sync Exception:", e);
             setLastSyncError(e.message || "Unknown Sync Error");
@@ -8716,7 +8798,9 @@
                 return next;
               });
             }
-          }).subscribe();
+          }).subscribe((status) => {
+            setChannelStatus(prev => ({ ...prev, slides: status === 'SUBSCRIBED' ? 'connected' : 'error' }));
+          });
         return () => supabase.removeChannel(channel);
       }, [user, currentSlideIndex]);
 
@@ -8739,7 +8823,10 @@
             if (p.schedule_overrides) setScheduleOverrides(p.schedule_overrides);
             if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
             if (p.active_roster_id) setActiveRosterId(p.active_roster_id);
-          }).subscribe();
+            addDebugLog("Realtime: Profile updated from cloud", 'success');
+          }).subscribe((status) => {
+            setChannelStatus(prev => ({ ...prev, profile: status === 'SUBSCRIBED' ? 'connected' : 'error' }));
+          });
         return () => supabase.removeChannel(channel);
       }, [user]);
 
@@ -8755,9 +8842,12 @@
                 setAllRosters(cloudRosters);
                 const current = cloudRosters.find(r => r.id === activeRosterId);
                 if (current) setRoster(current.roster || []);
+                addDebugLog("Realtime: Rosters updated from cloud", 'success');
               }
             } catch (e) { console.error("Realtime roster refresh failed", e); }
-          }).subscribe();
+          }).subscribe((status) => {
+            setChannelStatus(prev => ({ ...prev, rosters: status === 'SUBSCRIBED' ? 'connected' : 'error' }));
+          });
         return () => supabase.removeChannel(channel);
       }, [user, activeRosterId]);
 
@@ -9461,6 +9551,9 @@
             setScheduleTemplate={setScheduleTemplate}
             scheduleSettings={scheduleSettings}
             setScheduleSettings={setScheduleSettings}
+            debugLog={debugLog}
+            channelStatus={channelStatus}
+            onHardRefresh={handleHardRefresh}
             widgetList={widgets}  // Passing widgets for Data tab serialization if needed
             clockStyle={editingWidgetId ? (widgets.find(w => w.id === editingWidgetId)?.data?.style || 'standard') : clockStyle}
             setClockStyle={(newStyle) => {
