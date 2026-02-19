@@ -16,7 +16,7 @@ export const dataService = {
     async updateProfile(userId: string, updates: any) {
         const { error } = await supabase
             .from('profiles')
-            .upsert({ id: userId, ...updates });
+            .upsert({ ...updates, id: userId });
         if (error) throw error;
     },
 
@@ -65,12 +65,17 @@ export const dataService = {
     },
 
     async saveRoster(userId: string, rosterData: { id?: string; name: string; roster: Student[] }) {
+        const { id, ...rest } = rosterData;
+        const payload: any = { ...rest, user_id: userId };
+
+        // Don't send 'default' as a string ID to Supabase (expects UUID)
+        if (id && id !== 'default') {
+            payload.id = id;
+        }
+
         const { data, error } = await supabase
             .from('rosters')
-            .upsert({
-                user_id: userId,
-                ...rosterData
-            })
+            .upsert(payload)
             .select()
             .single();
         if (error) throw error;

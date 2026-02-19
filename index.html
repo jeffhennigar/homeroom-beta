@@ -7941,7 +7941,7 @@
       async updateProfile(userId, updates) {
         const { error } = await supabase
           .from('profiles')
-          .upsert({ id: userId, ...updates });
+          .upsert({ ...updates, id: userId });
         if (error) throw error;
       },
 
@@ -7999,8 +7999,8 @@
         const { data, error } = await supabase
           .from('rosters')
           .upsert({
-            user_id: userId,
-            ...rosterPayload
+            ...rosterPayload,
+            user_id: userId
           })
           .select()
           .single();
@@ -8720,7 +8720,7 @@
               last_modified
             };
 
-            const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, ...profilePayload });
+            const { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id });
             if (profileError) throw profileError;
 
             setLastSyncError(null);
