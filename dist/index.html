@@ -7013,7 +7013,8 @@
                   <div className="space-y-4">
                     <div className="mb-6">
                       <div className="flex-1">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-4 tracking-wider">Class Rosters</label>
+                        <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">Class Rosters</label>
+                        <p className="text-[11px] text-slate-400 font-medium mt-1 leading-tight">Select which class provides data for your student tools (Randomizer, Group Maker, etc.)</p>
 
                         {/* Roster List with Checkboxes */}
                         <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm mb-4">
@@ -7047,7 +7048,7 @@
                                       <span className={`text-sm font-bold truncate ${activeRosterId === r.id ? 'text-indigo-700' : 'text-slate-700'}`}>
                                         {ensureString(r.name, 'Unnamed Class')}
                                       </span>
-                                      {activeRosterId === r.id && <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded text-[9px] font-black uppercase tracking-tighter">Active</span>}
+                                      {activeRosterId === r.id && <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded text-[9px] font-black uppercase tracking-tighter">In Use</span>}
                                     </div>
                                     <span className="text-[10px] font-bold text-slate-400 capitalize">{r.roster?.length || 0} Students</span>
                                   </div>

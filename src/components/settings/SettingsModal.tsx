@@ -186,7 +186,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between">
                             <div>
                                 <h3 className="font-bold text-indigo-900">Class Management</h3>
-                                <p className="text-xs text-indigo-600 mt-1">Manage multiple classes/rosters here.</p>
+                                <p className="text-xs text-indigo-600 mt-1">Select which class feeds your student tools (Randomizer, Group Maker, etc.)</p>
                             </div>
                             <button onClick={createNewRoster} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 flex items-center gap-1"><Plus size={14} /> New Class</button>
                         </div>
