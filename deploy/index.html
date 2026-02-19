@@ -8759,7 +8759,7 @@
             } catch (e) { console.error("Realtime roster refresh failed", e); }
           }).subscribe();
         return () => supabase.removeChannel(channel);
-      }, [user]);
+      }, [user, activeRosterId]);
 
       // Force Re-render on Roster Change (Safety Net)
       useEffect(() => {
