@@ -8701,9 +8701,61 @@
       }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled, profileLastModified]);
 
       // Supabase Data Loading
-      // Supabase Data Loading (Handled by new loadUserData above)
-      // Redundant block removed to prevent conflicts and 'undefined' map errors.
 
+      // Realtime Sync for Slides
+      useEffect(() => {
+        if (!user) return;
+        const channel = supabase.channel('slides-realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` }, (payload) => {
+            if (savingRef.current) return;
+            const newWidgets = payload.new?.widgets;
+            if (payload.new?.slide_index === currentSlideIndex && Array.isArray(newWidgets)) {
+              setSlides(prev => {
+                const next = [...prev];
+                next[currentSlideIndex] = newWidgets;
+                return next;
+              });
+            }
+          }).subscribe();
+        return () => supabase.removeChannel(channel);
+      }, [user, currentSlideIndex]);
+
+      // Realtime Sync for Profiles
+      useEffect(() => {
+        if (!user) return;
+        const channel = supabase.channel('profile-realtime')
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+            if (savingRef.current) return;
+            const p = payload.new;
+            if (!p) return;
+
+            if (p.background) setBackground(p.background);
+            if (p.slide_backgrounds) setSlideBackgrounds(p.slide_backgrounds);
+            if (p.clock_style) setClockStyle(p.clock_style);
+            if (p.accent_color) setAccentColor(p.accent_color);
+            if (p.grid_enabled !== undefined) setIsGridEnabled(p.grid_enabled);
+            if (p.dock_order) setDockOrder(p.dock_order);
+            if (p.schedule) setScheduleTemplate(p.schedule);
+            if (p.schedule_overrides) setScheduleOverrides(p.schedule_overrides);
+            if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
+            if (p.active_roster_id) setActiveRosterId(p.active_roster_id);
+          }).subscribe();
+        return () => supabase.removeChannel(channel);
+      }, [user]);
+
+      // Realtime Sync for Rosters
+      useEffect(() => {
+        if (!user) return;
+        const channel = supabase.channel('rosters-realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'rosters', filter: `user_id=eq.${user.id}` }, async () => {
+            if (savingRef.current) return;
+            try {
+              const { data: cloudRosters } = await supabase.from('rosters').select('*').eq('user_id', user.id);
+              if (cloudRosters) setAllRosters(cloudRosters);
+            } catch (e) { console.error("Realtime roster refresh failed", e); }
+          }).subscribe();
+        return () => supabase.removeChannel(channel);
+      }, [user]);
 
       // Force Re-render on Roster Change (Safety Net)
       useEffect(() => {
