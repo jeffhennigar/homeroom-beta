@@ -8751,7 +8751,11 @@
             if (savingRef.current) return;
             try {
               const { data: cloudRosters } = await supabase.from('rosters').select('*').eq('user_id', user.id);
-              if (cloudRosters) setAllRosters(cloudRosters);
+              if (cloudRosters) {
+                setAllRosters(cloudRosters);
+                const current = cloudRosters.find(r => r.id === activeRosterId);
+                if (current) setRoster(current.roster || []);
+              }
             } catch (e) { console.error("Realtime roster refresh failed", e); }
           }).subscribe();
         return () => supabase.removeChannel(channel);
