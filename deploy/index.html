@@ -8407,41 +8407,7 @@
 
       // 2. Profile Sync consolidated into main syncToCloud below
 
-      // 3. Sync Current Slide
-      useEffect(() => {
-        if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled) return;
-
-        const timer = setTimeout(async () => {
-          try {
-            await dataService.saveSlide(user.id, currentSlideIndex, slides[currentSlideIndex]);
-            setLastSyncError(null);
-          } catch (e) {
-            console.error('Error syncing slide:', e);
-            setLastSyncError(e.message || "Slide sync failed");
-          }
-        }, 1000);
-
-        return () => clearTimeout(timer);
-      }, [user, slides, currentSlideIndex, isSyncing, hasCheckedCloud]);
-
-      // 4. Sync Rosters
-      useEffect(() => {
-        if (!user || isSyncing || !hasCheckedCloud || allRosters.length === 0 || !cloudSyncEnabled) return;
-
-        const timer = setTimeout(async () => {
-          try {
-            for (const r of allRosters) {
-              await dataService.saveRoster(user.id, r);
-            }
-            setLastSyncError(null);
-          } catch (e) {
-            console.error('Error syncing rosters:', e);
-            setLastSyncError(e.message || "Roster sync failed");
-          }
-        }, 2000);
-
-        return () => clearTimeout(timer);
-      }, [user, allRosters, isSyncing, hasCheckedCloud]);
+      // 2. Sync consolidated into main syncToCloud below
 
       // --- MANAGEMENT FUNCTIONS ---
       const handleSetActiveRoster = (id) => {
@@ -8677,29 +8643,44 @@
               if (slideError) throw slideError;
             }
 
-            // 2. Sync ALL Rosters
-            const rosterIds = allRosters.map(r => r.id);
-            for (const r of allRosters) {
-              if (r.id === 'default') continue; // Don't sync the local-only default roster
-              const rosterPayload = {
-                id: r.id,
-                user_id: user.id,
-                name: r.name,
-                roster: r.roster || [],
-                last_modified: Date.now()
-              };
-              const { error: rosterError } = await supabase.from('rosters').upsert(rosterPayload);
-              if (rosterError) console.error('Roster sync error:', rosterError);
-            }
-            // Clean up deleted rosters from cloud
-            if (rosterIds.length > 0) {
-              const validRosterIds = rosterIds.filter(id => id && id !== 'default' && String(id).includes('-'));
-              if (validRosterIds.length > 0) {
-                const { error: cleanupErr } = await supabase.from('rosters').delete()
-                  .eq('user_id', user.id)
-                  .not('id', 'in', `(${validRosterIds.map(id => `'${id}'`).join(',')})`);
-                if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
+            // 2. Sync Rosters & Update Local IDs
+            const currentRosters = [...allRosters];
+            let rostersChanged = false;
+
+            for (let i = 0; i < currentRosters.length; i++) {
+              const r = currentRosters[i];
+              if (r.id === 'default' && r.roster.length === 0) continue;
+
+              try {
+                const updated = await dataService.saveRoster(user.id, r);
+                if (updated && updated.id !== r.id) {
+                  currentRosters[i] = { ...r, id: updated.id };
+                  rostersChanged = true;
+                  if (activeRosterId === r.id) {
+                    setActiveRosterId(updated.id);
+                    localStorage.setItem('homeroom_active_roster_id', updated.id);
+                  }
+                }
+              } catch (err) {
+                console.error('Individual roster sync error:', err);
               }
+            }
+
+            if (rostersChanged) {
+              setAllRosters(currentRosters);
+            }
+
+            // Clean up deleted rosters - ONLY compare valid UUIDs to avoid DB errors
+            const validUUIDs = currentRosters
+              .map(r => r.id)
+              .filter(id => id && id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(id)));
+
+            if (validUUIDs.length > 0) {
+              const { error: cleanupErr } = await supabase.from('rosters')
+                .delete()
+                .eq('user_id', user.id)
+                .not('id', 'in', `(${validUUIDs.map(id => `'${id}'`).join(',')})`);
+              if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
             }
 
             // 3. Sync Profile
