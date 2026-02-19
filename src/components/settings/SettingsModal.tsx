@@ -46,7 +46,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
     // Roster Management
     const createNewRoster = () => {
         const newId = Date.now().toString();
-        const newRoster = { id: newId, name: "New Class", roster: [], slides: [] }; // Default empty
+        const newRoster = { id: newId, name: "New Class", roster: [] }; // Default empty
         setAllRosters([...allRosters, newRoster]);
         setActiveRosterId(newId);
         setRoster([]); // Clear current
