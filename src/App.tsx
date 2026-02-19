@@ -135,6 +135,20 @@ const App = () => {
     });
     const [activeRosterId, setActiveRosterId] = useState(() => localStorage.getItem('homeroom_active_roster_id') || 'default');
 
+    // Schedule Global State
+    const [scheduleTemplate, setScheduleTemplate] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_schedule_template')) || { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] }; }
+        catch { return { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] }; }
+    });
+    const [scheduleOverrides, setScheduleOverrides] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_schedule_overrides')) || {}; }
+        catch { return {}; }
+    });
+    const [scheduleSettings, setScheduleSettings] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_schedule_settings')) || { scheduleMode: 'weekly', dayLabels: [] }; }
+        catch { return { scheduleMode: 'weekly', dayLabels: [] }; }
+    });
+
     // Computed current state
     const activeRosterObj = allRosters.find(r => r.id === activeRosterId) || allRosters[0];
     const [roster, setRoster] = useState(() => {
@@ -150,6 +164,11 @@ const App = () => {
             const parsed = JSON.parse(localStorage.getItem('homeroom_custom_backgrounds'));
             return Array.isArray(parsed) ? parsed : [];
         } catch { return []; }
+    });
+
+    const [slideBackgrounds, setSlideBackgrounds] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_slide_backgrounds')) || {}; }
+        catch { return {}; }
     });
 
     const [dockOrder, setDockOrder] = useState<any>(() => {
@@ -204,6 +223,23 @@ const App = () => {
 
     const [showMoreDrawer, setShowMoreDrawer] = useState(false);
     const drawerRef = useRef<HTMLDivElement>(null);
+
+    // Diagnostics State
+    const [debugLog, setDebugLog] = useState<{ id: string, msg: string, time: string, type: 'info' | 'error' | 'success' }[]>([]);
+    const [channelStatus, setChannelStatus] = useState<Record<string, 'connected' | 'disconnected' | 'error'>>({
+        slides: 'disconnected',
+        profile: 'disconnected',
+        rosters: 'disconnected'
+    });
+
+    const addDebugLog = (msg: string, type: 'info' | 'error' | 'success' = 'info') => {
+        setDebugLog(prev => [{
+            id: Date.now().toString(),
+            msg,
+            time: new Date().toLocaleTimeString(),
+            type
+        }, ...prev].slice(0, 15));
+    };
 
     // Click outside listener for drawer
     useEffect(() => {
@@ -279,21 +315,93 @@ const App = () => {
         window.location.href = 'https://ourhomeroom.app/signin';
     };
 
-    // Persist Grid Setting
-    useEffect(() => {
-        localStorage.setItem('homeroom_grid', String(showGrid));
+    // --- CLOUD SYNC CONSOLIDATION ---
+    const profileLastModified = useRef(0);
 
-        if (!isCheckingPro) {
-            const saveGrid = async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await dataService.updateProfile(user.id, { grid_enabled: showGrid });
+    useEffect(() => {
+        if (isCheckingPro || !user || !cloudSyncEnabled || !cloudLoaded.current) return;
+
+        const syncToCloud = async () => {
+            if (savingRef.current) return;
+            try {
+                setIsSyncing(true);
+                savingRef.current = true;
+                addDebugLog("Syncing widgets...", 'info');
+
+                // 1. Sync Current Slide
+                await dataService.saveSlide(user.id, currentSlideIndex, widgets);
+
+                // 2. Sync Rosters & Modernize IDs
+                const currentRosters = [...allRosters];
+                let rostersChanged = false;
+
+                for (let i = 0; i < currentRosters.length; i++) {
+                    const r = currentRosters[i];
+                    if (r.id === 'default' && r.roster.length === 0) continue;
+
+                    try {
+                        const updated = await dataService.saveRoster(user.id, r);
+                        if (updated && updated.id !== r.id) {
+                            currentRosters[i] = { ...r, id: updated.id };
+                            rostersChanged = true;
+                            if (activeRosterId === r.id) {
+                                setActiveRosterId(updated.id);
+                            }
+                        }
+                    } catch (rosterErr) {
+                        console.error('Roster sync error:', rosterErr);
+                    }
                 }
-            };
-            // Debounce slightly or just save (it's infrequent)
-            saveGrid();
-        }
-    }, [showGrid, isCheckingPro]);
+
+                if (rostersChanged) {
+                    setAllRosters(currentRosters);
+                }
+
+                // Clean up deleted rosters
+                const validUUIDs = currentRosters
+                    .map(r => r.id)
+                    .filter(id => id && id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(id)));
+
+                if (validUUIDs.length > 0) {
+                    await supabase.from('rosters')
+                        .delete()
+                        .eq('user_id', user.id)
+                        .not('id', 'in', `(${validUUIDs.map(id => `'${id}'`).join(',')})`);
+                }
+
+                // 3. Sync Profile (consolidate backgrounds/dock/settings)
+                const profilePayload = {
+                    grid_enabled: showGrid,
+                    clock_style: clockStyle,
+                    accent_color: accentColor,
+                    dock_order: dockOrder,
+                    background: background,
+                    slide_backgrounds: slideBackgrounds,
+                    my_backgrounds: customBackgrounds,
+                    schedule: scheduleTemplate,
+                    schedule_overrides: scheduleOverrides,
+                    schedule_settings: scheduleSettings,
+                    active_roster_id: activeRosterId !== 'default' ? activeRosterId : null,
+                    last_modified: Date.now()
+                };
+
+                await dataService.updateProfile(user.id, profilePayload);
+
+                setLastSyncError(null);
+                addDebugLog("Cloud sync successful", 'success');
+            } catch (e: any) {
+                console.error("Cloud Sync Failure:", e);
+                setLastSyncError(e.message || "Cloud sync failed");
+                addDebugLog(`Sync Error: ${e.message}`, 'error');
+            } finally {
+                setIsSyncing(false);
+                setTimeout(() => { savingRef.current = false; }, 1000);
+            }
+        };
+
+        const timer = setTimeout(syncToCloud, 10000); // 10s Debounce
+        return () => clearTimeout(timer);
+    }, [user, widgets, allRosters, activeRosterId, showGrid, clockStyle, accentColor, dockOrder, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, scheduleSettings, cloudSyncEnabled, currentSlideIndex, isCheckingPro]);
 
     // Load Data from Cloud
     useEffect(() => {
@@ -302,21 +410,71 @@ const App = () => {
             if (!user) return;
 
             try {
-                // Load Widgets for current slide
+                // 1. Load Profile
+                const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                if (profile) {
+                    if (profile.background) setBackground(profile.background);
+                    if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+                    if (profile.clock_style) setClockStyle(profile.clock_style);
+                    if (profile.accent_color) setAccentColor(profile.accent_color);
+                    if (profile.grid_enabled !== undefined) setShowGrid(profile.grid_enabled);
+                    if (profile.dock_order) setDockOrder(profile.dock_order);
+
+                    // Schedule Sync
+                    if (profile.schedule) setScheduleTemplate(profile.schedule);
+                    if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
+                    if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+                }
+
+                // 2. Load Slides (Widgets) for current slide
                 const slides = await dataService.getSlides(user.id);
                 if (slides && Array.isArray(slides)) {
                     const slide = slides.find(s => s.slide_index === currentSlideIndex);
                     if (slide && Array.isArray(slide.widgets)) {
                         setWidgets(slide.widgets);
                     } else {
-                        setWidgets([]); // Clear if slide doesn't exist in cloud yet
+                        setWidgets([]);
                     }
                 }
 
-                // Load Rosters
-                const rosters = await dataService.getRosters(user.id);
-                if (rosters && Array.isArray(rosters) && rosters.length > 0) {
-                    setAllRosters(rosters.map(r => ({ ...r, active: true })));
+                // 3. Load Rosters & Smart Merge
+                const cloudRosters = await dataService.getRosters(user.id);
+                let mergedRosters = allRosters;
+
+                if (cloudRosters && Array.isArray(cloudRosters)) {
+                    const uniqueMap = new Map();
+                    const cloudRosterIds = new Set(cloudRosters.map((r: any) => r.id));
+
+                    // Cloud is source of truth
+                    cloudRosters.forEach((r: any) => uniqueMap.set(r.id, r));
+
+                    // Local rosters: keep only if they don't conflict, and strip zombie UUIDs
+                    allRosters.forEach(r => {
+                        // Check if this roster already exists in cloud (by ID or exact name)
+                        const existsInCloud = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
+
+                        if (!existsInCloud) {
+                            // If it has a UUID but isn't in cloud, it's from another account. Strip it!
+                            const isUUID = r.id && r.id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(r.id));
+                            const sanitizedRoster = isUUID ? { ...r, id: 'default' } : r;
+
+                            if (!uniqueMap.has(sanitizedRoster.id) || sanitizedRoster.id === 'default') {
+                                // For 'default' we might want to be careful, but saveRoster handles 'default' by stripping it.
+                                uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
+                            }
+                        }
+                    });
+                    mergedRosters = Array.from(uniqueMap.values()).map(r => {
+                        if (typeof r.id === 'string' && r.id.startsWith('temp-')) return { ...r, id: 'default' };
+                        return r;
+                    });
+                    setAllRosters(mergedRosters);
+                }
+
+                // Set Active Roster from profile or fallback
+                const activeIdFromProfile = profile?.active_roster_id;
+                if (activeIdFromProfile && mergedRosters.some(r => r.id === activeIdFromProfile)) {
+                    setActiveRosterId(activeIdFromProfile);
                 }
             } catch (e) {
                 console.error("Error loading cloud data", e);
@@ -329,27 +487,15 @@ const App = () => {
         if (!isCheckingPro) loadCloudData();
     }, [isCheckingPro, currentSlideIndex]);
 
-    // Sync Widgets to Cloud (guarded: only runs after cloud data has loaded)
-    useEffect(() => {
-        if (!cloudLoaded.current) return; // Don't save until initial cloud data is loaded
+    const handleHardRefresh = () => {
+        if (!confirm("This will clear local cache and re-sync from the cloud. Continue?")) return;
+        addDebugLog("Starting hard refresh...", 'info');
+        localStorage.clear();
+        // Keep essential auth if any (though usually handled by redirect)
+        window.location.reload();
+    };
 
-        const saveWidgetsToCloud = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            try {
-                savingRef.current = true;
-                await dataService.saveSlide(user.id, currentSlideIndex, widgets);
-            } catch (e) {
-                console.error("Failed to save widgets", e);
-            } finally {
-                // Small delay before clearing the flag so the realtime echo is ignored
-                setTimeout(() => { savingRef.current = false; }, 500);
-            }
-        };
-
-        const timeoutId = setTimeout(saveWidgetsToCloud, 2000); // 2s Debounce
-        return () => clearTimeout(timeoutId);
-    }, [widgets]);
+    // Redundant Widget Sync removed - consolidated into effect above
 
     // Realtime cross-tab sync for widgets
     useEffect(() => {
@@ -367,18 +513,91 @@ const App = () => {
                     if (payload.new?.slide_index === currentSlideIndex) {
                         const newWidgets = payload.new?.widgets;
                         if (Array.isArray(newWidgets)) {
+                            addDebugLog("Realtime: Widgets updated from cloud", 'success');
                             cloudLoaded.current = true;
                             setWidgets(newWidgets);
                         }
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                setChannelStatus(prev => ({ ...prev, slides: status === 'SUBSCRIBED' ? 'connected' : 'error' }));
+            });
 
         return () => {
             supabase.removeChannel(channel);
         };
     }, [user, currentSlideIndex]);
+
+    // Realtime Profile Sync (Background, Schedule, Dock, etc.)
+    useEffect(() => {
+        if (!user) return;
+
+        const profileChannel = supabase
+            .channel('profile-realtime')
+            .on(
+                'postgres_changes' as any,
+                { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+                (payload: any) => {
+                    if (savingRef.current) return;
+                    const p = payload.new;
+                    if (!p) return;
+
+                    // Apply layout/theme updates
+                    if (p.background) setBackground(p.background);
+                    if (p.slide_backgrounds) setSlideBackgrounds(p.slide_backgrounds);
+                    if (p.clock_style) setClockStyle(p.clock_style);
+                    if (p.accent_color) setAccentColor(p.accent_color);
+                    if (p.grid_enabled !== undefined) setShowGrid(p.grid_enabled);
+                    if (p.dock_order) setDockOrder(p.dock_order);
+
+                    // Apply schedule updates
+                    if (p.schedule) setScheduleTemplate(p.schedule);
+                    if (p.schedule_overrides) setScheduleOverrides(p.schedule_overrides);
+                    if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
+
+                    if (p.active_roster_id) setActiveRosterId(p.active_roster_id);
+
+                    addDebugLog("Realtime: Profile updated from cloud", 'success');
+                }
+            )
+            .subscribe((status) => {
+                setChannelStatus(prev => ({ ...prev, profile: status === 'SUBSCRIBED' ? 'connected' : 'error' }));
+            });
+
+        return () => { supabase.removeChannel(profileChannel); };
+    }, [user]);
+
+    // Realtime Roster Sync
+    useEffect(() => {
+        if (!user) return;
+
+        const rosterChannel = supabase
+            .channel('roster-realtime')
+            .on(
+                'postgres_changes' as any,
+                { event: '*', schema: 'public', table: 'rosters', filter: `user_id=eq.${user.id}` },
+                async () => {
+                    if (savingRef.current) return;
+                    try {
+                        const cloudRosters = await dataService.getRosters(user.id);
+                        if (cloudRosters) {
+                            setAllRosters(cloudRosters);
+                            // Refresh current active roster view if updated
+                            const current = cloudRosters.find((r: any) => r.id === activeRosterId);
+                            if (current) setRoster(current.roster || []);
+
+                            addDebugLog("Realtime: Rosters updated from cloud", 'success');
+                        }
+                    } catch (e) { console.error("Realtime roster refresh failed", e); }
+                }
+            )
+            .subscribe((status) => {
+                setChannelStatus(prev => ({ ...prev, rosters: status === 'SUBSCRIBED' ? 'connected' : 'error' }));
+            });
+
+        return () => { supabase.removeChannel(rosterChannel); };
+    }, [user, activeRosterId]);
 
 
     // Onboarding
@@ -394,6 +613,12 @@ const App = () => {
     useEffect(() => { localStorage.setItem('homeroom_background', JSON.stringify(background)); }, [background]);
     useEffect(() => { localStorage.setItem('homeroom_dock_order', JSON.stringify(dockOrder)); }, [dockOrder]);
     useEffect(() => { localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters)); }, [allRosters]);
+    useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
+    useEffect(() => { localStorage.setItem('homeroom_schedule_template', JSON.stringify(scheduleTemplate)); }, [scheduleTemplate]);
+    useEffect(() => { localStorage.setItem('homeroom_schedule_overrides', JSON.stringify(scheduleOverrides)); }, [scheduleOverrides]);
+    useEffect(() => { localStorage.setItem('homeroom_schedule_settings', JSON.stringify(scheduleSettings)); }, [scheduleSettings]);
+    useEffect(() => { localStorage.setItem('homeroom_accent_color', accentColor); }, [accentColor]);
+    useEffect(() => { localStorage.setItem('homeroom_grid', String(showGrid)); }, [showGrid]);
     useEffect(() => {
         localStorage.setItem('homeroom_active_roster_id', activeRosterId);
         // Sync roster state when ID changes
@@ -437,9 +662,10 @@ const App = () => {
     const handleUpdateRoster = (newRoster) => setRoster(newRoster); // Renamed for consistency with provided snippet
 
     // Background Styles
-    const bgStyle = background.type === 'image'
-        ? { backgroundImage: `url(${background.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-        : (background.type === 'custom' ? { backgroundImage: `url(${background.src})`, backgroundSize: 'cover' } : {});
+    const activeBg = slideBackgrounds[currentSlideIndex] || background;
+    const bgStyle = activeBg.type === 'image'
+        ? { backgroundImage: `url(${activeBg.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : (activeBg.type === 'custom' ? { backgroundImage: `url(${activeBg.src})`, backgroundSize: 'cover' } : {});
 
     const setTextColor = (color) => {
         setBackground(prev => ({ ...prev, textColor: color }));
@@ -470,7 +696,7 @@ const App = () => {
     }
 
     return (
-        <div className={`w-screen h-screen overflow-hidden relative ${background.preview || ''}`} style={bgStyle}>
+        <div className={`w-screen h-screen overflow-hidden relative ${activeBg.preview || ''}`} style={bgStyle}>
 
             {/* Grid Overlay */}
             {showGrid && (
@@ -515,7 +741,11 @@ const App = () => {
                             case 'TRAFFIC': return <TrafficLightWidget {...props} />;
                             case 'VOTE': return <VoteWidget {...props} />;
                             case 'WHITEBOARD': return <WhiteboardWidget {...props} />;
-                            case 'SCHEDULE': return <ScheduleWidget {...props} onOpenSettings={() => setShowSettings(true)} />;
+                            case 'SCHEDULE': return <ScheduleWidget {...props}
+                                scheduleTemplate={scheduleTemplate} setScheduleTemplate={setScheduleTemplate}
+                                scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides}
+                                scheduleSettings={scheduleSettings} setScheduleSettings={setScheduleSettings}
+                                onOpenSettings={() => setShowSettings(true)} />;
                             case 'QR': return <QRCodeWidget {...props} />;
                             case 'YOUTUBE': return <YouTubeWidget {...props} />;
                             case 'CALCULATOR': return <CalculatorWidget {...props} />;
@@ -733,6 +963,9 @@ const App = () => {
                 setWidgets={setWidgets}
                 textColor={background.textColor}
                 setTextColor={setTextColor}
+                debugLog={debugLog}
+                channelStatus={channelStatus}
+                onHardRefresh={handleHardRefresh}
             />
         </div>
     );

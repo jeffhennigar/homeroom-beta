@@ -7,27 +7,34 @@ const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u
 // Baseline width for scaling calculations
 const BASELINE_WIDTH = 400;
 
-// Helper to interact with App-level state/storage for schedule template
-const getScheduleTemplate = () => {
-    try {
-        return JSON.parse(localStorage.getItem('homeroom_schedule_template')) || {
-            Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: []
-        };
-    } catch (e) {
-        return { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] };
-    }
-};
+interface ScheduleWidgetProps {
+    widget: any;
+    updateData: (data: any) => void;
+    onOpenSettings: () => void;
+    scheduleTemplate: any;
+    setScheduleTemplate: React.Dispatch<React.SetStateAction<any>>;
+    scheduleOverrides: any;
+    setScheduleOverrides: React.Dispatch<React.SetStateAction<any>>;
+    scheduleSettings: any;
+    setScheduleSettings: React.Dispatch<React.SetStateAction<any>>;
+}
 
-const saveScheduleTemplate = (template) => {
-    localStorage.setItem('homeroom_schedule_template', JSON.stringify(template));
-};
-
-const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
+const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
+    widget,
+    onOpenSettings,
+    scheduleTemplate,
+    setScheduleTemplate,
+    scheduleOverrides,
+    setScheduleOverrides,
+    scheduleSettings,
+    setScheduleSettings
+}) => {
     const { fontSize = 14 } = widget.data;
     const [dragIndex, setDragIndex] = useState(null);
     const [emojiPickerIndex, setEmojiPickerIndex] = useState(null);
     const today = DAYS_OF_WEEK[new Date().getDay()];
-    const [scheduleData, setScheduleData] = useState(() => { const template = getScheduleTemplate(); return template[today] || []; });
+    // Use the template from props directly
+    const scheduleData = scheduleTemplate[today] || [];
 
     // Responsive scaling state
     const containerRef = useRef<HTMLDivElement>(null);
@@ -64,11 +71,7 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
         return () => cancelAnimationFrame(raf);
     }, [scheduleData, scale, autoSizeTextareas]);
 
-    useEffect(() => {
-        const refreshFromStorage = () => { const template = getScheduleTemplate(); setScheduleData(template[today] || []); };
-        const interval = setInterval(refreshFromStorage, 1000);
-        return () => clearInterval(interval);
-    }, [today]);
+    // External state handles updates, no need for refresh timer
 
     useEffect(() => {
         const handleClickOutside = () => setEmojiPickerIndex(null);
@@ -86,7 +89,9 @@ const ScheduleWidget = ({ widget, updateData, onOpenSettings }) => {
         return currentMinutes >= itemMinutes && currentMinutes < nextMinutes;
     };
 
-    const saveScheduleData = (newItems) => { const template = getScheduleTemplate(); template[today] = newItems; saveScheduleTemplate(template); setScheduleData(newItems); };
+    const saveScheduleData = (newItems: any) => {
+        setScheduleTemplate((prev: any) => ({ ...prev, [today]: newItems }));
+    };
     const updateItem = (index, field, value) => { const newItems = [...scheduleData]; newItems[index] = { ...newItems[index], [field]: value }; saveScheduleData(newItems); };
     const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '\u{1F4DA}', title: 'New Activity', description: '' }; const newItems = [...scheduleData, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveScheduleData(newItems); };
     const removeItem = (index) => { const newItems = scheduleData.filter((_, i) => i !== index); saveScheduleData(newItems); };

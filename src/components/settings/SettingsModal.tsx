@@ -7,7 +7,7 @@ import { SCHEDULE_EMOJIS } from '../../constants';
 import { dataService } from '../../services/dataService';
 import { supabase } from '../../services/supabaseClient';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets, textColor, setTextColor }) => {
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets, textColor, setTextColor, debugLog = [], channelStatus = {}, onHardRefresh }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -567,6 +567,31 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                 </div>
                             </div>
 
+                            {/* Channel Status */}
+                            <div className="mb-6 grid grid-cols-3 gap-2">
+                                {Object.entries(channelStatus).map(([name, status]: [string, any]) => (
+                                    <div key={name} className="bg-white/5 p-2 rounded-lg border border-white/10 flex flex-col items-center gap-1">
+                                        <div className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : (status === 'error' ? 'bg-red-500' : 'bg-slate-500')}`} />
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">{name}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Integrity Counters */}
+                            <div className="bg-white/5 rounded-lg p-3 mb-6 border border-white/10">
+                                <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2">Data Integrity</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex justify-between text-[11px]">
+                                        <span>Total Classes:</span>
+                                        <span className="text-white font-bold">{allRosters.length}</span>
+                                    </div>
+                                    <div className="flex justify-between text-[11px]">
+                                        <span>Total Students:</span>
+                                        <span className="text-white font-bold">{allRosters.reduce((acc, r) => acc + (r.roster?.length || 0), 0)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="border-t border-slate-700 pt-4">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-bold text-white">Connectivity Test</span>
@@ -578,14 +603,44 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                         {testStatus === 'testing' ? 'Testing...' : 'Run Test'}
                                     </button>
                                 </div>
-                                <p className="text-slate-500 mb-2">
+                                <p className="text-slate-500 mb-4">
                                     Attemps to read and write a small timestamp to your profile in the database to verify permissions.
                                 </p>
                                 {testResult && (
-                                    <div className={`p-3 rounded border ${testStatus === 'success' ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-red-900/20 border-red-800 text-red-400'}`}>
+                                    <div className={`p-3 rounded border mb-4 ${testStatus === 'success' ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-red-900/20 border-red-800 text-red-400'}`}>
                                         {testResult}
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Activity Log Terminal */}
+                            <div className="border-t border-slate-700 pt-4">
+                                <h4 className="font-bold text-white mb-2 flex items-center justify-between">
+                                    Activity Log
+                                    <span className="text-[10px] text-slate-500 font-normal uppercase">Last 15 events</span>
+                                </h4>
+                                <div className="bg-black/40 rounded-lg p-2 max-h-40 overflow-y-auto custom-scrollbar border border-white/5 space-y-1">
+                                    {debugLog.length === 0 && <div className="text-slate-600 italic">No events recorded.</div>}
+                                    {debugLog.map((log) => (
+                                        <div key={log.id} className="flex gap-2 leading-relaxed">
+                                            <span className="text-slate-600 shrink-0">[{log.time}]</span>
+                                            <span className={log.type === 'success' ? 'text-green-400' : (log.type === 'error' ? 'text-red-400' : 'text-blue-300')}>
+                                                {log.msg}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Hard Refresh */}
+                            <div className="mt-8 flex justify-end">
+                                <button
+                                    onClick={onHardRefresh}
+                                    className="px-4 py-2 border border-red-900/30 bg-red-950/20 text-red-400 hover:bg-red-900/40 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                                >
+                                    <RefreshCw size={14} className="group-hover:rotate-180 transition-transform" />
+                                    Hard Refresh (Clear Cache)
+                                </button>
                             </div>
                         </div>
                     </div>
