@@ -370,7 +370,7 @@ const App = () => {
                 }
 
                 // 3. Sync Profile (consolidate backgrounds/dock/settings)
-                const profilePayload = {
+                const profilePayload: any = {
                     grid_enabled: showGrid,
                     clock_style: clockStyle,
                     accent_color: accentColor,
@@ -378,9 +378,12 @@ const App = () => {
                     background: background,
                     slide_backgrounds: slideBackgrounds,
                     my_backgrounds: customBackgrounds,
-                    schedule: scheduleTemplate,
+                    // Consolidate schedule_settings into the schedule object to avoid missing column error
+                    schedule: {
+                        ...scheduleTemplate,
+                        _settings: scheduleSettings
+                    },
                     schedule_overrides: scheduleOverrides,
-                    schedule_settings: scheduleSettings,
                     active_roster_id: activeRosterId !== 'default' ? activeRosterId : null,
                     last_modified: Date.now()
                 };
@@ -421,9 +424,18 @@ const App = () => {
                     if (profile.dock_order) setDockOrder(profile.dock_order);
 
                     // Schedule Sync
-                    if (profile.schedule) setScheduleTemplate(profile.schedule);
+                    if (profile.schedule) {
+                        // Unpack settings if they were consolidated
+                        const { _settings, ...template } = profile.schedule;
+                        setScheduleTemplate(template);
+                        if (_settings) setScheduleSettings(_settings);
+                        else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+                    }
                     if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
-                    if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+                    // Fallback for legacy standalone column
+                    if (!profile.schedule?._settings && profile.schedule_settings) {
+                        setScheduleSettings(profile.schedule_settings);
+                    }
                 }
 
                 // 2. Load Slides (Widgets) for current slide

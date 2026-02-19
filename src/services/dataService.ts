@@ -14,10 +14,18 @@ export const dataService = {
     },
 
     async updateProfile(userId: string, updates: any) {
-        const { error } = await supabase
-            .from('profiles')
-            .upsert({ ...updates, id: userId });
-        if (error) throw error;
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .upsert({ ...updates, id: userId });
+            if (error) {
+                console.error("Profile update error:", error);
+                throw error;
+            }
+        } catch (e) {
+            console.error("dataService.updateProfile failed:", e);
+            throw e;
+        }
     },
 
     // --- Slides ---
