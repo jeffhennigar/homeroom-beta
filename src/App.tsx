@@ -267,6 +267,7 @@ const App = () => {
     // Guards for cloud sync
     const cloudLoaded = useRef(false);   // true once initial cloud data is fetched
     const savingRef = useRef(false);     // true while a save is in-flight (to ignore own realtime events)
+    const lastSyncedRef = useRef({ profile: null, slides: {} });
 
     // Access Control Gating
     useEffect(() => {
@@ -322,14 +323,19 @@ const App = () => {
         if (isCheckingPro || !user || !cloudSyncEnabled || !cloudLoaded.current) return;
 
         const syncToCloud = async () => {
-            if (savingRef.current) return;
+            if (savingRef.current || !cloudLoaded.current) return;
             try {
                 setIsSyncing(true);
                 savingRef.current = true;
-                addDebugLog("Syncing widgets...", 'info');
 
-                // 1. Sync Current Slide
-                await dataService.saveSlide(user.id, currentSlideIndex, widgets);
+                // 1. Sync Current Slide (Check for changes)
+                const widgetsStr = JSON.stringify(widgets);
+                let slideChanged = false;
+                if (lastSyncedRef.current.slides[currentSlideIndex] !== widgetsStr) {
+                    await dataService.saveSlide(user.id, currentSlideIndex, widgets);
+                    lastSyncedRef.current.slides[currentSlideIndex] = widgetsStr;
+                    slideChanged = true;
+                }
 
                 // 2. Sync Rosters & Modernize IDs
                 const currentRosters = [...allRosters];
@@ -369,8 +375,8 @@ const App = () => {
                         .not('id', 'in', `(${validUUIDs.map(id => `'${id}'`).join(',')})`);
                 }
 
-                // 3. Sync Profile (consolidate backgrounds/dock/settings)
-                const profilePayload: any = {
+                // 3. Sync Profile (Check for changes)
+                const profilePayload = {
                     grid_enabled: showGrid,
                     clock_style: clockStyle,
                     accent_color: accentColor,
@@ -378,24 +384,27 @@ const App = () => {
                     background: background,
                     slide_backgrounds: slideBackgrounds,
                     my_backgrounds: customBackgrounds,
-                    // Consolidate schedule_settings into the schedule object to avoid missing column error
                     schedule: {
                         ...scheduleTemplate,
                         _settings: scheduleSettings
                     },
                     schedule_overrides: scheduleOverrides,
                     active_roster_id: activeRosterId !== 'default' ? activeRosterId : null,
-                    last_modified: Date.now()
                 };
 
-                await dataService.updateProfile(user.id, profilePayload);
+                const profileStr = JSON.stringify(profilePayload);
+                if (lastSyncedRef.current.profile === profileStr && !slideChanged && !rostersChanged) {
+                    // Nothing changed
+                } else {
+                    await dataService.updateProfile(user.id, { ...profilePayload, last_modified: Date.now() });
+                    lastSyncedRef.current.profile = profileStr;
+                    addDebugLog("Cloud sync successful", 'success');
+                }
 
                 setLastSyncError(null);
-                addDebugLog("Cloud sync successful", 'success');
             } catch (e: any) {
                 console.error("Cloud Sync Failure:", e);
                 setLastSyncError(e.message || "Cloud sync failed");
-                addDebugLog(`Sync Error: ${e.message}`, 'error');
             } finally {
                 setIsSyncing(false);
                 setTimeout(() => { savingRef.current = false; }, 1000);
@@ -483,17 +492,34 @@ const App = () => {
                     setAllRosters(mergedRosters);
                 }
 
-                // Set Active Roster from profile or fallback
-                const activeIdFromProfile = profile?.active_roster_id;
-                if (activeIdFromProfile && mergedRosters.some(r => r.id === activeIdFromProfile)) {
-                    setActiveRosterId(activeIdFromProfile);
+                // Initialize lastSyncedRef to avoid immediate re-save
+                const profilePayload = {
+                    grid_enabled: profile?.grid_enabled ?? false,
+                    clock_style: profile?.clock_style ?? '12h',
+                    accent_color: profile?.accent_color ?? 'indigo',
+                    dock_order: profile?.dock_order ?? dockOrder,
+                    background: profile?.background ?? BACKGROUNDS[0],
+                    slide_backgrounds: profile?.slide_backgrounds ?? {},
+                    my_backgrounds: profile?.my_backgrounds ?? [],
+                    schedule: profile?.schedule ?? { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] },
+                    schedule_overrides: profile?.schedule_overrides ?? {},
+                    active_roster_id: profile?.active_roster_id ?? null,
+                };
+                lastSyncedRef.current.profile = JSON.stringify(profilePayload);
+
+                if (slides && Array.isArray(slides)) {
+                    slides.forEach((s: any) => {
+                        if (s.slide_index !== undefined) {
+                            lastSyncedRef.current.slides[s.slide_index] = JSON.stringify(s.widgets || []);
+                        }
+                    });
                 }
             } catch (e) {
                 console.error("Error loading cloud data", e);
+            } finally {
+                // Mark cloud as loaded AFTER data is fetched — this unblocks the save effect
+                cloudLoaded.current = true;
             }
-
-            // Mark cloud as loaded AFTER data is fetched — this unblocks the save effect
-            cloudLoaded.current = true;
         };
 
         if (!isCheckingPro) loadCloudData();
@@ -527,6 +553,7 @@ const App = () => {
                         if (Array.isArray(newWidgets)) {
                             addDebugLog("Realtime: Widgets updated from cloud", 'success');
                             cloudLoaded.current = true;
+                            lastSyncedRef.current.slides[currentSlideIndex] = JSON.stringify(newWidgets);
                             setWidgets(newWidgets);
                         }
                     }
@@ -555,6 +582,10 @@ const App = () => {
                     const p = payload.new;
                     if (!p) return;
 
+                    // Update lastSyncedRef to avoid ping-pong
+                    const { last_modified, id, updated_at, ...rest } = p;
+                    lastSyncedRef.current.profile = JSON.stringify(rest);
+
                     // Apply layout/theme updates
                     if (p.background) setBackground(p.background);
                     if (p.slide_backgrounds) setSlideBackgrounds(p.slide_backgrounds);
@@ -564,9 +595,13 @@ const App = () => {
                     if (p.dock_order) setDockOrder(p.dock_order);
 
                     // Apply schedule updates
-                    if (p.schedule) setScheduleTemplate(p.schedule);
+                    if (p.schedule) {
+                        const { _settings, ...template } = p.schedule;
+                        setScheduleTemplate(template);
+                        if (_settings) setScheduleSettings(_settings);
+                        else if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
+                    }
                     if (p.schedule_overrides) setScheduleOverrides(p.schedule_overrides);
-                    if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
 
                     if (p.active_roster_id) setActiveRosterId(p.active_roster_id);
 
