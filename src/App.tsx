@@ -267,7 +267,7 @@ const App = () => {
     // Guards for cloud sync
     const cloudLoaded = useRef(false);   // true once initial cloud data is fetched
     const savingRef = useRef(false);     // true while a save is in-flight (to ignore own realtime events)
-    const lastSyncedRef = useRef({ profile: null, slides: {} });
+    const lastSyncedRef = useRef({ profile: null, slides: {}, rosters: {} });
 
     // Access Control Gating
     useEffect(() => {
@@ -345,17 +345,24 @@ const App = () => {
                     const r = currentRosters[i];
                     if (r.id === 'default' && r.roster.length === 0) continue;
 
+                    const rStr = JSON.stringify(r);
+                    if (lastSyncedRef.current.rosters[r.id] === rStr) continue;
+
                     try {
                         const updated = await dataService.saveRoster(user.id, r);
+                        lastSyncedRef.current.rosters[r.id] = rStr;
+
                         if (updated && updated.id !== r.id) {
                             currentRosters[i] = { ...r, id: updated.id };
+                            lastSyncedRef.current.rosters[updated.id] = JSON.stringify(currentRosters[i]);
                             rostersChanged = true;
+
                             if (activeRosterId === r.id) {
                                 setActiveRosterId(updated.id);
                             }
                         }
-                    } catch (rosterErr) {
-                        console.error('Roster sync error:', rosterErr);
+                    } catch (err) {
+                        console.error('Individual roster sync error:', err);
                     }
                 }
 
@@ -490,9 +497,12 @@ const App = () => {
                         return r;
                     });
                     setAllRosters(mergedRosters);
+                    mergedRosters.forEach(r => {
+                        lastSyncedRef.current.rosters[r.id] = JSON.stringify(r);
+                    });
                 }
 
-                // Initialize lastSyncedRef to avoid immediate re-save
+                // Set Active Roster from profile or fallbackvoid immediate re-save
                 const profilePayload = {
                     grid_enabled: profile?.grid_enabled ?? false,
                     clock_style: profile?.clock_style ?? '12h',
@@ -623,20 +633,24 @@ const App = () => {
             .channel('roster-realtime')
             .on(
                 'postgres_changes' as any,
-                { event: '*', schema: 'public', table: 'rosters', filter: `user_id=eq.${user.id}` },
-                async () => {
+                { event: '*', schema: 'public', table: 'rosters', filter: `user_id=eq.${user.id}` }, (payload: any) => {
                     if (savingRef.current) return;
-                    try {
-                        const cloudRosters = await dataService.getRosters(user.id);
-                        if (cloudRosters) {
-                            setAllRosters(cloudRosters);
-                            // Refresh current active roster view if updated
-                            const current = cloudRosters.find((r: any) => r.id === activeRosterId);
-                            if (current) setRoster(current.roster || []);
-
-                            addDebugLog("Realtime: Rosters updated from cloud", 'success');
-                        }
-                    } catch (e) { console.error("Realtime roster refresh failed", e); }
+                    const updatedRoster = payload.new as any;
+                    if (updatedRoster) {
+                        lastSyncedRef.current.rosters[updatedRoster.id] = JSON.stringify(updatedRoster);
+                        setAllRosters(prev => {
+                            const existingIdx = prev.findIndex(r => r.name === updatedRoster.name || r.id === updatedRoster.id);
+                            if (existingIdx !== -1) {
+                                const next = [...prev];
+                                next[existingIdx] = { ...next[existingIdx], roster: updatedRoster.roster, id: updatedRoster.id };
+                                // If name changed, we might want to know, but id shouldn't change here typically
+                                return next;
+                            } else {
+                                return [...prev, { id: updatedRoster.id, name: updatedRoster.name, roster: updatedRoster.roster, slides: [[]] }];
+                            }
+                        });
+                        addDebugLog("Realtime: Rosters updated from cloud", 'success');
+                    }
                 }
             )
             .subscribe((status) => {
