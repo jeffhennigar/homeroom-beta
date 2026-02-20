@@ -17,7 +17,7 @@ import VoteWidget from './components/widgets/VoteWidget';
 import WhiteboardWidget from './components/widgets/WhiteboardWidget';
 import ScheduleWidget from './components/widgets/ScheduleWidget';
 import QRCodeWidget from './components/widgets/QRCodeWidget';
-import YouTubeWidget from './components/widgets/YouTubeWidget';
+import EmbedWidget from './components/widgets/EmbedWidget';
 import CalculatorWidget from './components/widgets/CalculatorWidget';
 import CountdownWidget from './components/widgets/CountdownWidget';
 import SoundboardWidget from './components/widgets/SoundboardWidget';
@@ -67,7 +67,7 @@ const DOCK_LABELS = {
     VOTE: { label: 'Poll', icon: <BarChart2 /> },
     WHITEBOARD: { label: 'Draw', icon: <Edit3 /> },
     SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
-    YOUTUBE: { label: 'Embed', icon: <Youtube /> },
+    EMBED: { label: 'Embed', icon: <Youtube /> },
     CALCULATOR: { label: 'Calc', icon: <Calculator /> },
     COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
     SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
@@ -77,7 +77,7 @@ const DOCK_LABELS = {
 
 const DEFAULT_NAMES = ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5"];
 
-const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'YOUTUBE', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD'];
+const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD'];
 
 const BACKGROUNDS = [
     { id: 'default', name: 'Original', type: 'preset', preview: 'bg-gradient-to-br from-blue-200 to-orange-200', style: {}, textColor: 'text-slate-800' },
@@ -103,7 +103,7 @@ const WIDGET_SIZES = {
     VOTE: { width: 400, height: 350 },
     WHITEBOARD: { width: 500, height: 400 },
     SCHEDULE: { width: 380, height: 500 },
-    YOUTUBE: { width: 480, height: 360 },
+    EMBED: { width: 480, height: 360 },
     CALCULATOR: { width: 280, height: 380 },
     COUNTDOWN: { width: 280, height: 280 },
     SOUNDBOARD: { width: 440, height: 500 },
@@ -179,15 +179,15 @@ const App = () => {
 
             if (parsed && parsed.main && parsed.drawer) {
                 // Remove non-existent types
-                const cleanedMain = parsed.main.filter((t: string) => DOCK_LABELS[t]);
-                const cleanedDrawer = parsed.drawer.filter((t: string) => DOCK_LABELS[t]);
+                const cleanedMain = parsed.main.map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
+                const cleanedDrawer = parsed.drawer.map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
                 const currentIds = [...cleanedMain, ...cleanedDrawer];
                 const missing = INIT_DOCK_ORDER.filter(t => !currentIds.includes(t));
                 return { main: cleanedMain, drawer: [...cleanedDrawer, ...missing] };
             }
 
             if (Array.isArray(parsed)) {
-                const cleaned = parsed.filter(t => DOCK_LABELS[t]);
+                const cleaned = parsed.map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
                 const currentIds = cleaned;
                 const missing = INIT_DOCK_ORDER.filter(t => !currentIds.includes(t));
                 const all = [...cleaned, ...missing];
@@ -201,7 +201,7 @@ const App = () => {
         } catch {
             return {
                 main: ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT'],
-                drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'YOUTUBE', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD']
+                drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD']
             };
         }
     });
@@ -771,7 +771,7 @@ const App = () => {
                 <DraggableResizable
                     key={w.id}
                     id={w.id}
-                    title={DOCK_LABELS[w.type]?.label || w.type}
+                    title={w.data?.title || DOCK_LABELS[w.type]?.label || w.type}
                     icon={DOCK_LABELS[w.type]?.icon}
                     position={{ x: w.x, y: w.y }}
                     size={{ width: w.width, height: w.height }}
@@ -808,7 +808,8 @@ const App = () => {
                                 scheduleSettings={scheduleSettings} setScheduleSettings={setScheduleSettings}
                                 onOpenSettings={() => setShowSettings(true)} />;
                             case 'QR': return <QRCodeWidget {...props} />;
-                            case 'YOUTUBE': return <YouTubeWidget {...props} />;
+                            case 'YOUTUBE': // Legacy support
+                            case 'EMBED': return <EmbedWidget {...props} />;
                             case 'CALCULATOR': return <CalculatorWidget {...props} />;
                             case 'COUNTDOWN': return <CountdownWidget {...props} />;
                             case 'POLYPAD': return <PolypadWidget {...props} />;

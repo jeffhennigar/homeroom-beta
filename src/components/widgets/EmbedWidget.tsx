@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Youtube, Check, X } from 'lucide-react';
 
-const YouTubeWidget = ({ widget, updateData }) => {
+const EmbedWidget = ({ widget, updateData }) => {
     const { url = "", youtubeUrl = "" } = widget.data;
     const currentUrl = url || youtubeUrl;
     const [input, setInput] = useState(currentUrl);
@@ -46,9 +46,25 @@ const YouTubeWidget = ({ widget, updateData }) => {
                                 placeholder="Paste link here..."
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && updateData(widget.id, { url: input })}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        let title = "Embed";
+                                        try {
+                                            const urlObj = new URL(input.startsWith('http') ? input : `https://${input}`);
+                                            title = urlObj.hostname.replace('www.', '');
+                                        } catch (e) { }
+                                        updateData(widget.id, { url: input, title });
+                                    }
+                                }}
                             />
-                            <button onClick={() => updateData(widget.id, { url: input })} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm"><Check size={18} /></button>
+                            <button onClick={() => {
+                                let title = "Embed";
+                                try {
+                                    const urlObj = new URL(input.startsWith('http') ? input : `https://${input}`);
+                                    title = urlObj.hostname.replace('www.', '');
+                                } catch (e) { }
+                                updateData(widget.id, { url: input, title });
+                            }} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm"><Check size={18} /></button>
                         </div>
                     </div>
                 </div>
@@ -68,4 +84,4 @@ const YouTubeWidget = ({ widget, updateData }) => {
     );
 };
 
-export default YouTubeWidget;
+export default EmbedWidget;
