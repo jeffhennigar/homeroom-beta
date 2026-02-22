@@ -4647,32 +4647,23 @@
       );
     };
 
-    const RandomizerWidget = ({ widget, updateData, roster, allRosters }) => {
-      const { currentName, isAnimating, fontSize = 16, pickedHistory = {}, bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
+    const RandomizerWidget = ({ widget, updateData, roster, allRosters, onUpdateRoster }) => {
+      const { currentName, isAnimating, fontSize = 16, bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
       const [activeClassId, setActiveClassId] = useState(savedActiveClassId || (allRosters?.length > 0 ? allRosters[0].id : null));
       const currentRoster = allRosters?.find(r => r.id === activeClassId)?.roster || roster || [];
 
-      // Migrate old pickedStudents to history if needed
-      useEffect(() => {
-        if (!widget.data.pickedHistory && widget.data.pickedStudents && widget.data.pickedStudents.length > 0) {
-          updateData(widget.id, {
-            pickedHistory: { [activeClassId]: widget.data.pickedStudents },
-            pickedStudents: null // clearer deprecation
-          });
-        }
-      }, []);
-
-      const pickedStudents = pickedHistory[activeClassId] || [];
+      const pickedStudents = currentRoster.filter(s => s.picked && s.active).map(s => s.name);
+      const activeStudents = currentRoster.filter(s => s.active);
+      const unpickedStudents = currentRoster.filter(s => s.active && !s.picked);
 
       const [showSettings, setShowSettings] = useState(false);
       const steps = useRef(0);
       const intervalRef = useRef(null);
-      const activeStudents = currentRoster.filter(s => s.active);
-      const unpickedStudents = activeStudents.filter(s => !pickedStudents.includes(s.name));
 
       useEffect(() => {
         if (isAnimating) {
           let availableStudents = unpickedStudents.length > 0 ? unpickedStudents : activeStudents;
+
           if (availableStudents.length === 0) { updateData(widget.id, { isAnimating: false }); return; }
 
           intervalRef.current = window.setInterval(() => {
@@ -4681,29 +4672,34 @@
             steps.current++;
             if (steps.current >= 20) {
               if (intervalRef.current) clearInterval(intervalRef.current);
-              const finalName = widget.data.currentName || randomName; // Use last flashed name if available
-              // Correct logic: After animation stops, we pick a WINNER.
-              // We should pick the winner explicitly at the end to ensure it matches visual used.
-              // Actually, the flashing logic sets currentName 20 times. The last one is the winner.
-              // But React state updates might be async.
-              // Safer: pick winner upfront or track it.
-              // Current code uses `widget.data.currentName` which acts as the winner.
 
-              const newPickedList = unpickedStudents.length > 0 ? [...pickedStudents, randomName] : [randomName];
+              const isResetting = unpickedStudents.length === 0;
+              const finalRoster = currentRoster.map(s => {
+                if (s.name === randomName) return { ...s, picked: true };
+                if (isResetting) return { ...s, picked: false }; // Auto-reset others if we started full
+                return s;
+              });
+
+              if (onUpdateRoster) onUpdateRoster(finalRoster, activeClassId);
+
               updateData(widget.id, {
                 isAnimating: false,
-                currentName: randomName,
-                pickedHistory: { ...pickedHistory, [activeClassId]: newPickedList }
+                currentName: randomName
               });
               steps.current = 0;
             }
           }, 100);
         }
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-      }, [isAnimating, widget.id, activeStudents.length]);
+      }, [isAnimating, widget.id, activeStudents.length, unpickedStudents.length]);
 
-      const resetPicked = () => updateData(widget.id, { pickedHistory: { ...pickedHistory, [activeClassId]: [] }, currentName: null });
-      const removePicked = (name) => updateData(widget.id, { pickedHistory: { ...pickedHistory, [activeClassId]: pickedStudents.filter(n => n !== name) } });
+      const resetPicked = () => {
+        if (onUpdateRoster) onUpdateRoster(currentRoster.map(s => ({ ...s, picked: false })), activeClassId);
+        updateData(widget.id, { currentName: null });
+      };
+      const removePicked = (name) => {
+        if (onUpdateRoster) onUpdateRoster(currentRoster.map(s => s.name === name ? { ...s, picked: false } : s), activeClassId);
+      };
       const scaledFS = (fontSize / 16) * 30;
       const pickedCount = pickedStudents.length;
       const totalCount = activeStudents.length;
