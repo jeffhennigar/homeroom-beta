@@ -8711,12 +8711,19 @@
         return () => clearTimeout(t);
       }, [slides, roster]);
 
+      const firstChangeTimeRef = useRef(null);
+
       // Supabase Sync Logic
       useEffect(() => {
+        if (!isSyncing && !savingRef.current && !firstChangeTimeRef.current) {
+          firstChangeTimeRef.current = Date.now();
+        }
+
         const syncToCloud = async () => {
           if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current) return;
           setIsSyncing(true);
           savingRef.current = true;
+          firstChangeTimeRef.current = null;
           addDebugLog("Syncing widgets...", 'info');
           try {
             // 1. Sync Slides (Check for changes)
@@ -8821,7 +8828,18 @@
             setTimeout(() => { savingRef.current = false; }, 1000);
           }
         };
-        const t = setTimeout(syncToCloud, 10000); // Increased debounce to 10s
+
+        const timeSinceFirstChange = firstChangeTimeRef.current ? (Date.now() - firstChangeTimeRef.current) : 0;
+        let delay = 10000;
+
+        if (firstChangeTimeRef.current && timeSinceFirstChange >= 30000) {
+          syncToCloud();
+          return;
+        } else if (firstChangeTimeRef.current && timeSinceFirstChange + 10000 > 30000) {
+          delay = Math.max(0, 30000 - timeSinceFirstChange);
+        }
+
+        const t = setTimeout(syncToCloud, delay);
         return () => clearTimeout(t);
       }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
 
