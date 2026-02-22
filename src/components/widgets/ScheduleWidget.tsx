@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
-import { Calendar, Settings, Plus, X, Copy } from 'lucide-react';
+import { Calendar, Settings, Plus, X, Copy, Trash2 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}'];
@@ -95,6 +95,13 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
     const updateItem = (index, field, value) => { const newItems = [...scheduleData]; newItems[index] = { ...newItems[index], [field]: value }; saveScheduleData(newItems); };
     const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '\u{1F4DA}', title: 'New Activity', description: '' }; const newItems = [...scheduleData, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveScheduleData(newItems); };
     const removeItem = (index) => { const newItems = scheduleData.filter((_, i) => i !== index); saveScheduleData(newItems); };
+    const duplicateItem = (index) => {
+        const itemToDuplicate = scheduleData[index];
+        const newItem = { ...itemToDuplicate, id: Date.now().toString() };
+        const newItems = [...scheduleData];
+        newItems.splice(index + 1, 0, newItem);
+        saveScheduleData(newItems);
+    };
 
     const handleDragStart = (index) => { setDragIndex(index); };
     const handleDragOver = (e) => { e.preventDefault(); };
@@ -211,14 +218,25 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                     />
                                 </div>
 
-                                {/* Remove button */}
-                                <button
-                                    onClick={() => removeItem(index)}
-                                    className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0"
-                                    style={{ padding: s(3) }}
-                                >
-                                    <X size={Math.max(10, s(14))} />
-                                </button>
+                                {/* Duplicate and Remove buttons */}
+                                <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0">
+                                    <button
+                                        onClick={() => duplicateItem(index)}
+                                        className="text-gray-400 hover:text-indigo-600 transition-colors"
+                                        style={{ padding: s(3) }}
+                                        title="Duplicate"
+                                    >
+                                        <Copy size={Math.max(10, s(14))} />
+                                    </button>
+                                    <button
+                                        onClick={() => removeItem(index)}
+                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                        style={{ padding: s(3) }}
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={Math.max(10, s(14))} />
+                                    </button>
+                                </div>
                             </div>
                         );
                     })

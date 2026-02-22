@@ -94,9 +94,9 @@ const CountdownWidget = ({ widget, updateData, updateSize }) => {
         );
 
         return (
-            <div ref={containerRef} className="h-full w-full" style={{ background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
-                {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>}
-                <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24, overflow: 'hidden' } : { padding: '0 24px', overflow: 'hidden' }}>
+            <div ref={containerRef} className="h-full w-full" style={{ containerType: 'inline-size', background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+                {scrollText && <style>{`@keyframes countdownScroll_${widget.id.replace(/[^a-zA-Z0-9]/g, '')} { 0% { transform: translateX(100cqw); } 100% { transform: translateX(-100%); } }`}</style>}
+                <div className="flex items-center h-full" style={scrollText ? { animation: `countdownScroll_${widget.id.replace(/[^a-zA-Z0-9]/g, '')} 15s linear infinite`, whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24, overflow: 'hidden' } : { padding: '0 24px', overflow: 'hidden' }}>
                     {barContent}
                 </div>
                 {/* Settings cog — click goes directly to edit */}
