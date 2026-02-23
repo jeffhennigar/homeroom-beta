@@ -8579,13 +8579,13 @@
       const handleDeleteSelectedRosters = async (ids) => {
         if (!ids || ids.length === 0) return;
 
+        const newRosters = allRosters.filter(r => !ids.includes(r.id));
+
         // Prevent deleting all rosters
-        if (ids.length >= allRosters.length) {
+        if (newRosters.length === 0) {
           alert('You must keep at least one class roster.');
           return;
         }
-
-        const newRosters = allRosters.filter(r => !ids.includes(r.id));
 
         // If the active roster is deleted, switch
         if (ids.includes(activeRosterId)) {
