@@ -22,6 +22,12 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
         if (isListening && !rafId.current) analyze();
     }, [sensitivity, threshold]);
 
+    const activeLightRef = useRef(activeLight);
+
+    useEffect(() => {
+        activeLightRef.current = activeLight;
+    }, [activeLight]);
+
     const startAudio = async () => {
         if (audioContextRef.current) return;
         try {
@@ -82,7 +88,8 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
             newLight = 'yellow';
         }
 
-        if (newLight !== activeLight) {
+        if (newLight !== activeLightRef.current) {
+            activeLightRef.current = newLight; // Prevent double trigger
             updateData(widget.id, { activeLight: newLight });
         }
 

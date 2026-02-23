@@ -1885,6 +1885,12 @@
         if (isListening && !rafId.current) analyze();
       }, [sensitivity, threshold]);
 
+      const activeLightRef = useRef(activeLight);
+
+      useEffect(() => {
+        activeLightRef.current = activeLight;
+      }, [activeLight]);
+
       const startAudio = async () => {
         if (audioContextRef.current) return;
         try {
@@ -1949,7 +1955,8 @@
         // We can just update locally or throttle updates? 
         // For this app, updateData triggers re-render of this widget only usually. 
         // Let's debounce slightly or just check if diff.
-        if (newLight !== activeLight) {
+        if (newLight !== activeLightRef.current) {
+          activeLightRef.current = newLight; // Immediately update local ref to prevent double-firings
           updateData(widget.id, { activeLight: newLight });
         }
 
@@ -9423,7 +9430,7 @@
         const iconClasses = `flex items-center justify-center rounded-xl transition-all duration-200 ${!isDockLocked
           ? 'bg-blue-100 text-slate-600'
           : (isMain
-            ? (currentBg?.textColor === 'text-white' ? 'bg-white/20 backdrop-blur-sm text-white shadow-sm' : 'bg-white/80 text-slate-600 shadow-sm')
+            ? (currentBg?.textColor === 'text-white' ? 'bg-black/20 backdrop-blur-sm text-white shadow-sm hover:bg-black/30' : 'bg-white/80 text-slate-700 shadow-sm hover:bg-white')
             : 'bg-white/80 text-slate-600 shadow-sm shadow-black/5')
           } group-hover:scale-105 active:scale-95 ${isMain ? 'w-12 h-12' : 'w-10 h-10'}`;
 
