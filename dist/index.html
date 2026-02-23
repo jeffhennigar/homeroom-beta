@@ -8580,13 +8580,13 @@
       const handleDeleteSelectedRosters = async (ids) => {
         if (!ids || ids.length === 0) return;
 
+        const newRosters = allRosters.filter(r => !ids.includes(r.id));
+
         // Prevent deleting all rosters
-        if (ids.length >= allRosters.length) {
+        if (newRosters.length === 0) {
           alert('You must keep at least one class roster.');
           return;
         }
-
-        const newRosters = allRosters.filter(r => !ids.includes(r.id));
 
         // If the active roster is deleted, switch
         if (ids.includes(activeRosterId)) {
@@ -8708,137 +8708,7 @@
         return () => clearTimeout(t);
       }, [slides, roster]);
 
-      const firstChangeTimeRef = useRef(null);
-
-      // Supabase Sync Logic
-      useEffect(() => {
-        if (!isSyncing && !savingRef.current && !firstChangeTimeRef.current) {
-          firstChangeTimeRef.current = Date.now();
-        }
-
-        const syncToCloud = async () => {
-          if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current) return;
-          setIsSyncing(true);
-          savingRef.current = true;
-          firstChangeTimeRef.current = null;
-          addDebugLog("Syncing widgets...", 'info');
-          try {
-            // 1. Sync Slides (Check for changes)
-            let slideSyncCount = 0;
-            for (let idx = 0; idx < slides.length; idx++) {
-              const widgets = slides[idx];
-              const widgetsStr = JSON.stringify(widgets);
-              if (lastSyncedRef.current.slides[idx] === widgetsStr) continue;
-
-              const { data: existing } = await supabase.from('slides').select('id').match({ user_id: user.id, slide_index: idx }).maybeSingle();
-              let slideError;
-              const payload = { widgets };
-
-              if (existing) {
-                ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx }));
-              } else {
-                ({ error: slideError } = await supabase.from('slides').insert({ user_id: user.id, slide_index: idx, ...payload }));
-              }
-              if (slideError) throw slideError;
-              lastSyncedRef.current.slides[idx] = widgetsStr;
-              slideSyncCount++;
-            }
-
-            // 2. Sync Rosters & Update Local IDs
-            const currentRosters = [...allRosters];
-            let rostersChanged = false;
-
-            for (let i = 0; i < currentRosters.length; i++) {
-              const r = currentRosters[i];
-              if (r.id === 'default' && r.roster.length === 0) continue;
-
-              const rStr = JSON.stringify(r);
-              if (lastSyncedRef.current.rosters[r.id] === rStr) continue;
-
-              try {
-                const updated = await dataService.saveRoster(user.id, r);
-                lastSyncedRef.current.rosters[r.id] = rStr; // Update local hash
-                if (updated && updated.id !== r.id) {
-                  currentRosters[i] = { ...r, id: updated.id };
-                  rostersChanged = true;
-                  if (activeRosterId === r.id) {
-                    setActiveRosterId(updated.id);
-                    localStorage.setItem('homeroom_active_roster_id', updated.id);
-                  }
-                }
-              } catch (err) {
-                console.error('Individual roster sync error:', err);
-              }
-            }
-
-            if (rostersChanged) {
-              setAllRosters(currentRosters);
-            }
-
-            // Clean up deleted rosters - ONLY compare valid UUIDs to avoid DB errors
-            const validUUIDs = currentRosters
-              .map(r => r.id)
-              .filter(id => id && id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(id)));
-
-            if (validUUIDs.length > 0) {
-              const { error: cleanupErr } = await supabase.from('rosters')
-                .delete()
-                .eq('user_id', user.id)
-                .not('id', 'in', `(${validUUIDs.map(id => `'${id}'`).join(',')})`);
-              if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
-            }
-
-            // 3. Sync Profile (Check for changes)
-            const profilePayload = {
-              background,
-              slide_backgrounds: slideBackgrounds,
-              my_backgrounds: customBackgrounds,
-              schedule: {
-                ...scheduleTemplate,
-                _settings: scheduleSettings
-              },
-              schedule_overrides: scheduleOverrides,
-              grid_enabled: isGridEnabled,
-              clock_style: clockStyle,
-              dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
-              active_roster_id: (activeRosterId && activeRosterId !== 'default') ? activeRosterId : null,
-              accent_color: accentColor
-            };
-
-            const profileStr = JSON.stringify(profilePayload);
-            if (lastSyncedRef.current.profile === profileStr && slideSyncCount === 0 && !rostersChanged) {
-              // Nothing changed, skip profile upsert
-            } else {
-              const last_modified = Date.now();
-              setProfileLastModified(last_modified);
-              const { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified });
-              if (profileError) throw profileError;
-              lastSyncedRef.current.profile = profileStr;
-              addDebugLog("Cloud sync successful", 'success');
-            }
-
-          } catch (e) {
-            console.error("Sync Exception:", e);
-            setLastSyncError(e.message || "Unknown Sync Error");
-          } finally {
-            setIsSyncing(false);
-            setTimeout(() => { savingRef.current = false; }, 1000);
-          }
-        };
-
-        const timeSinceFirstChange = firstChangeTimeRef.current ? (Date.now() - firstChangeTimeRef.current) : 0;
-        let delay = 10000;
-
-        if (firstChangeTimeRef.current && timeSinceFirstChange >= 30000) {
-          syncToCloud();
-          return;
-        } else if (firstChangeTimeRef.current && timeSinceFirstChange + 10000 > 30000) {
-          delay = Math.max(0, 30000 - timeSinceFirstChange);
-        }
-
-        const t = setTimeout(syncToCloud, delay);
-        return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
+      // Legacy syncToCloud removed. All sync functions should route through SyncManager.
 
       // Supabase Data Loading
 
