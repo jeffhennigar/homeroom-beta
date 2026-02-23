@@ -2136,10 +2136,32 @@
                   {config.options.map((opt, i) => (
                     <button
                       key={i}
-                      onClick={() => {
+                      onClick={async () => {
                         setAnswer(opt);
-                        // Auto submit for MC? Maybe better to let them confirm.
-                        // Let's set the answer and they can click Submit.
+                        if (!name.trim()) {
+                          setError("Please provide your name first.");
+                          return;
+                        }
+
+                        // Auto-submit MC
+                        localStorage.setItem('homeroom_student_name', name.trim());
+                        if (!window.supabaseClient) {
+                          setError("Connection error. Please refresh.");
+                          return;
+                        }
+
+                        const channel = window.supabaseClient.channel(`exit_ticket:${sessionId}`);
+                        channel.subscribe(async (status) => {
+                          if (status === 'SUBSCRIBED') {
+                            await channel.send({
+                              type: 'broadcast',
+                              event: 'answer',
+                              payload: { name: name.trim(), answer: opt, timestamp: Date.now() }
+                            });
+                            setSubmitted(true);
+                            channel.unsubscribe();
+                          }
+                        });
                       }}
                       className={`w-full p-4 text-left border-2 rounded-xl transition-all font-bold flex items-center gap-3 ${answer === opt ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'}`}
                     >
@@ -2151,24 +2173,25 @@
                   ))}
                 </div>
               ) : (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Your Answer</label>
-                  <textarea
-                    value={answer}
-                    onChange={e => setAnswer(e.target.value)}
-                    className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all min-h-[120px]"
-                    placeholder="Type your answer here..."
-                    required
-                  />
-                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Your Answer</label>
+                    <textarea
+                      value={answer}
+                      onChange={e => setAnswer(e.target.value)}
+                      className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all min-h-[120px]"
+                      placeholder="Type your answer here..."
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-200 mt-2"
+                  >
+                    Submit Answer
+                  </button>
+                </form>
               )}
-
-              <button
-                onClick={handleSubmit}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-200 mt-2"
-              >
-                Submit Answer
-              </button>
             </div>
           </div>
         </div>
@@ -8195,7 +8218,7 @@
       const [dockOrder, setDockOrder] = useState(() => {
         const stored = getDockOrder();
         const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'EMBED', 'POLYPAD'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
         if (Array.isArray(stored)) {
           const extras = stored.filter(id => !allDefaults.includes(id));
@@ -8353,7 +8376,7 @@
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
                   const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'EMBED', 'POLYPAD'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
@@ -8396,7 +8419,7 @@
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
                   const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN'];
+                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'EMBED', 'POLYPAD'];
                   const allDefaults = [...mainDefaults, ...drawerDefaults];
                   setDockOrder({
                     main: mainDefaults.filter(id => order.includes(id)),
@@ -8713,12 +8736,12 @@
       // Supabase Sync Logic
       useEffect(() => {
         let hasChanges = false;
-        
+
         // 1. Check slides
         for (let idx = 0; idx < slides.length; idx++) {
           if (lastSyncedRef.current.slides[idx] !== JSON.stringify(slides[idx])) { hasChanges = true; break; }
         }
-        
+
         // 2. Check rosters
         if (!hasChanges) {
           for (let r of allRosters) {
@@ -8726,7 +8749,7 @@
             if (lastSyncedRef.current.rosters[r.id] !== JSON.stringify(r)) { hasChanges = true; break; }
           }
         }
-        
+
         // 3. Check profile
         const profilePayload = {
           background, slide_backgrounds: slideBackgrounds, my_backgrounds: customBackgrounds,
@@ -8764,7 +8787,7 @@
               let slideError;
               const payload = { widgets: slides[idx] };
 
-              if (existing) { ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx })); } 
+              if (existing) { ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx })); }
               else { ({ error: slideError } = await supabase.from('slides').insert({ user_id: user.id, slide_index: idx, ...payload })); }
               if (slideError) throw slideError;
               lastSyncedRef.current.slides[idx] = widgetsStr;
@@ -9763,7 +9786,7 @@
               {slides.length > 1 && (
                 <>
                   <div className="w-px h-4 bg-gray-300 mx-1" />
-         <button onClick={deleteCurrentSlide} className={`p-1.5 hover:bg-red-50 rounded-xl transition-all duration-200 active:scale-95 ${currentBg?.textColor || 'text-gray-400'}`} title="Delete Page"><Trash2 size={16} /></button>
+                  <button onClick={deleteCurrentSlide} className={`p-1.5 hover:bg-red-50 rounded-xl transition-all duration-200 active:scale-95 ${currentBg?.textColor || 'text-gray-400'}`} title="Delete Page"><Trash2 size={16} /></button>
                 </>
               )}
             </div>
