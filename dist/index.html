@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HomeRoom Pro</title>
   <link rel="icon" type="image/svg+xml" href="./favicon-CuRdcC1_.svg" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -281,6 +282,7 @@
   <div id="root"></div>
 
 
+
   <script type="importmap">
   {
     "imports": {
@@ -514,7 +516,7 @@
       VOTE: { label: 'Poll', icon: <BarChart2 /> },
       DRAWING: { label: 'Drawing', icon: <Pencil /> },
       SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
-      YOUTUBE: { label: 'Embed', icon: <Youtube /> },
+      EMBED: { label: 'Embed', icon: <Youtube /> },
       CALENDAR: { label: 'Calendar', icon: <Calendar /> },
       SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
       CALCULATOR: { label: 'Calc', icon: <Calculator /> },
@@ -573,22 +575,28 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'] };
 
         const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
 
         // If it's a flat array (from Supabase or old storage)
         if (Array.isArray(saved)) {
+          // Migration: Rename YOUTUBE -> EMBED
+          const migrated = saved.map(id => id === 'YOUTUBE' ? 'EMBED' : id);
           return {
-            main: mainDefaults.filter(id => saved.includes(id)),
-            drawer: [...drawerDefaults.filter(id => saved.includes(id)), ...saved.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !saved.includes(id))]
+            main: mainDefaults.filter(id => migrated.includes(id)),
+            drawer: [...drawerDefaults.filter(id => migrated.includes(id)), ...migrated.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !migrated.includes(id))]
           };
         }
 
         // If it's already an object
         if (saved && saved.main && saved.drawer) {
+          // Migration: Rename YOUTUBE -> EMBED
+          saved.main = saved.main.map(id => id === 'YOUTUBE' ? 'EMBED' : id);
+          saved.drawer = saved.drawer.map(id => id === 'YOUTUBE' ? 'EMBED' : id);
+
           // Remove types that no longer exist in DOCK_LABELS (e.g. removed MARBLE_JAR)
           const cleanedMain = saved.main.filter(id => DOCK_LABELS[id]);
           const cleanedDrawer = saved.drawer.filter(id => DOCK_LABELS[id]);
@@ -654,7 +662,7 @@
       VOTE: { width: 400, height: 350 },
       DRAWING: { width: 900, height: 550 },
       SCHEDULE: { width: 380, height: 500 },
-      YOUTUBE: { width: 480, height: 360 },
+      EMBED: { width: 480, height: 360 },
       CALENDAR: { width: 320, height: 380 },
       MARBLE_JAR: { width: 400, height: 500 },
       SOUNDBOARD: { width: 600, height: 500 },
@@ -4640,32 +4648,23 @@
       );
     };
 
-    const RandomizerWidget = ({ widget, updateData, roster, allRosters }) => {
-      const { currentName, isAnimating, fontSize = 16, pickedHistory = {}, bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
+    const RandomizerWidget = ({ widget, updateData, roster, allRosters, onUpdateRoster }) => {
+      const { currentName, isAnimating, fontSize = 16, bgColor = '#e0e7ff', activeClassId: savedActiveClassId } = widget.data;
       const [activeClassId, setActiveClassId] = useState(savedActiveClassId || (allRosters?.length > 0 ? allRosters[0].id : null));
       const currentRoster = allRosters?.find(r => r.id === activeClassId)?.roster || roster || [];
 
-      // Migrate old pickedStudents to history if needed
-      useEffect(() => {
-        if (!widget.data.pickedHistory && widget.data.pickedStudents && widget.data.pickedStudents.length > 0) {
-          updateData(widget.id, {
-            pickedHistory: { [activeClassId]: widget.data.pickedStudents },
-            pickedStudents: null // clearer deprecation
-          });
-        }
-      }, []);
-
-      const pickedStudents = pickedHistory[activeClassId] || [];
+      const pickedStudents = currentRoster.filter(s => s.picked && s.active).map(s => s.name);
+      const activeStudents = currentRoster.filter(s => s.active);
+      const unpickedStudents = currentRoster.filter(s => s.active && !s.picked);
 
       const [showSettings, setShowSettings] = useState(false);
       const steps = useRef(0);
       const intervalRef = useRef(null);
-      const activeStudents = currentRoster.filter(s => s.active);
-      const unpickedStudents = activeStudents.filter(s => !pickedStudents.includes(s.name));
 
       useEffect(() => {
         if (isAnimating) {
           let availableStudents = unpickedStudents.length > 0 ? unpickedStudents : activeStudents;
+
           if (availableStudents.length === 0) { updateData(widget.id, { isAnimating: false }); return; }
 
           intervalRef.current = window.setInterval(() => {
@@ -4674,29 +4673,34 @@
             steps.current++;
             if (steps.current >= 20) {
               if (intervalRef.current) clearInterval(intervalRef.current);
-              const finalName = widget.data.currentName || randomName; // Use last flashed name if available
-              // Correct logic: After animation stops, we pick a WINNER.
-              // We should pick the winner explicitly at the end to ensure it matches visual used.
-              // Actually, the flashing logic sets currentName 20 times. The last one is the winner.
-              // But React state updates might be async.
-              // Safer: pick winner upfront or track it.
-              // Current code uses `widget.data.currentName` which acts as the winner.
 
-              const newPickedList = unpickedStudents.length > 0 ? [...pickedStudents, randomName] : [randomName];
+              const isResetting = unpickedStudents.length === 0;
+              const finalRoster = currentRoster.map(s => {
+                if (s.name === randomName) return { ...s, picked: true };
+                if (isResetting) return { ...s, picked: false }; // Auto-reset others if we started full
+                return s;
+              });
+
+              if (onUpdateRoster) onUpdateRoster(finalRoster, activeClassId);
+
               updateData(widget.id, {
                 isAnimating: false,
-                currentName: randomName,
-                pickedHistory: { ...pickedHistory, [activeClassId]: newPickedList }
+                currentName: randomName
               });
               steps.current = 0;
             }
           }, 100);
         }
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-      }, [isAnimating, widget.id, activeStudents.length]);
+      }, [isAnimating, widget.id, activeStudents.length, unpickedStudents.length]);
 
-      const resetPicked = () => updateData(widget.id, { pickedHistory: { ...pickedHistory, [activeClassId]: [] }, currentName: null });
-      const removePicked = (name) => updateData(widget.id, { pickedHistory: { ...pickedHistory, [activeClassId]: pickedStudents.filter(n => n !== name) } });
+      const resetPicked = () => {
+        if (onUpdateRoster) onUpdateRoster(currentRoster.map(s => ({ ...s, picked: false })), activeClassId);
+        updateData(widget.id, { currentName: null });
+      };
+      const removePicked = (name) => {
+        if (onUpdateRoster) onUpdateRoster(currentRoster.map(s => s.name === name ? { ...s, picked: false } : s), activeClassId);
+      };
       const scaledFS = (fontSize / 16) * 30;
       const pickedCount = pickedStudents.length;
       const totalCount = activeStudents.length;
@@ -6087,9 +6091,25 @@
                     placeholder="Paste link here..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && updateData(widget.id, { url: input })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        let title = "Embed";
+                        try {
+                          const urlObj = new URL(input.startsWith('http') ? input : `https://${input}`);
+                          title = urlObj.hostname.replace('www.', '');
+                        } catch (e) { }
+                        updateData(widget.id, { url: input, title });
+                      }
+                    }}
                   />
-                  <button onClick={() => updateData(widget.id, { url: input })} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm"><Check size={18} /></button>
+                  <button onClick={() => {
+                    let title = "Embed";
+                    try {
+                      const urlObj = new URL(input.startsWith('http') ? input : `https://${input}`);
+                      title = urlObj.hostname.replace('www.', '');
+                    } catch (e) { }
+                    updateData(widget.id, { url: input, title });
+                  }} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm"><Check size={18} /></button>
                 </div>
 
                 <div className="pt-2 flex flex-wrap gap-1.5 justify-center w-full">
@@ -6099,7 +6119,7 @@
                   ].map(l => (
                     <button
                       key={l.name}
-                      onClick={() => updateData(widget.id, { url: l.url })}
+                      onClick={() => updateData(widget.id, { url: l.url, title: l.name })}
                       className={`text-[10px] font-bold px-2 py-1.5 rounded-lg transition-colors border border-transparent hover:border-black/5 ${l.color}`}
                     >
                       {l.name}
@@ -6235,6 +6255,7 @@
       const [message, setMessage] = useState(null);
       const [agreeMarketing, setAgreeMarketing] = useState(true); // Default to on for marketing
       const [agreeTerms, setAgreeTerms] = useState(false);
+      const googleButtonRef = useRef(null);
 
       useEffect(() => {
         if (mode === 'login') {
@@ -6288,23 +6309,29 @@
         }
       };
 
-      const handleGoogleLogin = async () => {
+      useEffect(() => {
+        if (isOpen && window.google && googleButtonRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: "1094328352872-mq71qac310u7rorkbcl565t85d9oaev0.apps.googleusercontent.com", // IMPORTANT: User must replace this with their Google Client ID
+            callback: handleGoogleResponse
+          });
+          window.google.accounts.id.renderButton(
+            googleButtonRef.current,
+            { theme: "outline", size: "large", width: 384, text: "signin_with", shape: "pill" } // 384px roughly matches w-full max-w-md padding
+          );
+        }
+      }, [isOpen]);
+
+      const handleGoogleResponse = async (response) => {
         setLoading(true);
         setError(null);
         try {
-          // 'redirectTo' tells Supabase where to send the user after Google approves.
-          // If this URL is not in your Supabase "Redirect URLs" whitelist, it will fallback to your Site URL (pro.ourhomeroom.app).
-          const { error } = await supabase.auth.signInWithOAuth({
+          const { data, error } = await supabase.auth.signInWithIdToken({
             provider: 'google',
-            options: {
-              redirectTo: window.location.origin,
-              queryParams: {
-                access_type: 'offline',
-                prompt: 'consent',
-              }
-            }
+            token: response.credential,
           });
           if (error) throw error;
+          setIsOpen(false);
         } catch (e) {
           setError(e.message);
           setLoading(false);
@@ -6326,19 +6353,7 @@
               {error && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
               {message && <div className="mb-6 p-4 bg-green-50 text-green-600 rounded-xl text-sm font-medium border border-green-100 flex items-center gap-2"><Check size={16} /> {message}</div>}
 
-              <button
-                onClick={handleGoogleLogin}
-                disabled={loading}
-                className="w-full py-3 bg-white border-2 border-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all active:scale-95 flex items-center justify-center gap-3 mb-6 relative group overflow-hidden"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                Sign in with Google
-              </button>
+              <div className="flex justify-center mb-6" ref={googleButtonRef}></div>
 
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex-1 h-px bg-slate-100 pb-[1px]" />
@@ -8077,6 +8092,7 @@
       const [profileLastModified, setProfileLastModified] = useState(null);
       const savingRef = useRef(false);
       const cloudLoaded = useRef(false);
+      const lastSyncedRef = useRef({ profile: null, slides: {}, rosters: {} });
 
       // Diagnostics State
       const [debugLog, setDebugLog] = useState([]);
@@ -8292,6 +8308,7 @@
             if (isSyncing) return;
             const updatedRoster = payload.new;
             if (updatedRoster) {
+              lastSyncedRef.current.rosters[updatedRoster.id] = JSON.stringify(updatedRoster);
               setAllRosters(prev => {
                 const existingIdx = prev.findIndex(r => r.id === updatedRoster.id || (r.name === updatedRoster.name && !r.id.includes('-')));
                 if (existingIdx !== -1) {
@@ -8322,8 +8339,11 @@
             if (isSyncing) return;
             const profile = payload.new;
             if (profile) {
-              // Simple check for profile updates - maybe less critical than slides/rosters but good for consistency
               if (profile.last_modified && profileLastModified === profile.last_modified) return;
+
+              // Construct compare object to avoid ping-pong
+              const { last_modified, id: _id, updated_at: _at, ...rest } = profile;
+              lastSyncedRef.current.profile = JSON.stringify(rest);
 
               if (profile.background) setBackground(profile.background);
               if (profile.clock_style) setClockStyle(profile.clock_style);
@@ -8343,9 +8363,12 @@
                   setDockOrder(order);
                 }
               }
-              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
-              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
-              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              if (profile.schedule) {
+                const { _settings, ...template } = profile.schedule;
+                setScheduleTemplate(template);
+                if (_settings) setScheduleSettings(_settings);
+                else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              }
               if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
               if (profile.last_modified) setProfileLastModified(profile.last_modified);
             }
@@ -8391,9 +8414,13 @@
               if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
 
               // Complete Schedule Sync
-              if (profile.schedule) setScheduleTemplate(profile.schedule);
+              if (profile.schedule) {
+                const { _settings, ...template } = profile.schedule;
+                setScheduleTemplate(template);
+                if (_settings) setScheduleSettings(_settings);
+                else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+              }
               if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
-              if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
 
               if (profile.clock_style) setClockStyle(profile.clock_style);
               if (profile.accent_color) setAccentColor(profile.accent_color);
@@ -8426,6 +8453,9 @@
                 return r;
               });
               setAllRosters(mergedRosters);
+              mergedRosters.forEach(r => {
+                lastSyncedRef.current.rosters[r.id] = JSON.stringify(r);
+              });
             }
 
             // Map cloud slides to the state
@@ -8678,26 +8708,31 @@
         return () => clearTimeout(t);
       }, [slides, roster]);
 
+      const firstChangeTimeRef = useRef(null);
+
       // Supabase Sync Logic
       useEffect(() => {
+        if (!isSyncing && !savingRef.current && !firstChangeTimeRef.current) {
+          firstChangeTimeRef.current = Date.now();
+        }
+
         const syncToCloud = async () => {
           if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current) return;
           setIsSyncing(true);
           savingRef.current = true;
+          firstChangeTimeRef.current = null;
           addDebugLog("Syncing widgets...", 'info');
           try {
-            // 1. Sync Slides
-            const { error: cleanupError } = await supabase.from('slides').delete().eq('user_id', user.id).gt('slide_index', slides.length - 1);
-            if (cleanupError) console.error("Slide cleanup error:", cleanupError);
-
+            // 1. Sync Slides (Check for changes)
+            let slideSyncCount = 0;
             for (let idx = 0; idx < slides.length; idx++) {
               const widgets = slides[idx];
-              const last_modified = Date.now();
-              widgets._last_modified = last_modified;
+              const widgetsStr = JSON.stringify(widgets);
+              if (lastSyncedRef.current.slides[idx] === widgetsStr) continue;
 
               const { data: existing } = await supabase.from('slides').select('id').match({ user_id: user.id, slide_index: idx }).maybeSingle();
               let slideError;
-              const payload = { widgets }; // Removed last_modified as it's not in the slides table
+              const payload = { widgets };
 
               if (existing) {
                 ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx }));
@@ -8705,6 +8740,8 @@
                 ({ error: slideError } = await supabase.from('slides').insert({ user_id: user.id, slide_index: idx, ...payload }));
               }
               if (slideError) throw slideError;
+              lastSyncedRef.current.slides[idx] = widgetsStr;
+              slideSyncCount++;
             }
 
             // 2. Sync Rosters & Update Local IDs
@@ -8715,8 +8752,12 @@
               const r = currentRosters[i];
               if (r.id === 'default' && r.roster.length === 0) continue;
 
+              const rStr = JSON.stringify(r);
+              if (lastSyncedRef.current.rosters[r.id] === rStr) continue;
+
               try {
                 const updated = await dataService.saveRoster(user.id, r);
+                lastSyncedRef.current.rosters[r.id] = rStr; // Update local hash
                 if (updated && updated.id !== r.id) {
                   currentRosters[i] = { ...r, id: updated.id };
                   rostersChanged = true;
@@ -8747,30 +8788,35 @@
               if (cleanupErr) console.error('Roster cleanup error:', cleanupErr);
             }
 
-            // 3. Sync Profile
-            const last_modified = Date.now();
-            setProfileLastModified(last_modified);
-
+            // 3. Sync Profile (Check for changes)
             const profilePayload = {
               background,
               slide_backgrounds: slideBackgrounds,
               my_backgrounds: customBackgrounds,
-              schedule: scheduleTemplate,
+              schedule: {
+                ...scheduleTemplate,
+                _settings: scheduleSettings
+              },
               schedule_overrides: scheduleOverrides,
-              schedule_settings: scheduleSettings,
               grid_enabled: isGridEnabled,
               clock_style: clockStyle,
               dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
               active_roster_id: (activeRosterId && activeRosterId !== 'default') ? activeRosterId : null,
-              accent_color: accentColor,
-              last_modified
+              accent_color: accentColor
             };
 
-            const { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id });
-            if (profileError) throw profileError;
+            const profileStr = JSON.stringify(profilePayload);
+            if (lastSyncedRef.current.profile === profileStr && slideSyncCount === 0 && !rostersChanged) {
+              // Nothing changed, skip profile upsert
+            } else {
+              const last_modified = Date.now();
+              setProfileLastModified(last_modified);
+              const { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified });
+              if (profileError) throw profileError;
+              lastSyncedRef.current.profile = profileStr;
+              addDebugLog("Cloud sync successful", 'success');
+            }
 
-            setLastSyncError(null);
-            addDebugLog("Cloud sync successful", 'success');
           } catch (e) {
             console.error("Sync Exception:", e);
             setLastSyncError(e.message || "Unknown Sync Error");
@@ -8779,9 +8825,20 @@
             setTimeout(() => { savingRef.current = false; }, 1000);
           }
         };
-        const t = setTimeout(syncToCloud, 10000); // Increased debounce to 10s
+
+        const timeSinceFirstChange = firstChangeTimeRef.current ? (Date.now() - firstChangeTimeRef.current) : 0;
+        let delay = 10000;
+
+        if (firstChangeTimeRef.current && timeSinceFirstChange >= 30000) {
+          syncToCloud();
+          return;
+        } else if (firstChangeTimeRef.current && timeSinceFirstChange + 10000 > 30000) {
+          delay = Math.max(0, 30000 - timeSinceFirstChange);
+        }
+
+        const t = setTimeout(syncToCloud, delay);
         return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled, profileLastModified]);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
 
       // Supabase Data Loading
 
@@ -8822,7 +8879,11 @@
             if (p.dock_order) setDockOrder(p.dock_order);
             if (p.schedule) setScheduleTemplate(p.schedule);
             if (p.schedule_overrides) setScheduleOverrides(p.schedule_overrides);
-            if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
+            if (p.schedule) {
+              const { _settings } = p.schedule;
+              if (_settings) setScheduleSettings(_settings);
+              else if (p.schedule_settings) setScheduleSettings(p.schedule_settings);
+            }
             if (p.active_roster_id) setActiveRosterId(p.active_roster_id);
             addDebugLog("Realtime: Profile updated from cloud", 'success');
           }).subscribe((status) => {
@@ -9431,7 +9492,8 @@
           case 'VOTE': return <VoteWidget {...props} />;
           case 'DRAWING': return <DrawingWidget {...props} />;
           case 'SCHEDULE': return <ScheduleWidget {...props} selectedDate={selectedDate} setSelectedDate={setSelectedDate} scheduleTemplate={scheduleTemplate} setScheduleTemplate={setScheduleTemplate} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} scheduleSettings={scheduleSettings} setScheduleSettings={setScheduleSettings} onOpenSettings={() => { setSettingsInitialTab('schedule'); setShowSettingsModal(true); }} />;
-          case 'YOUTUBE': return <YouTubeWidget {...props} />;
+          case 'YOUTUBE': // Legacy support
+          case 'EMBED': return <EmbedWidget {...props} />;
           case 'CALENDAR': return <CalendarWidget {...props} selectedDate={selectedDate} onSelectDate={setSelectedDate} isGlassy={props.extraProps.isGlassy} />;
           case 'CLOCK': return <ClockWidget {...props} isGlassy={props.extraProps.isGlassy} />;
           case 'MARBLE_JAR': return <MarbleJarWidget {...props} />;

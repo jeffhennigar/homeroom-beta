@@ -26,6 +26,7 @@ import CalendarWidget from './components/widgets/CalendarWidget';
 import SettingsModal from './components/settings/SettingsModal';
 import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
 import { supabase } from './services/supabaseClient';
+import { syncManager } from './services/SyncManager';
 import { dataService } from './services/dataService';
 
 
@@ -216,6 +217,14 @@ const App = () => {
     const [isCheckingPro, setIsCheckingPro] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [syncStats, setSyncStats] = useState({ pending: 0, raw: 0, comp: 0, lastSync: null });
+
+    useEffect(() => {
+        return syncManager.subscribe((state) => {
+            setIsSyncing(state.status === 'syncing' || state.status === 'pending');
+            setSyncStats({ pending: state.pendingCount, raw: state.rawBytesSaved, comp: state.compressedBytesSaved, lastSync: state.lastSyncTime });
+        });
+    }, []);
     const [clockStyle, setClockStyle] = useState('12h');
     const [accentColor, setAccentColor] = useState(() => localStorage.getItem('homeroom_accent_color') || 'indigo');
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
@@ -332,7 +341,7 @@ const App = () => {
                 const widgetsStr = JSON.stringify(widgets);
                 let slideChanged = false;
                 if (lastSyncedRef.current.slides[currentSlideIndex] !== widgetsStr) {
-                    await dataService.saveSlide(user.id, currentSlideIndex, widgets);
+                    syncManager.saveSlide(user.id, currentSlideIndex, widgets);
                     lastSyncedRef.current.slides[currentSlideIndex] = widgetsStr;
                     slideChanged = true;
                 }
@@ -349,7 +358,7 @@ const App = () => {
                     if (lastSyncedRef.current.rosters[r.id] === rStr) continue;
 
                     try {
-                        const updated = await dataService.saveRoster(user.id, r);
+                        const updated = await syncManager.saveRoster(user.id, r);
                         lastSyncedRef.current.rosters[r.id] = rStr;
 
                         if (updated && updated.id !== r.id) {
@@ -403,7 +412,7 @@ const App = () => {
                 if (lastSyncedRef.current.profile === profileStr && !slideChanged && !rostersChanged) {
                     // Nothing changed
                 } else {
-                    await dataService.updateProfile(user.id, { ...profilePayload, last_modified: Date.now() });
+                    syncManager.updateProfile(user.id, { ...profilePayload, last_modified: Date.now() });
                     lastSyncedRef.current.profile = profileStr;
                     addDebugLog("Cloud sync successful", 'success');
                 }
@@ -418,8 +427,7 @@ const App = () => {
             }
         };
 
-        const timer = setTimeout(syncToCloud, 10000); // 10s Debounce
-        return () => clearTimeout(timer);
+        syncToCloud();
     }, [user, widgets, allRosters, activeRosterId, showGrid, clockStyle, accentColor, dockOrder, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, scheduleSettings, cloudSyncEnabled, currentSlideIndex, isCheckingPro]);
 
     // Load Data from Cloud
@@ -455,7 +463,8 @@ const App = () => {
                 }
 
                 // 2. Load Slides (Widgets) for current slide
-                const slides = await dataService.getSlides(user.id);
+                const rawSlides = await dataService.getSlides(user.id);
+                const slides = rawSlides ? rawSlides.map(s => ({ ...s, widgets: syncManager.decompressPayload(s.widgets) })) : [];
                 if (slides && Array.isArray(slides)) {
                     const slide = slides.find(s => s.slide_index === currentSlideIndex);
                     if (slide && Array.isArray(slide.widgets)) {
@@ -466,7 +475,8 @@ const App = () => {
                 }
 
                 // 3. Load Rosters & Smart Merge
-                const cloudRosters = await dataService.getRosters(user.id);
+                const rawRosters = await dataService.getRosters(user.id);
+                const cloudRosters = rawRosters ? rawRosters.map(r => ({ ...r, roster: syncManager.decompressPayload(r.roster) })) : [];
                 let mergedRosters = allRosters;
 
                 if (cloudRosters && Array.isArray(cloudRosters)) {
@@ -992,6 +1002,7 @@ const App = () => {
                 onSignOut={handleSignOut}
                 onSignIn={() => window.location.href = 'https://ourhomeroom.app/signin'}
                 isSyncing={isSyncing}
+                syncStats={syncStats}
                 clockStyle={clockStyle}
                 setClockStyle={setClockStyle}
                 cloudSyncEnabled={cloudSyncEnabled}

@@ -7,7 +7,7 @@ import { SCHEDULE_EMOJIS } from '../../constants';
 import { dataService } from '../../services/dataService';
 import { supabase } from '../../services/supabaseClient';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets, textColor, setTextColor, debugLog = [], channelStatus = {}, onHardRefresh }) => {
+const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, syncStats = { pending: 0, raw: 0, comp: 0, lastSync: null }, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets, textColor, setTextColor, debugLog = [], channelStatus = {}, onHardRefresh }) => {
     if (!isOpen) return null;
 
     const [activeTab, setActiveTab] = useState('roster');
@@ -575,6 +575,28 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                         <span className="text-[10px] uppercase font-bold text-slate-400">{name}</span>
                                     </div>
                                 ))}
+                            </div>
+
+                            <div className="bg-white/5 rounded-lg p-3 mb-6 border border-white/10">
+                                <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2">Sync Manager Telemetry</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex justify-between text-[11px]">
+                                        <span>Items in Queue:</span>
+                                        <span className="text-white font-bold">{syncStats.pending}</span>
+                                    </div>
+                                    <div className="flex justify-between text-[11px]">
+                                        <span>Last Idle Flush:</span>
+                                        <span className="text-white font-bold">{syncStats.lastSync ? new Date(syncStats.lastSync).toLocaleTimeString() : 'Never'}</span>
+                                    </div>
+                                    <div className="flex justify-between text-[11px]">
+                                        <span>Raw Bytes:</span>
+                                        <span className="text-slate-400 font-bold">{syncStats.raw.toLocaleString()} B</span>
+                                    </div>
+                                    <div className="flex justify-between text-[11px]">
+                                        <span>Comp Bytes:</span>
+                                        <span className="text-green-400 font-bold">{syncStats.comp.toLocaleString()} B ({syncStats.raw > 0 ? Math.round(100 - (syncStats.comp / syncStats.raw * 100)) : 0}% saved)</span>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Integrity Counters */}
