@@ -317,6 +317,71 @@
       box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.4), 0 0 30px rgba(79, 70, 229, 0.2) !important;
       border-color: #4f46e5 !important;
     }
+
+    /* Slide Transition Animations */
+    @keyframes slide-out-left {
+      0% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateX(-100vw);
+        opacity: 0;
+      }
+    }
+
+    @keyframes slide-in-right {
+      0% {
+        transform: translateX(100vw);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slide-out-right {
+      0% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateX(100vw);
+        opacity: 0;
+      }
+    }
+
+    @keyframes slide-in-left {
+      0% {
+        transform: translateX(-100vw);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .slide-exit-left {
+      animation: slide-out-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .slide-enter-right {
+      animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .slide-exit-right {
+      animation: slide-out-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .slide-enter-left {
+      animation: slide-in-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
   </style>
   <!-- Babel for JSX (Pinned stable version) -->
   <script src="https://unpkg.com/@babel/standalone@7.25.9/babel.min.js"></script>
@@ -729,10 +794,10 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
 
-        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'];
+        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+        const drawerDefaults = ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
 
         // If it's a flat array (from Supabase or old storage)
@@ -763,7 +828,7 @@
 
         return { main: mainDefaults, drawer: drawerDefaults };
       } catch (e) {
-        return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
+        return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
       }
     };
     const saveDockOrder = (order) => { try { localStorage.setItem(DOCK_ORDER_KEY, JSON.stringify(order)); } catch (e) { } };
@@ -2847,7 +2912,7 @@
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
           : 'border-2 border-gray-300';
 
-      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} pointer-events-auto ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.05] shadow-[0_0_150px_rgba(255,255,255,0.6),0_0_40px_rgba(255,255,255,0.4)] ring-4 ring-white/50 z-[10000] brightness-[1.02]' : ''} ${isClosing ? 'animate-shrink-out' : 'animate-elastic'}`}
+      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} pointer-events-auto ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.08] shadow-[0_0_200px_rgba(255,255,255,0.7),0_0_60px_rgba(255,255,255,0.5),0_0_300px_rgba(99,102,241,0.15)] ring-4 ring-white/60 z-[10000] brightness-[1.05]' : ''} ${isClosing ? 'animate-shrink-out' : 'animate-elastic'}`}
         style={{ left: position.x, top: position.y, width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
         {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
@@ -8377,6 +8442,7 @@
       });
       const [selectedId, setSelectedId] = useState(null);
       const [spotlightId, setSpotlightId] = useState(null);
+      const [slideTransition, setSlideTransition] = useState(null); // 'exit-left', 'enter-right', 'exit-right', 'enter-left'
       const [maxZIndex, setMaxZIndex] = useState(10);
       const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
       const [isDockMinimized, setIsDockMinimized] = useState(false);
@@ -9498,7 +9564,9 @@
       const toggleMinimize = useCallback((id) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, isMinimized: !w.isMinimized } : w)); }, [setWidgets]);
       const toggleSpotlight = useCallback((id) => { setSpotlightId(prev => prev === id ? null : id); }, []);
       const nextSlide = () => {
-        if (currentSlideIndex === slides.length - 1) {
+        if (slideTransition) return;
+        const isNewSlide = currentSlideIndex === slides.length - 1;
+        if (isNewSlide) {
           const clockSize = WIDGET_SIZES['CLOCK'];
           const defaultClock = {
             id: 'clock-' + Date.now(),
@@ -9513,10 +9581,25 @@
           const newIndex = slides.length;
           setSlideBackgrounds(prev => ({ ...prev, [newIndex]: BACKGROUNDS[0] }));
         }
-        setCurrentSlideIndex(prev => prev + 1);
-        setSelectedId(null);
+        setSlideTransition('exit-left');
+        setTimeout(() => {
+          setCurrentSlideIndex(prev => prev + 1);
+          setSelectedId(null);
+          setSlideTransition('enter-right');
+          setTimeout(() => setSlideTransition(null), 400);
+        }, 400);
       };
-      const prevSlide = () => { if (currentSlideIndex > 0) { setCurrentSlideIndex(prev => prev - 1); setSelectedId(null); } };
+      const prevSlide = () => {
+        if (currentSlideIndex > 0 && !slideTransition) {
+          setSlideTransition('exit-right');
+          setTimeout(() => {
+            setCurrentSlideIndex(prev => prev - 1);
+            setSelectedId(null);
+            setSlideTransition('enter-left');
+            setTimeout(() => setSlideTransition(null), 400);
+          }, 400);
+        }
+      };
       const deleteCurrentSlide = () => {
         if (slides.length <= 1) return;
         if (!window.confirm("Delete this page? This cannot be undone.")) return;
@@ -9908,7 +9991,7 @@
           {/* Fixed Settings Button */}
           <button
             onClick={() => { setSettingsInitialTab('appearance'); setShowSettingsModal(true); }}
-            className="fixed top-4 right-4 z-[9999] p-2 bg-white/80 backdrop-blur-md border border-white/50 rounded-full shadow-lg text-slate-500 hover:text-blue-600 hover:bg-white transition-all active:scale-95 group btn-tactile"
+            className={`fixed top-4 right-4 z-[9999] p-2 bg-white/80 backdrop-blur-md border border-white/50 rounded-full shadow-lg text-slate-500 hover:text-blue-600 hover:bg-white transition-all active:scale-95 group btn-tactile ${spotlightId ? 'opacity-0 pointer-events-none' : ''}`}
             title="Settings"
           >
             <Settings size={22} className="group-hover:rotate-45 transition-transform duration-300" />
@@ -9917,7 +10000,7 @@
 
 
           {/* Widgets Area */}
-          <div className="absolute inset-0 z-30 pointer-events-none">
+          <div className={`absolute inset-0 z-30 pointer-events-none ${slideTransition === 'exit-left' ? 'slide-exit-left' : slideTransition === 'enter-right' ? 'slide-enter-right' : slideTransition === 'exit-right' ? 'slide-exit-right' : slideTransition === 'enter-left' ? 'slide-enter-left' : ''}`}>
             {/* Spotlight Overlay - inside widget container so only spotlighted widget appears above it */}
             {spotlightId && <div className="fixed inset-0 bg-black/85 cursor-pointer pointer-events-auto animate-in fade-in duration-500 backdrop-blur-[2px]" style={{ zIndex: 9998 }} onClick={() => setSpotlightId(null)}><div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" /></div>}
             {widgets?.map(w => {
@@ -9957,7 +10040,7 @@
           </div>
 
           {/* Slide Controls - Refined Styles */}
-          <div className="absolute bottom-6 right-8 z-50 flex items-center pointer-events-none">
+          <div className={`absolute bottom-6 right-8 z-50 flex items-center pointer-events-none transition-opacity duration-500 ${spotlightId ? 'opacity-0 pointer-events-none' : ''}`}>
             <button onClick={handleUndo} disabled={history.length === 0} className="mr-3 pointer-events-auto p-2 bg-white/80 backdrop-blur-md hover:bg-white text-slate-600 disabled:opacity-30 disabled:hover:bg-white/80 rounded-full shadow-lg border border-white/50 transition-all active:scale-95 group" title="Undo (Ctrl+Z)">
               <Undo2 size={20} className="group-hover:text-blue-600 group-hover:animate-wiggle" />
             </button>
@@ -9981,7 +10064,7 @@
             </div>
           </div>
 
-          <div className="absolute bottom-1 left-0 right-0 z-50 flex flex-col items-center justify-end pointer-events-none">
+          <div className={`absolute bottom-1 left-0 right-0 z-50 flex flex-col items-center justify-end pointer-events-none transition-opacity duration-500 ${spotlightId ? 'opacity-0 pointer-events-none' : ''}`}>
             <div className={`max-w-6xl mx-4 mb-2 transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-20 opacity-0 scale-95 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
               <div className={`flex items-center backdrop-blur-2xl rounded-3xl shadow-2xl p-0.5 ring-1 ring-white/50 relative`}>
                 <div className="absolute inset-0 bg-white/20 rounded-3xl overflow-hidden -z-10 border border-white/40">
