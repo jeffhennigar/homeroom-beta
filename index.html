@@ -729,10 +729,10 @@
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'] };
+        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
 
         const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD'];
+        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'];
         const allDefaults = [...mainDefaults, ...drawerDefaults];
 
         // If it's a flat array (from Supabase or old storage)
@@ -763,7 +763,7 @@
 
         return { main: mainDefaults, drawer: drawerDefaults };
       } catch (e) {
-        return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'DRAWING'] };
+        return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK', 'SOUNDBOARD'], drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
       }
     };
     const saveDockOrder = (order) => { try { localStorage.setItem(DOCK_ORDER_KEY, JSON.stringify(order)); } catch (e) { } };
