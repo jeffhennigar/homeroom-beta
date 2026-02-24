@@ -9829,9 +9829,39 @@
         );
       }
 
+      const getBgStyle = (bg, isTransitioning = false) => {
+        if (!bg) return { backgroundColor: '#1e293b' };
+        const style = {
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          transition: 'filter 0.4s ease',
+          backgroundColor: '#dbeafe'
+        };
+
+        if (bg.id === 'default') {
+          style.backgroundImage = 'linear-gradient(to bottom right, #bfdbfe, #ffedd5)';
+          style.backgroundColor = 'transparent';
+        } else if (bg.src) {
+          style.backgroundImage = `url(${bg.src})`;
+        }
+
+        if (isTransitioning) {
+          style.filter = 'brightness(0.9) saturate(1.1)';
+        }
+
+        return style;
+      };
+
+      // Background that shows behind the sliding layer during transition
+      const revealedBg = (slideTransition === 'exit-left')
+        ? (slideBackgrounds[currentSlideIndex + 1] || background)
+        : (slideTransition === 'exit-right')
+          ? (slideBackgrounds[currentSlideIndex - 1] || background)
+          : currentBg;
+
       return (
         <div className="w-screen h-screen overflow-hidden relative"
-          style={{ backgroundColor: '#1e293b' }} // Ambient dark fallback
+          style={getBgStyle(revealedBg)}
           onMouseDown={() => setSelectedId(null)}>
 
           {/* Modals */}
@@ -9991,15 +10021,8 @@
             className={`absolute inset-0 z-30 pointer-events-none ${slideTransition === 'exit-left' ? 'slide-exit-left' : slideTransition === 'enter-right' ? 'slide-enter-right' : slideTransition === 'exit-right' ? 'slide-exit-right' : slideTransition === 'enter-left' ? 'slide-enter-left' : ''}`}
           >
             {/* Slide Background (Slides with widgets) */}
-            <div className={`absolute inset-0 -z-10 ${currentBg.id === 'default' ? currentBg.preview : ''}`} style={{
-              backgroundColor: currentBg.id === 'default' ? 'transparent' : '#dbeafe',
-              backgroundImage: (currentBg && currentBg.id !== 'default' && currentBg.src) ? `url(${currentBg.src})` : 'none',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: slideTransition ? 'brightness(0.9) saturate(1.1)' : 'none',
-              transition: 'filter 0.4s ease'
-            }}
-            />
+            <div className="absolute inset-0 -z-10" style={getBgStyle(currentBg, !!slideTransition)} />
+
 
             {/* Spotlight Overlay - inside widget container so only spotlighted widget appears above it */}
             {spotlightId && <div className="fixed inset-0 bg-black/85 cursor-pointer pointer-events-auto animate-in fade-in duration-500 backdrop-blur-[2px]" style={{ zIndex: 9998 }} onClick={() => setSpotlightId(null)}><div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" /></div>}
