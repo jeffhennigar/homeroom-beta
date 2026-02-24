@@ -8452,24 +8452,7 @@
       const [isClockGlassy, setIsClockGlassy] = useState(() => localStorage.getItem('homeroom_clock_glassy') || 'clear');
       const [is24Hour, setIs24Hour] = useState(() => localStorage.getItem('homeroom_is_24hour') === 'true');
 
-      const [dockOrder, setDockOrder] = useState(() => {
-        const stored = getDockOrder();
-        const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-        const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'EMBED', 'POLYPAD'];
-        const allDefaults = [...mainDefaults, ...drawerDefaults];
-        if (Array.isArray(stored)) {
-          const extras = stored.filter(id => !allDefaults.includes(id));
-          const missing = allDefaults.filter(id => !stored.includes(id));
-          return { main: mainDefaults.filter(id => stored.includes(id)), drawer: [...drawerDefaults.filter(id => stored.includes(id)), ...extras, ...missing] };
-        }
-        if (stored && stored.main && stored.drawer) {
-          const currentIds = [...stored.main, ...stored.drawer];
-          const missing = allDefaults.filter(id => !currentIds.includes(id));
-          if (missing.length > 0) return { ...stored, drawer: [...stored.drawer, ...missing] };
-          return stored;
-        }
-        return { main: mainDefaults, drawer: drawerDefaults };
-      });
+      const [dockOrder, setDockOrder] = useState(() => getDockOrder());
 
       const [isDockLocked, setIsDockLocked] = useState(true);
       const [showMoreDrawer, setShowMoreDrawer] = useState(false);
@@ -9842,12 +9825,10 @@
       }
 
       return (
-        <div className="w-screen h-screen overflow-hidden relative" style={{
-          backgroundColor: '#dbeafe', // fallback
-          backgroundImage: (currentBg && currentBg.id !== 'default' && currentBg.src) ? `url(${currentBg.src})` : 'none',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }} onMouseDown={() => setSelectedId(null)}>
+        <div className="w-screen h-screen overflow-hidden relative"
+          style={{ backgroundColor: '#1e293b' }} // Ambient dark fallback
+          onMouseDown={() => setSelectedId(null)}>
+
           {/* Modals */}
           {showOnboarding && (
             <OnboardingModal
@@ -9999,10 +9980,24 @@
 
 
 
-          {/* Widgets Area */}
-          <div className={`absolute inset-0 z-30 pointer-events-none ${slideTransition === 'exit-left' ? 'slide-exit-left' : slideTransition === 'enter-right' ? 'slide-enter-right' : slideTransition === 'exit-right' ? 'slide-exit-right' : slideTransition === 'enter-left' ? 'slide-enter-left' : ''}`}>
+          {/* Widgets & Background Sliding Area */}
+          <div
+            className={`absolute inset-0 z-30 pointer-events-none ${slideTransition === 'exit-left' ? 'slide-exit-left' : slideTransition === 'enter-right' ? 'slide-enter-right' : slideTransition === 'exit-right' ? 'slide-exit-right' : slideTransition === 'enter-left' ? 'slide-enter-left' : ''}`}
+          >
+            {/* Slide Background (Slides with widgets) */}
+            <div className="absolute inset-0 -z-10" style={{
+              backgroundColor: '#dbeafe',
+              backgroundImage: (currentBg && currentBg.id !== 'default' && currentBg.src) ? `url(${currentBg.src})` : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: slideTransition ? 'brightness(0.9) saturate(1.1)' : 'none',
+              transition: 'filter 0.4s ease'
+            }}
+            />
+
             {/* Spotlight Overlay - inside widget container so only spotlighted widget appears above it */}
             {spotlightId && <div className="fixed inset-0 bg-black/85 cursor-pointer pointer-events-auto animate-in fade-in duration-500 backdrop-blur-[2px]" style={{ zIndex: 9998 }} onClick={() => setSpotlightId(null)}><div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" /></div>}
+
             {widgets?.map(w => {
               const isChromeless = ['OVERLAY_TEXT', 'CLOCK', 'CALENDAR'].includes(w.type);
               return (
