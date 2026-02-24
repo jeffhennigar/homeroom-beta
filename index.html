@@ -369,18 +369,26 @@
 
     .slide-exit-left {
       animation: slide-out-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
     }
 
     .slide-enter-right {
       animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
     }
 
     .slide-exit-right {
       animation: slide-out-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
     }
 
     .slide-enter-left {
       animation: slide-in-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
     }
   </style>
   <!-- Babel for JSX (Pinned stable version) -->
@@ -791,22 +799,23 @@
     const saveRoster = (roster) => { try { localStorage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(roster)); } catch (e) { } };
     const hasRoster = () => !!localStorage.getItem(ROSTER_STORAGE_KEY);
 
+    const DOCK_MAIN_DEFAULTS = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
+    const DOCK_DRAWER_DEFAULTS = ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'];
+
     const getDockOrder = () => {
       try {
         const saved = JSON.parse(localStorage.getItem(DOCK_ORDER_KEY));
-        if (!saved) return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
+        if (!saved) return { main: DOCK_MAIN_DEFAULTS, drawer: DOCK_DRAWER_DEFAULTS };
 
-        const mainDefaults = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
-        const drawerDefaults = ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'];
-        const allDefaults = [...mainDefaults, ...drawerDefaults];
+        const allDefaults = [...DOCK_MAIN_DEFAULTS, ...DOCK_DRAWER_DEFAULTS];
 
         // If it's a flat array (from Supabase or old storage)
         if (Array.isArray(saved)) {
           // Migration: Rename YOUTUBE -> EMBED
           const migrated = saved.map(id => id === 'YOUTUBE' ? 'EMBED' : id);
           return {
-            main: mainDefaults.filter(id => migrated.includes(id)),
-            drawer: [...drawerDefaults.filter(id => migrated.includes(id)), ...migrated.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !migrated.includes(id))]
+            main: DOCK_MAIN_DEFAULTS.filter(id => migrated.includes(id)),
+            drawer: [...DOCK_DRAWER_DEFAULTS.filter(id => migrated.includes(id)), ...migrated.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !migrated.includes(id))]
           };
         }
 
@@ -826,9 +835,9 @@
           return { main: cleanedMain, drawer: [...cleanedDrawer, ...missing] };
         }
 
-        return { main: mainDefaults, drawer: drawerDefaults };
+        return { main: DOCK_MAIN_DEFAULTS, drawer: DOCK_DRAWER_DEFAULTS };
       } catch (e) {
-        return { main: ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'], drawer: ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'] };
+        return { main: DOCK_MAIN_DEFAULTS, drawer: DOCK_DRAWER_DEFAULTS };
       }
     };
     const saveDockOrder = (order) => { try { localStorage.setItem(DOCK_ORDER_KEY, JSON.stringify(order)); } catch (e) { } };
@@ -8596,12 +8605,10 @@
               if (profile.dock_order) {
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
-                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'EMBED', 'POLYPAD'];
-                  const allDefaults = [...mainDefaults, ...drawerDefaults];
+                  const allDefaults = [...DOCK_MAIN_DEFAULTS, ...DOCK_DRAWER_DEFAULTS];
                   setDockOrder({
-                    main: mainDefaults.filter(id => order.includes(id)),
-                    drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                    main: DOCK_MAIN_DEFAULTS.filter(id => order.includes(id)),
+                    drawer: [...DOCK_DRAWER_DEFAULTS.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
                   });
                 } else {
                   setDockOrder(order);
@@ -8639,12 +8646,10 @@
               if (profile.dock_order) {
                 const order = profile.dock_order;
                 if (Array.isArray(order)) {
-                  const mainDefaults = ['SCHEDULE', 'SEAT_PICKER', 'GROUP_MAKER', 'RANDOMIZER', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'DRAWING', 'SOUNDBOARD'];
-                  const drawerDefaults = ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'YOUTUBE', 'CLOCK', 'CALENDAR', 'CALCULATOR', 'COUNTDOWN', 'EMBED', 'POLYPAD'];
-                  const allDefaults = [...mainDefaults, ...drawerDefaults];
+                  const allDefaults = [...DOCK_MAIN_DEFAULTS, ...DOCK_DRAWER_DEFAULTS];
                   setDockOrder({
-                    main: mainDefaults.filter(id => order.includes(id)),
-                    drawer: [...drawerDefaults.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                    main: DOCK_MAIN_DEFAULTS.filter(id => order.includes(id)),
+                    drawer: [...DOCK_DRAWER_DEFAULTS.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
                   });
                 } else {
                   setDockOrder({
@@ -9982,11 +9987,12 @@
 
           {/* Widgets & Background Sliding Area */}
           <div
+            key={currentSlideIndex}
             className={`absolute inset-0 z-30 pointer-events-none ${slideTransition === 'exit-left' ? 'slide-exit-left' : slideTransition === 'enter-right' ? 'slide-enter-right' : slideTransition === 'exit-right' ? 'slide-exit-right' : slideTransition === 'enter-left' ? 'slide-enter-left' : ''}`}
           >
             {/* Slide Background (Slides with widgets) */}
-            <div className="absolute inset-0 -z-10" style={{
-              backgroundColor: '#dbeafe',
+            <div className={`absolute inset-0 -z-10 ${currentBg.id === 'default' ? currentBg.preview : ''}`} style={{
+              backgroundColor: currentBg.id === 'default' ? 'transparent' : '#dbeafe',
               backgroundImage: (currentBg && currentBg.id !== 'default' && currentBg.src) ? `url(${currentBg.src})` : 'none',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
