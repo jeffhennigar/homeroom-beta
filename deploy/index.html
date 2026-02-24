@@ -6143,8 +6143,9 @@
 
                 <div className="pt-2 flex flex-wrap gap-1.5 justify-center w-full">
                   {[
-                    { name: "UFLI Blending", url: "https://research.dwi.ufl.edu/op.n/file/bca9ju45kvvrvoan/?embed", color: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
-                    { name: "Base-10 Blocks", url: "https://apps.mathlearningcenter.org/number-pieces/", color: "bg-orange-50 text-orange-600 hover:bg-orange-100" }
+                    { name: "UFLI Blending Board", url: "https://research.dwi.ufl.edu/op.n/file/bca9ju45kvvrvoan/?embed", color: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
+                    { name: "Base-10 Blocks", url: "https://apps.mathlearningcenter.org/number-pieces/", color: "bg-orange-50 text-orange-600 hover:bg-orange-100" },
+                    { name: "Virtual Manipulatives", url: "https://www.mathlearningcenter.org/apps", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
                   ].map(l => (
                     <button
                       key={l.name}
@@ -6159,7 +6160,17 @@
             </div>
           ) : (
             <>
-              <iframe src={embedSrc} className="w-full h-full bg-white" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+              <iframe src={embedSrc} className="flex-1 w-full bg-white" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+              {embedSrc.includes('mathlearningcenter') && (
+                <div className="bg-slate-50 text-[10px] text-slate-500 py-1.5 px-3 text-center border-t border-slate-200 font-medium shrink-0">
+                  Provided by <a href="https://www.mathlearningcenter.org" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">The Math Learning Center</a>
+                </div>
+              )}
+              {embedSrc.includes('ufl.edu') && (
+                <div className="bg-slate-50 text-[10px] text-slate-500 py-1.5 px-3 text-center border-t border-slate-200 font-medium shrink-0">
+                  Resources provided by <a href="https://ufli.education.ufl.edu/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">UFLI</a>
+                </div>
+              )}
               <button
                 onClick={() => updateData(widget.id, { url: "", youtubeUrl: "" })}
                 className="absolute top-2 right-2 bg-white/90 hover:bg-red-50 text-slate-400 hover:text-red-500 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10 shadow-sm border border-slate-100"
@@ -9826,9 +9837,9 @@
                 <div className="relative" ref={drawerRef}>
                   <button
                     onClick={() => setShowMoreDrawer(!showMoreDrawer)}
-                    className={`flex flex-col items-center gap-0 py-1 px-2 rounded-xl transition-all cursor-pointer group
-                            ${showMoreDrawer ? 'bg-indigo-100' : 'hover:bg-white/50'}
-                            ${!isDockLocked && dockOrder?.drawer?.length > 0 ? 'border-2 border-dashed border-indigo-300 bg-indigo-50' : ''}
+                    className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all cursor-pointer group relative
+                            ${!isDockLocked ? 'hover:bg-blue-50 border-2 border-dashed border-blue-300' : 'hover:bg-white/50 border-2 border-transparent'}
+                            ${!isDockLocked && dockOrder?.drawer?.length > 0 ? 'bg-indigo-50/50' : ''}
                         `}
                     onDragOver={(e) => {
                       if (!isDockLocked) {
@@ -9843,10 +9854,17 @@
                       }
                     }}
                   >
-                    <div className={`p-1.5 rounded-xl transition-colors ${showMoreDrawer ? 'bg-indigo-200 text-indigo-800' : 'bg-indigo-50 group-hover:bg-indigo-100 shadow-sm'} ${currentBg?.textColor || 'text-indigo-600'}`}>
+                    <div className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${showMoreDrawer
+                      ? 'bg-indigo-200 text-indigo-800 shadow-inner'
+                      : (!isDockLocked
+                        ? 'bg-blue-100 text-slate-600'
+                        : (currentBg?.textColor === 'text-white'
+                          ? 'bg-black/20 backdrop-blur-sm text-white shadow-sm hover:bg-black/30'
+                          : 'bg-white/80 text-slate-700 shadow-sm hover:bg-white'))
+                      } group-hover:scale-105 active:scale-95`}>
                       {showMoreDrawer ? <ChevronDown size={24} /> : <MoreHorizontal size={24} />}
                     </div>
-                    <span className={`text-[10px] font-extrabold group-hover:opacity-80 ${currentBg?.textColor || 'text-indigo-900'}`}>More</span>
+                    <span className={`text-[10px] font-extrabold tracking-wide drop-shadow-sm group-hover:opacity-80 ${currentBg?.textColor || 'text-slate-700'} whitespace-nowrap`}>More</span>
                   </button>
 
                   {/* DRAWER POPUP */}
