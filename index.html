@@ -228,6 +228,28 @@
     .animate-shrink-out {
       animation: shrink-out 0.2s ease-in forwards;
     }
+
+    /* Premium sync: elastic-pop for widget launch */
+    @keyframes elastic-pop {
+      0% {
+        transform: scale(0.95);
+        opacity: 0;
+      }
+
+      60% {
+        transform: scale(1.02);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .animate-elastic {
+      animation: elastic-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
   </style>
   <!-- Babel for JSX (Pinned stable version) -->
   <script src="https://unpkg.com/@babel/standalone@7.25.9/babel.min.js"></script>
@@ -2608,7 +2630,7 @@
     const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'Exit Ticket', SPARK: 'Spark', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
 
     // --- UTILS ---
-    const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass }) => {
+    const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass, isClosing = false }) => {
       const [isDragging, setIsDragging] = useState(false);
       const [isResizing, setIsResizing] = useState(false);
       const [resizeDirection, setResizeDirection] = useState(null);
@@ -2758,7 +2780,7 @@
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
           : 'border-2 border-gray-300';
 
-      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} ${chromeless ? 'overflow-visible' : 'overflow-hidden'} pointer-events-auto ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.05] shadow-[0_0_150px_rgba(255,255,255,0.6),0_0_40px_rgba(255,255,255,0.4)] ring-4 ring-white/50 z-[10000] brightness-[1.02]' : ''}`}
+      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} ${chromeless ? 'overflow-visible' : 'overflow-hidden'} pointer-events-auto ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.05] shadow-[0_0_150px_rgba(255,255,255,0.6),0_0_40px_rgba(255,255,255,0.4)] ring-4 ring-white/50 z-[10000] brightness-[1.02]' : ''} ${isClosing ? 'animate-shrink-out' : 'animate-elastic'}`}
         style={{ left: position.x, top: position.y, width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
         {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
@@ -8321,6 +8343,7 @@
       const [showMoreDrawer, setShowMoreDrawer] = useState(false);
       const drawerRef = useRef(null);
       const [history, setHistory] = useState([]);
+      const [closingWidgetId, setClosingWidgetId] = useState(null);
       const [redoStack, setRedoStack] = useState([]);
       const [showOnboarding, setShowOnboarding] = useState(false);
       const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -9383,13 +9406,17 @@
       }, [addWidget, updateWidgetData, selectedId, slides, currentSlideIndex]);
 
       const removeWidget = (id) => {
-        addToHistory();
-        const widget = (slides[currentSlideIndex] || []).find(w => w.id === id);
-        if (widget && widget.type === 'SEAT_PICKER' && widget.data.desks) {
-          saveSeatLayout(widget.data.desks);
-        }
-        setWidgets(prev => prev.filter(w => w.id !== id));
-        if (selectedId === id) setSelectedId(null);
+        setClosingWidgetId(id);
+        setTimeout(() => {
+          addToHistory();
+          const widget = (slides[currentSlideIndex] || []).find(w => w.id === id);
+          if (widget && widget.type === 'SEAT_PICKER' && widget.data.desks) {
+            saveSeatLayout(widget.data.desks);
+          }
+          setWidgets(prev => prev.filter(w => w.id !== id));
+          if (selectedId === id) setSelectedId(null);
+          setClosingWidgetId(null);
+        }, 300);
       };
 
       const bringToFront = (id) => {
@@ -9837,6 +9864,7 @@
                   onSettings={(id) => { setEditingWidgetId(id); setSettingsInitialTab('appearance'); setShowSettingsModal(true); }}
                   chromeless={isChromeless}
                   isGlassy={w.data?.isGlassy}
+                  isClosing={w.id === closingWidgetId}
                   onToggleGlass={['CLOCK', 'CALENDAR', 'OVERLAY_TEXT', 'TEXT'].includes(w.type) ? () => {
                     const current = w.data.isGlassy || 'solid';
                     const next = current === 'solid' ? 'glass' : (current === 'glass' ? 'clear' : 'solid');
