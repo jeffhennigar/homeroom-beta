@@ -6971,6 +6971,10 @@
         } else {
           onSave(localRoster);
         }
+      };
+
+      const handleModalClose = () => {
+        handleSaveAll();
         onClose();
       };
 
@@ -7088,7 +7092,7 @@
       ];
 
       return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={handleModalClose}>
           <div className="bg-white w-full max-w-5xl h-[700px] rounded-3xl shadow-2xl flex overflow-hidden ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
             {/* Sidebar */}
             <div className="w-64 bg-slate-50 border-r border-slate-100 flex flex-col p-4 shrink-0">
@@ -7131,11 +7135,6 @@
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {activeTab === 'roster' && (
-                    <button onClick={handleSaveAll} className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 text-sm flex items-center gap-2 shadow-sm active:scale-95 transition-all">
-                      <Save size={16} /> Save Changes
-                    </button>
-                  )}
                   {user && (
                     <button
                       onClick={onSignOut}
@@ -7144,7 +7143,7 @@
                       <Lock size={14} /> Sign Out
                     </button>
                   )}
-                  <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+                  <button onClick={handleModalClose} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
                     <X size={20} />
                   </button>
                 </div>
