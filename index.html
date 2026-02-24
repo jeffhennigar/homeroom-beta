@@ -49,6 +49,20 @@
               800: 'var(--accent-800)',
               900: 'var(--accent-900)',
             }
+          },
+          animation: {
+            'wiggle': 'wiggle-slant 0.25s ease-in-out infinite',
+            'float': 'float-bob 2s ease-in-out infinite',
+          },
+          keyframes: {
+            'wiggle-slant': {
+              '0%, 100%': { transform: 'rotate(-3deg) scale(1.1)' },
+              '50%': { transform: 'rotate(3deg) scale(1.1)' },
+            },
+            'float-bob': {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-4px)' },
+            }
           }
         }
       }
@@ -161,6 +175,58 @@
 
     [contenteditable] li {
       margin: 0.25rem 0;
+    }
+
+    /* Premium sync: wiggle-slant for premium buttons */
+    @keyframes wiggle-slant {
+
+      0%,
+      100% {
+        transform: rotate(-3deg) scale(1.1);
+      }
+
+      50% {
+        transform: rotate(3deg) scale(1.1);
+      }
+    }
+
+    .animate-wiggle {
+      display: inline-block;
+      animation: wiggle-slant 0.25s ease-in-out infinite;
+    }
+
+    /* Premium sync: float-bob for dock icons */
+    @keyframes float-bob {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    .animate-float {
+      animation: float-bob 2s ease-in-out infinite;
+    }
+
+    /* Premium sync: shrink-out for closing components */
+    @keyframes shrink-out {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+    }
+
+    .animate-shrink-out {
+      animation: shrink-out 0.2s ease-in forwards;
     }
   </style>
   <!-- Babel for JSX (Pinned stable version) -->
@@ -9787,7 +9853,7 @@
           {/* Slide Controls - Refined Styles */}
           <div className="absolute bottom-6 right-8 z-50 flex items-center pointer-events-none">
             <button onClick={handleUndo} disabled={history.length === 0} className="mr-3 pointer-events-auto p-2 bg-white/80 backdrop-blur-md hover:bg-white text-slate-600 disabled:opacity-30 disabled:hover:bg-white/80 rounded-full shadow-lg border border-white/50 transition-all active:scale-95 group" title="Undo (Ctrl+Z)">
-              <Undo2 size={20} className="group-hover:text-blue-600" />
+              <Undo2 size={20} className="group-hover:text-blue-600 group-hover:animate-wiggle" />
             </button>
             <div className="pointer-events-auto flex items-center gap-0.5 backdrop-blur-2xl rounded-full shadow-2xl p-0.5 ring-1 ring-white/50 relative">
               <div className="absolute inset-0 bg-white/20 rounded-full overflow-hidden -z-10 border border-white/40" />
@@ -9894,10 +9960,10 @@
 
                 <button
                   onClick={() => setIsDockLocked(!isDockLocked)}
-                  className={`p-1.5 rounded-full transition-all ${!isDockLocked ? 'bg-blue-100 text-blue-600 shadow-inner' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-700'}`}
+                  className={`p-1.5 rounded-full transition-all group ${!isDockLocked ? 'bg-blue-100 text-blue-600 shadow-inner' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-700'}`}
                   title={isDockLocked ? "Unlock Dock to Rearrange" : "Lock Dock"}
                 >
-                  {isDockLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                  {isDockLocked ? <Lock size={16} className="group-hover:animate-wiggle" /> : <Unlock size={16} className="group-hover:animate-wiggle" />}
                 </button>
               </div>
             </div>
