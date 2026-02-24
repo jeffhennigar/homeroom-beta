@@ -26,12 +26,115 @@ body {
   background: #94a3b8;
 }
 
+/* Premium Animations */
+@keyframes elastic-pop {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shrink-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes float-bob {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes wiggle-slant {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-3deg) scale(1.05);
+  }
+
+  75% {
+    transform: rotate(3deg) scale(1.05);
+  }
+}
+
+@keyframes shimmer-glow {
+  0% {
+    box-shadow: 0 0 0px var(--accent-glow, rgba(99, 102, 241, 0));
+  }
+
+  50% {
+    box-shadow: 0 0 15px var(--accent-glow, rgba(99, 102, 241, 0.4));
+  }
+
+  100% {
+    box-shadow: 0 0 0px var(--accent-glow, rgba(99, 102, 241, 0));
+  }
+}
+
+.animate-elastic {
+  animation: elastic-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-shrink {
+  animation: shrink-out 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-float {
+  animation: float-bob 3s ease-in-out infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle-slant 0.4s ease-in-out;
+}
+
+.animate-shimmer-glow {
+  animation: shimmer-glow 2s ease-in-out infinite;
+}
+
 /* Wobble animation for dock edit mode */
 @keyframes wobble {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(-2deg); }
-  75% { transform: rotate(2deg); }
-  100% { transform: rotate(0deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-2deg);
+  }
+
+  75% {
+    transform: rotate(2deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
 }
 
 .animate-wobble {
@@ -40,8 +143,13 @@ body {
 
 /* Flip Clock Animations */
 @keyframes flip-down {
-  0% { transform: rotateX(0deg); }
-  100% { transform: rotateX(-180deg); }
+  0% {
+    transform: rotateX(0deg);
+  }
+
+  100% {
+    transform: rotateX(-180deg);
+  }
 }
 
 .flip-card {

@@ -208,6 +208,7 @@ const App = () => {
     });
 
     const [widgets, setWidgets] = useState([]);
+    const [closingWidgetId, setClosingWidgetId] = useState(null);
     const [zIndices, setZIndices] = useState({});
     const [maxZ, setMaxZ] = useState(10);
     const [showSettings, setShowSettings] = useState(false);
@@ -714,7 +715,13 @@ const App = () => {
         bringToFront(id);
     };
 
-    const removeWidget = (id) => setWidgets(widgets.filter(w => w.id !== id));
+    const removeWidget = (id) => {
+        setClosingWidgetId(id);
+        setTimeout(() => {
+            setWidgets(widgets.filter(w => w.id !== id));
+            setClosingWidgetId(null);
+        }, 300);
+    };
 
     const updateWidgetData = (id, newData) => {
         setWidgets(widgets.map(w => w.id === id ? { ...w, data: { ...w.data, ...newData } } : w));
@@ -791,6 +798,7 @@ const App = () => {
                     onRemove={removeWidget}
                     minWidth={200} minHeight={150}
                     locked={isLocked || w.data?.locked}
+                    closingWidgetId={closingWidgetId}
                     {...w.data} // Pass minimized/transparent etc.
                 >
                     {(() => {

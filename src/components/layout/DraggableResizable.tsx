@@ -7,7 +7,7 @@ const DraggableResizable = ({
     children, title, icon, onRemove,
     minWidth = 200, minHeight = 150,
     locked = false, isMinimized = false, isTransparent = false, isDockEditMode = false,
-    chromeless = false, isSelected = false
+    chromeless = false, isSelected = false, closingWidgetId = null
 }) => {
     const nodeRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -113,6 +113,7 @@ const DraggableResizable = ({
                 ${chromeless ? '' : 'bg-white rounded-xl shadow-xl border-2 overflow-hidden'}
                 ${isDragging ? 'shadow-2xl z-50 cursor-grabbing' : ''}
                 ${isDockEditMode ? 'animate-wobble pointer-events-none opacity-80' : ''}
+                ${closingWidgetId === id ? 'animate-shrink' : 'animate-elastic'}
                 ${borderClass}
             `}
             style={{

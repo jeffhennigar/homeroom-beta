@@ -718,7 +718,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm ${activeTab === tab.id
-                                    ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100'
+                                    ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100 animate-shimmer-glow [--accent-glow:rgba(99,102,241,0.2)]'
                                     : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'
                                     }`}
                             >

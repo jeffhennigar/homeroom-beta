@@ -73,7 +73,7 @@ const FloatingFormattingToolbar: React.FC<FloatingFormattingToolbarProps> = ({
                 </button>
                 {showFontColorMenu && (
                     <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-2xl border border-slate-200 p-2 grid grid-cols-5 gap-1 w-40">
-                        {['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#64748B', '#94A3B8'].map(c => (
+                        {['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#64748B', '#94A3B8'].map(c => (
                             <button key={c} onClick={() => { exec('foreColor', c); setShowFontColorMenu(false); }} className="w-6 h-6 rounded-full border border-slate-200 hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
                         ))}
                     </div>
