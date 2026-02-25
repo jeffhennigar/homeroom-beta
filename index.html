@@ -604,6 +604,28 @@
       }));
     };
 
+    const OriginalBackground = () => (
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} />
+            </linearGradient>
+            <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} />
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="#dbeafe" />
+          <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#gradOrange)" opacity="0.9" />
+          <path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" opacity="0.5" />
+          <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#gradBlue)" opacity="0.9" />
+          <path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" opacity="0.5" />
+        </svg>
+      </div>
+    );
+
     const THEME_COLORS = {
       indigo: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
       blue: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
@@ -9903,7 +9925,8 @@
           backgroundColor: '#dbeafe'
         };
 
-        if (bg.id === 'default') {
+        if (bg.id === 'default' || bg.id === 'Original') {
+          // CSS Fallback for default - actual design rendered by OriginalBackground component
           style.backgroundImage = 'linear-gradient(to bottom right, #bfdbfe, #ffedd5)';
           style.backgroundColor = 'transparent';
         } else if (bg.src) {
@@ -10032,15 +10055,8 @@
           />}
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={uploadData} />
 
-          {/* Default Geometric Background Layer */}
-          {(!currentBg || !currentBg.id || currentBg.id === 'default' || currentBg.id === 'Original') && (
-            <div className="absolute inset-0 pointer-events-none z-0">
-              <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} /></linearGradient><linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} /><stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} /></linearGradient></defs><rect width="100%" height="100%" fill="#dbeafe" /><path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#gradOrange)" opacity="0.9" /><path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" opacity="0.5" /><path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#gradBlue)" opacity="0.9" /><path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" opacity="0.5" /></svg>
-            </div>
-          )}
-
           {/* Dark Overlay for better contrast on images */}
-          {currentBg && currentBg.id !== 'default' && <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none" />}
+          {currentBg && currentBg.id !== 'default' && currentBg.id !== 'Original' && <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none" />}
 
           {/* Top Info Bar - Clock (REMOVED - now a widget) */}
           <div className={`absolute top-10 left-12 z-1 select-none transition-colors duration-300 ${currentBg.textColor || 'text-slate-800'}`}>
@@ -10086,7 +10102,7 @@
             {spotlightId && <div className="fixed inset-0 bg-black/85 cursor-pointer pointer-events-auto animate-in fade-in duration-500 backdrop-blur-[2px]" style={{ zIndex: 9998 }} onClick={() => setSpotlightId(null)}><div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" /></div>}
 
             {/* Slide Rendering (One or Two during transition) */}
-            {(slideTransition ? [currentSlideIndex, targetSlideIndex] : [currentSlideIndex]).map(idx => {
+            {(slideTransition ? [currentSlideIndex, targetSlideIndex].sort((a, b) => a - b) : [currentSlideIndex]).map(idx => {
               const isTarget = idx === targetSlideIndex;
               const animClass = isTarget
                 ? (slideTransition === 'forward' ? 'slide-enter-right' : 'slide-enter-left')
@@ -10094,11 +10110,16 @@
 
               const slideWidgets = slides[idx] || [];
               const slideBg = slideBackgrounds[idx] || background;
+              const isDefaultBg = !slideBg || slideBg.id === 'default' || slideBg.id === 'Original';
 
               return (
                 <div key={idx} className={`absolute inset-0 pointer-events-none ${animClass}`}>
                   {/* Slide Background */}
-                  <div className="absolute inset-0 -z-10" style={getBgStyle(slideBg, !!slideTransition)} />
+                  {isDefaultBg ? (
+                    <OriginalBackground />
+                  ) : (
+                    <div className="absolute inset-0 -z-10" style={getBgStyle(slideBg, !!slideTransition)} />
+                  )}
 
                   {/* Slide Widgets */}
                   {slideWidgets.map(w => {
