@@ -2698,15 +2698,39 @@
 
         const prompt = prompts[type] || prompts.HOOK;
 
-        try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const tryModel = async (modelId) => {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
           });
-
-          const data = await response.json();
+          const data = await res.json();
           if (data.error) throw new Error(data.error.message);
+          return data;
+        };
+
+        try {
+          let data;
+          try {
+            // Try high-speed flash first
+            data = await tryModel('gemini-1.5-flash');
+          } catch (e) {
+            // If Flash is not found, fallback to 1.5-pro
+            if (e.message.toLowerCase().includes('not found') || e.message.toLowerCase().includes('not supported') || e.message.toLowerCase().includes('publisher model is not found')) {
+              try {
+                data = await tryModel('gemini-1.5-pro');
+              } catch (e2) {
+                // If 1.5-pro is also not found, fallback to standard Pro
+                if (e2.message.toLowerCase().includes('not found') || e2.message.toLowerCase().includes('not supported') || e2.message.toLowerCase().includes('publisher model is not found')) {
+                  data = await tryModel('gemini-pro');
+                } else {
+                  throw e2;
+                }
+              }
+            } else {
+              throw e;
+            }
+          }
 
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
           updateData(widget.id, { isLoading: false, result: text });
@@ -9140,7 +9164,16 @@
             if (lastSyncedRef.current.profile !== profileStr || slideSyncCount > 0 || rostersChanged) {
               const last_modified = Date.now();
               setProfileLastModified(last_modified);
-              const { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified });
+              let { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified });
+
+              // Graceful failover: If the gemini_api_key column is missing, strip it and retry.
+              if (profileError && profileError.message && profileError.message.includes("Could not find the 'gemini_api_key' column")) {
+                console.warn("gemini_api_key column missing in Supabase. Syncing profile without it.");
+                const { gemini_api_key, ...fallbackPayload } = profilePayload;
+                const retryResult = await supabase.from('profiles').upsert({ ...fallbackPayload, id: user.id, last_modified });
+                profileError = retryResult.error;
+              }
+
               if (profileError) throw profileError;
               lastSyncedRef.current.profile = profileStr;
               addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
