@@ -2633,7 +2633,8 @@
 
 
 
-    const SparkWidget = ({ widget, updateData }) => {
+    const SparkWidget = ({ widget, updateData, extraProps }) => {
+      const { geminiApiKey, setGeminiApiKey } = extraProps;
       const {
         topic = '',
         type = 'HOOK',
@@ -2643,20 +2644,16 @@
         showConfig = false
       } = widget.data;
 
-      const [tempKey, setTempKey] = useState(localStorage.getItem('homeroom_gemini_api_key') || '');
+      const [tempKey, setTempKey] = useState(geminiApiKey || '');
 
-      const getApiKey = () => {
-        const stored = localStorage.getItem('homeroom_gemini_api_key');
-        if (stored) return stored;
-        try {
-          return import.meta.env.VITE_GEMINI_API_KEY;
-        } catch (e) {
-          return window.GEMINI_API_KEY || '';
-        }
-      };
+      useEffect(() => {
+        setTempKey(geminiApiKey || '');
+      }, [geminiApiKey]);
+
+      const getApiKey = () => geminiApiKey;
 
       const saveKey = () => {
-        localStorage.setItem('homeroom_gemini_api_key', tempKey);
+        setGeminiApiKey(tempKey);
         updateData(widget.id, { showConfig: false, error: null });
       };
 
@@ -8550,6 +8547,7 @@
       const [authLoading, setAuthLoading] = useState(true);
       const [cloudSyncEnabled, setCloudSyncEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_cloud_sync_enabled')) ?? true; } catch { return true; } });
       const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
+      const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('homeroom_gemini_api_key') || '');
 
       // --- DERIVED STATE ---
       const currentBg = slideBackgrounds[currentSlideIndex] || background;
@@ -8682,6 +8680,7 @@
                 else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
               }
               if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
+              if (profile.gemini_api_key) setGeminiApiKey(profile.gemini_api_key);
               if (profile.last_modified) setProfileLastModified(profile.last_modified);
             }
           })
@@ -8734,6 +8733,7 @@
 
               if (profile.clock_style) setClockStyle(profile.clock_style);
               if (profile.accent_color) setAccentColor(profile.accent_color);
+              if (profile.gemini_api_key) setGeminiApiKey(profile.gemini_api_key);
               if (activeId) setActiveRosterId(activeId);
             }
 
@@ -9044,7 +9044,8 @@
           schedule_overrides: scheduleOverrides, grid_enabled: isGridEnabled, clock_style: clockStyle,
           dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
           active_roster_id: (activeRosterId && activeRosterId !== 'default') ? activeRosterId : null,
-          accent_color: accentColor
+          accent_color: accentColor,
+          gemini_api_key: geminiApiKey
         };
         const profileStr = JSON.stringify(profilePayload);
         if (!hasChanges && lastSyncedRef.current.profile !== profileStr) {
@@ -9810,8 +9811,13 @@
             isGlassy: widget.data?.isGlassy || isClockGlassy,
             showDate: widget.data?.showDate !== undefined ? widget.data.showDate : showClockDate,
             textColor: currentBg?.textColor || 'text-slate-800',
-            accentColor: accentColor,
-            theme: THEME_COLORS[accentColor] || THEME_COLORS.indigo
+            accent_color: accentColor,
+            theme: THEME_COLORS[accentColor] || THEME_COLORS.indigo,
+            geminiApiKey: geminiApiKey,
+            setGeminiApiKey: (key) => {
+              setGeminiApiKey(key);
+              localStorage.setItem('homeroom_gemini_api_key', key);
+            }
           }
         };
 
