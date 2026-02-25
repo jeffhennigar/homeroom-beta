@@ -768,7 +768,8 @@
       CALENDAR: { label: 'Calendar', icon: <Calendar /> },
       SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
       CALCULATOR: { label: 'Calc', icon: <Calculator /> },
-      COUNTDOWN: { label: 'Countdown', icon: <Clock /> }
+      COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
+      WEATHER: { label: 'Weather', icon: <Cloud /> }
     };
 
     const WindowIcon = ({ size = 16 }) => (
@@ -821,7 +822,7 @@
     const hasRoster = () => !!localStorage.getItem(ROSTER_STORAGE_KEY);
 
     const DOCK_MAIN_DEFAULTS = ['SEAT_PICKER', 'GROUP_MAKER', 'SCHEDULE', 'CALENDAR', 'TEXT', 'OVERLAY_TEXT', 'TIMER', 'RANDOMIZER', 'CLOCK'];
-    const DOCK_DRAWER_DEFAULTS = ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK'];
+    const DOCK_DRAWER_DEFAULTS = ['SOUNDBOARD', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'EMBED', 'DRAWING', 'CALCULATOR', 'COUNTDOWN', 'POLYPAD', 'SPARK', 'WEATHER'];
 
     const getDockOrder = () => {
       try {
@@ -918,6 +919,7 @@
       CALCULATOR: { width: 280, height: 390 },
       COUNTDOWN: { width: 300, height: 400 },
       SPARK: { width: 400, height: 450 },
+      WEATHER: { width: 280, height: 280 },
       POLYPAD: { width: 900, height: 600 }
     };
 
@@ -2868,6 +2870,240 @@
         </div>
       );
     };
+
+
+    // --- WEATHER WIDGET ---
+    const WeatherWidget = ({ widget, updateData, extraProps }) => {
+      const { textColor } = extraProps || {};
+      const { lat, lon, cityName, temperature, weatherCode, windSpeed, humidity, lastFetched, isLoading, error } = widget.data || {};
+
+      const WMO_CODES = {
+        0: { emoji: '☀️', label: 'Clear Sky' },
+        1: { emoji: '🌤️', label: 'Mostly Clear' },
+        2: { emoji: '⛅', label: 'Partly Cloudy' },
+        3: { emoji: '☁️', label: 'Overcast' },
+        45: { emoji: '🌫️', label: 'Fog' },
+        48: { emoji: '🌫️', label: 'Freezing Fog' },
+        51: { emoji: '🌦️', label: 'Light Drizzle' },
+        53: { emoji: '🌦️', label: 'Drizzle' },
+        55: { emoji: '🌧️', label: 'Heavy Drizzle' },
+        56: { emoji: '🌨️', label: 'Freezing Drizzle' },
+        57: { emoji: '🌨️', label: 'Heavy Freezing Drizzle' },
+        61: { emoji: '🌧️', label: 'Light Rain' },
+        63: { emoji: '🌧️', label: 'Rain' },
+        65: { emoji: '🌧️', label: 'Heavy Rain' },
+        66: { emoji: '🌨️', label: 'Freezing Rain' },
+        67: { emoji: '🌨️', label: 'Heavy Freezing Rain' },
+        71: { emoji: '❄️', label: 'Light Snow' },
+        73: { emoji: '❄️', label: 'Snow' },
+        75: { emoji: '❄️', label: 'Heavy Snow' },
+        77: { emoji: '❄️', label: 'Snow Grains' },
+        80: { emoji: '🌦️', label: 'Light Showers' },
+        81: { emoji: '🌧️', label: 'Showers' },
+        82: { emoji: '⛈️', label: 'Heavy Showers' },
+        85: { emoji: '🌨️', label: 'Light Snow Showers' },
+        86: { emoji: '🌨️', label: 'Heavy Snow Showers' },
+        95: { emoji: '⛈️', label: 'Thunderstorm' },
+        96: { emoji: '⛈️', label: 'Thunderstorm + Hail' },
+        99: { emoji: '⛈️', label: 'Severe Thunderstorm' }
+      };
+
+      const getWeather = (code) => WMO_CODES[code] || { emoji: '🌡️', label: 'Unknown' };
+
+      const fetchWeather = useCallback(async (latitude, longitude, city) => {
+        updateData(widget.id, { isLoading: true, error: null });
+        try {
+          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&temperature_unit=fahrenheit&wind_speed_unit=mph`);
+          const data = await res.json();
+          if (!data.current) throw new Error('No weather data');
+          updateData(widget.id, {
+            lat: latitude, lon: longitude, cityName: city,
+            temperature: Math.round(data.current.temperature_2m),
+            weatherCode: data.current.weather_code,
+            windSpeed: Math.round(data.current.wind_speed_10m),
+            humidity: data.current.relative_humidity_2m,
+            lastFetched: Date.now(),
+            isLoading: false, error: null
+          });
+        } catch (err) {
+          updateData(widget.id, { isLoading: false, error: err.message });
+        }
+      }, [widget.id, updateData]);
+
+      // Auto-refresh every 15 min
+      useEffect(() => {
+        if (!lat || !lon) return;
+        const now = Date.now();
+        const elapsed = now - (lastFetched || 0);
+        if (elapsed > 15 * 60 * 1000 || !lastFetched) {
+          fetchWeather(lat, lon, cityName);
+        }
+        const interval = setInterval(() => fetchWeather(lat, lon, cityName), 15 * 60 * 1000);
+        return () => clearInterval(interval);
+      }, [lat, lon, cityName]);
+
+      const detectLocation = async () => {
+        updateData(widget.id, { isLoading: true, error: null });
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+          });
+          const { latitude, longitude } = pos.coords;
+          // Reverse geocode for city name
+          let city = 'My Location';
+          try {
+            const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?latitude=${latitude}&longitude=${longitude}&count=1&format=json`);
+            const geoData = await geoRes.json();
+            // Fallback: use nominatim-style reverse geocoding
+            const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const revData = await revRes.json();
+            city = revData.address?.city || revData.address?.town || revData.address?.village || revData.address?.county || 'My Location';
+          } catch (e) { /* ok, use default */ }
+          await fetchWeather(latitude, longitude, city);
+        } catch (err) {
+          updateData(widget.id, { isLoading: false, error: 'Location access denied. Please enable location services.' });
+        }
+      };
+
+      const searchCity = async (query) => {
+        if (!query || query.length < 2) return;
+        updateData(widget.id, { isLoading: true, error: null });
+        try {
+          const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`);
+          const data = await res.json();
+          if (!data.results || data.results.length === 0) {
+            updateData(widget.id, { isLoading: false, error: 'City not found' });
+            return;
+          }
+          const { latitude, longitude, name, admin1 } = data.results[0];
+          const city = admin1 ? `${name}, ${admin1}` : name;
+          await fetchWeather(latitude, longitude, city);
+        } catch (err) {
+          updateData(widget.id, { isLoading: false, error: err.message });
+        }
+      };
+
+      const [searchQuery, setSearchQuery] = useState('');
+      const [showSearch, setShowSearch] = useState(false);
+
+      const tc = textColor || 'text-slate-800';
+      const isLight = tc === 'text-white';
+      const weather = getWeather(weatherCode);
+
+      // Setup screen
+      if (!lat && !isLoading) {
+        return (
+          <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-3" style={{ containerType: 'size' }}>
+            <div style={{ fontSize: 'min(18cqw, 40cqh)' }}>🌤️</div>
+            <div className={`font-bold text-center ${tc} opacity-90`} style={{ fontSize: 'min(5cqw, 12cqh)' }}>Weather</div>
+            {error && <div className={`text-xs text-red-400 text-center px-2`}>{error}</div>}
+            <button
+              onClick={detectLocation}
+              className={`px-4 py-2 rounded-full font-bold text-xs transition-all ${isLight ? 'bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm' : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-600'}`}
+              style={{ fontSize: 'min(3.5cqw, 9cqh)' }}
+            >
+              📍 Use My Location
+            </button>
+            {!showSearch ? (
+              <button
+                onClick={() => setShowSearch(true)}
+                className={`text-xs opacity-60 hover:opacity-100 transition-opacity ${tc}`}
+                style={{ fontSize: 'min(3cqw, 8cqh)' }}
+              >
+                or search a city...
+              </button>
+            ) : (
+              <div className="flex gap-1 w-full max-w-[80%]">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchCity(searchQuery)}
+                  placeholder="City name..."
+                  className={`flex-1 px-3 py-1.5 rounded-full text-xs outline-none ${isLight ? 'bg-white/20 text-white placeholder-white/50' : 'bg-slate-100 text-slate-800 placeholder-slate-400'}`}
+                  autoFocus
+                />
+                <button
+                  onClick={() => searchCity(searchQuery)}
+                  className={`px-3 py-1.5 rounded-full font-bold text-xs ${isLight ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}
+                >
+                  Go
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // Loading screen
+      if (isLoading && !temperature) {
+        return (
+          <div className="flex flex-col items-center justify-center w-full h-full gap-2" style={{ containerType: 'size' }}>
+            <div className="animate-spin" style={{ fontSize: 'min(12cqw, 30cqh)' }}>🌀</div>
+            <div className={`font-medium opacity-70 ${tc}`} style={{ fontSize: 'min(4cqw, 10cqh)' }}>Getting weather...</div>
+          </div>
+        );
+      }
+
+      // Main display
+      return (
+        <div className="flex flex-col items-center justify-center w-full h-full p-2 select-none cursor-default relative group" style={{ containerType: 'size' }}>
+          {/* City name */}
+          <div className={`font-medium tracking-wide uppercase opacity-60 ${tc} drop-shadow-sm truncate max-w-full`}
+            style={{ fontSize: 'min(3.5cqw, 8cqh)', letterSpacing: '0.1em' }}>
+            {cityName || 'Weather'}
+          </div>
+
+          {/* Weather emoji - large and playful */}
+          <div className="relative" style={{ fontSize: 'min(20cqw, 40cqh)', lineHeight: 1.1 }}>
+            <span className="drop-shadow-lg" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))' }}>{weather.emoji}</span>
+          </div>
+
+          {/* Temperature */}
+          <div className={`font-black tracking-tight ${tc} drop-shadow-md leading-none`}
+            style={{ fontSize: 'min(16cqw, 35cqh)' }}>
+            {temperature}°
+          </div>
+
+          {/* Condition label */}
+          <div className={`font-semibold opacity-75 ${tc} drop-shadow-sm`}
+            style={{ fontSize: 'min(4cqw, 9cqh)' }}>
+            {weather.label}
+          </div>
+
+          {/* Wind & Humidity row */}
+          <div className="flex gap-3 mt-1 items-center">
+            <div className={`flex items-center gap-1 opacity-60 ${tc}`} style={{ fontSize: 'min(3cqw, 7cqh)' }}>
+              💨 {windSpeed} mph
+            </div>
+            <div className={`flex items-center gap-1 opacity-60 ${tc}`} style={{ fontSize: 'min(3cqw, 7cqh)' }}>
+              💧 {humidity}%
+            </div>
+          </div>
+
+          {/* Refresh & Change Location (hover) */}
+          <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => fetchWeather(lat, lon, cityName)}
+              className={`p-1 rounded-full transition-colors ${isLight ? 'hover:bg-white/20 text-white/60' : 'hover:bg-slate-100 text-slate-400'}`}
+              title="Refresh"
+            >
+              <RefreshCw size={12} />
+            </button>
+            <button
+              onClick={() => updateData(widget.id, { lat: null, lon: null, cityName: null, temperature: null, weatherCode: null, windSpeed: null, humidity: null, lastFetched: null })}
+              className={`p-1 rounded-full transition-colors ${isLight ? 'hover:bg-white/20 text-white/60' : 'hover:bg-slate-100 text-slate-400'}`}
+              title="Change Location"
+            >
+              <Globe size={12} />
+            </button>
+          </div>
+
+          {/* Last updated indicator */}
+          {isLoading && <div className="absolute bottom-1 right-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /></div>}
+        </div>
+      );
+    };
+
 
     const GRID_SIZE = 20;
     const HEADER_HEIGHT = 40;
@@ -9901,6 +10137,7 @@
           case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
           case 'CALCULATOR': return <CalculatorWidget {...props} />;
           case 'COUNTDOWN': return <CountdownWidget {...props} />;
+          case 'WEATHER': return <WeatherWidget {...props} />;
           default: return null;
         }
       };
@@ -10158,7 +10395,7 @@
 
                   {/* Slide Widgets */}
                   {slideWidgets.map(w => {
-                    const isChromeless = ['OVERLAY_TEXT', 'CLOCK', 'CALENDAR'].includes(w.type);
+                    const isChromeless = ['OVERLAY_TEXT', 'CLOCK', 'CALENDAR', 'WEATHER'].includes(w.type);
                     return (
                       <DraggableResizable
                         key={w.id}
@@ -10180,12 +10417,12 @@
                         chromeless={isChromeless}
                         isGlassy={w.data?.isGlassy}
                         isClosing={w.id === closingWidgetId}
-                        onToggleGlass={['CLOCK', 'CALENDAR', 'OVERLAY_TEXT', 'TEXT'].includes(w.type) ? () => {
+                        onToggleGlass={['CLOCK', 'CALENDAR', 'OVERLAY_TEXT', 'TEXT', 'WEATHER'].includes(w.type) ? () => {
                           const current = w.data.isGlassy || 'solid';
                           const next = current === 'solid' ? 'glass' : (current === 'glass' ? 'clear' : 'solid');
                           updateWidgetData(w.id, { isGlassy: next });
                         } : undefined}
-                        onFontSizeChange={['QR', 'WEBCAM', 'YOUTUBE', 'CALENDAR', 'CLOCK', 'TRAFFIC'].includes(w.type) ? undefined : (d) => updateWidgetData(w.id, { fontSize: Math.max(8, (w.data.fontSize || 16) + d) })}
+                        onFontSizeChange={['QR', 'WEBCAM', 'YOUTUBE', 'CALENDAR', 'CLOCK', 'TRAFFIC', 'WEATHER'].includes(w.type) ? undefined : (d) => updateWidgetData(w.id, { fontSize: Math.max(8, (w.data.fontSize || 16) + d) })}
                       >
                         {renderWidgetContent(w)}
                       </DraggableResizable>
