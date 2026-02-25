@@ -389,7 +389,15 @@
       will-change: transform, opacity;
       backface-visibility: hidden;
     }
-  </style>
+  
+    @keyframes drawer-popup-in {
+      0% { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.95); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+    .animate-drawer-popup {
+      animation: drawer-popup-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    </style>
   <!-- Babel for JSX (Pinned stable version) -->
   <script src="https://unpkg.com/@babel/standalone@7.25.9/babel.min.js"></script>
   <!-- Import Map -->
@@ -919,7 +927,7 @@
       CALCULATOR: { width: 280, height: 390 },
       COUNTDOWN: { width: 300, height: 400 },
       SPARK: { width: 400, height: 450 },
-      WEATHER: { width: 280, height: 280 },
+      WEATHER: { width: 230, height: 230 },
       POLYPAD: { width: 900, height: 600 }
     };
 
@@ -2700,44 +2708,38 @@
 
         const prompt = prompts[type] || prompts.HOOK;
 
-        const tryModel = async (modelId) => {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-          });
-          const data = await res.json();
-          if (data.error) throw new Error(data.error.message);
-          return data;
-        };
+        // Smart model fallback - tries multiple models for maximum compatibility
+        const MODELS = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+        let lastError = null;
+        let data = null;
 
-        try {
-          let data;
+        for (const modelId of MODELS) {
           try {
-            // Try high-speed flash latest first (most universally available)
-            data = await tryModel('gemini-2.0-flash');
-          } catch (e) {
-            // If Flash is not found, fallback to 1.5-pro-latest
-            if (e.message.toLowerCase().includes('not found') || e.message.toLowerCase().includes('not supported') || e.message.toLowerCase().includes('publisher model is not found')) {
-              try {
-                data = await tryModel('gemini-2.0-flash');
-              } catch (e2) {
-                // If 1.5-pro is also not found, fallback to standard gemini-2.0-flash
-                if (e2.message.toLowerCase().includes('not found') || e2.message.toLowerCase().includes('not supported') || e2.message.toLowerCase().includes('publisher model is not found')) {
-                  data = await tryModel('gemini-2.0-flash');
-                } else {
-                  throw e2;
-                }
-              }
-            } else {
-              throw e;
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            data = await res.json();
+            if (data.error) {
+              lastError = data.error.message;
+              console.warn('Spark: ' + modelId + ' failed, trying next...', data.error.message);
+              continue;
             }
+            lastError = null;
+            break;
+          } catch (err) {
+            lastError = err.message;
+            console.warn('Spark: ' + modelId + ' error, trying next...', err.message);
           }
+        }
 
+        if (lastError || !data || data.error) {
+          updateData(widget.id, { isLoading: false, error: lastError || 'All models failed.' });
+        } else {
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
           updateData(widget.id, { isLoading: false, result: text });
-        } catch (err) {
-          updateData(widget.id, { isLoading: false, error: err.message });
+        }
         }
       };
 
@@ -4436,7 +4438,15 @@
 
         return (
           <div ref={containerRef} className="h-full w-full" style={{ background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
-            {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>}
+            {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}
+    @keyframes drawer-popup-in {
+      0% { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.95); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+    .animate-drawer-popup {
+      animation: drawer-popup-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    </style>}
             <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24, overflow: 'hidden' } : { padding: '0 24px', overflow: 'hidden' }}>
               {barContent}
             </div>
@@ -10519,7 +10529,7 @@
                   {/* DRAWER POPUP */}
                   {showMoreDrawer && (
                     <div
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white/90 backdrop-blur-xl border border-white/50 p-2 rounded-2xl shadow-2xl grid grid-cols-3 gap-1 w-max z-50 animate-in slide-in-from-bottom-2 fade-in duration-200"
+                      className="absolute bottom-full left-1/2 mb-2 bg-white/90 backdrop-blur-xl border border-white/50 p-2 rounded-2xl shadow-2xl grid grid-cols-3 gap-1 w-max z-50 animate-drawer-popup"
                       onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-indigo-50'); }}
                       onDragLeave={(e) => e.currentTarget.classList.remove('bg-indigo-50')}
                       onDrop={(e) => {
