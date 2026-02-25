@@ -319,69 +319,68 @@
     }
 
     /* Slide Transition Animations */
-    @keyframes slide-out-left {
-      0% {
+    /* Slide Transition Animations (Film Strip Model) */
+    @keyframes slide-out-to-left {
+      from {
         transform: translateX(0);
-        opacity: 1;
       }
 
-      100% {
+      to {
         transform: translateX(-100vw);
-        opacity: 0;
       }
     }
 
-    @keyframes slide-in-right {
-      0% {
+    @keyframes slide-in-from-right {
+      from {
         transform: translateX(100vw);
-        opacity: 0;
       }
 
-      100% {
+      to {
         transform: translateX(0);
-        opacity: 1;
       }
     }
 
-    @keyframes slide-out-right {
-      0% {
+    @keyframes slide-out-to-right {
+      from {
         transform: translateX(0);
-        opacity: 1;
       }
 
-      100% {
+      to {
         transform: translateX(100vw);
-        opacity: 0;
       }
     }
 
-    @keyframes slide-in-left {
-      0% {
+    @keyframes slide-in-from-left {
+      from {
         transform: translateX(-100vw);
-        opacity: 0;
       }
 
-      100% {
+      to {
         transform: translateX(0);
-        opacity: 1;
       }
     }
 
     .slide-exit-left {
-      animation: slide-out-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      will-change: transform, opacity;
+      animation: slide-out-to-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform;
       backface-visibility: hidden;
     }
 
     .slide-enter-right {
-      animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      will-change: transform, opacity;
+      animation: slide-in-from-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform;
       backface-visibility: hidden;
     }
 
     .slide-exit-right {
-      animation: slide-out-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      will-change: transform, opacity;
+      animation: slide-out-to-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform;
+      backface-visibility: hidden;
+    }
+
+    .slide-enter-left {
+      animation: slide-in-from-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform;
       backface-visibility: hidden;
     }
 
@@ -8451,9 +8450,10 @@
       const [currentSlideIndex, setCurrentSlideIndex] = useState(() => {
         try { return parseInt(localStorage.getItem('homeroom_current_slide') || '0'); } catch { return 0; }
       });
+      const [targetSlideIndex, setTargetSlideIndex] = useState(null);
       const [selectedId, setSelectedId] = useState(null);
       const [spotlightId, setSpotlightId] = useState(null);
-      const [slideTransition, setSlideTransition] = useState(null); // 'exit-left', 'enter-right', 'exit-right', 'enter-left'
+      const [slideTransition, setSlideTransition] = useState(null); // 'forward' or 'backward'
       const [maxZIndex, setMaxZIndex] = useState(10);
       const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
       const [isDockMinimized, setIsDockMinimized] = useState(false);
@@ -9555,38 +9555,36 @@
       const toggleSpotlight = useCallback((id) => { setSpotlightId(prev => prev === id ? null : id); }, []);
       const nextSlide = () => {
         if (slideTransition) return;
+        const nextIdx = currentSlideIndex + 1;
         const isNewSlide = currentSlideIndex === slides.length - 1;
         if (isNewSlide) {
           const clockSize = WIDGET_SIZES['CLOCK'];
           const defaultClock = {
-            id: 'clock-' + Date.now(),
-            type: 'CLOCK',
-            position: { x: 20, y: 20 },
-            size: clockSize,
-            zIndex: 1,
-            data: { style: 'standard', isGlassy: 'clear' },
-            isMinimized: false
+            id: 'clock-' + Date.now(), type: 'CLOCK', position: { x: 20, y: 20 }, size: clockSize, zIndex: 1, data: { style: 'standard', isGlassy: 'clear' }, isMinimized: false
           };
           setSlides(prev => [...prev, [defaultClock]]);
-          const newIndex = slides.length;
-          setSlideBackgrounds(prev => ({ ...prev, [newIndex]: BACKGROUNDS[0] }));
+          setSlideBackgrounds(prev => ({ ...prev, [nextIdx]: BACKGROUNDS[0] }));
         }
-        setSlideTransition('exit-left');
+        setTargetSlideIndex(nextIdx);
+        setSlideTransition('forward');
         setTimeout(() => {
-          setCurrentSlideIndex(prev => prev + 1);
+          setCurrentSlideIndex(nextIdx);
+          setTargetSlideIndex(null);
+          setSlideTransition(null);
           setSelectedId(null);
-          setSlideTransition('enter-right');
-          setTimeout(() => setSlideTransition(null), 400);
         }, 400);
       };
+
       const prevSlide = () => {
         if (currentSlideIndex > 0 && !slideTransition) {
-          setSlideTransition('exit-right');
+          const nextIdx = currentSlideIndex - 1;
+          setTargetSlideIndex(nextIdx);
+          setSlideTransition('backward');
           setTimeout(() => {
-            setCurrentSlideIndex(prev => prev - 1);
+            setCurrentSlideIndex(nextIdx);
+            setTargetSlideIndex(null);
+            setSlideTransition(null);
             setSelectedId(null);
-            setSlideTransition('enter-left');
-            setTimeout(() => setSlideTransition(null), 400);
           }, 400);
         }
       };
@@ -9854,10 +9852,10 @@
         return style;
       };
 
-      // Background that shows behind the sliding layer during transition
-      const revealedBg = (slideTransition === 'exit-left')
+      // Background that shows behind the sliding layer during transition (deep fallback)
+      const revealedBg = (slideTransition === 'forward')
         ? (slideBackgrounds[currentSlideIndex + 1] || background)
-        : (slideTransition === 'exit-right')
+        : (slideTransition === 'backward')
           ? (slideBackgrounds[currentSlideIndex - 1] || background)
           : currentBg;
 
@@ -10018,49 +10016,61 @@
 
 
           {/* Widgets & Background Sliding Area */}
-          <div
-            key={currentSlideIndex}
-            className={`absolute inset-0 z-30 pointer-events-none ${slideTransition === 'exit-left' ? 'slide-exit-left' : slideTransition === 'enter-right' ? 'slide-enter-right' : slideTransition === 'exit-right' ? 'slide-exit-right' : slideTransition === 'enter-left' ? 'slide-enter-left' : ''}`}
-          >
-            {/* Slide Background (Slides with widgets) */}
-            <div className="absolute inset-0 -z-10" style={getBgStyle(currentBg, !!slideTransition)} />
-
-
-            {/* Spotlight Overlay - inside widget container so only spotlighted widget appears above it */}
+          <div className="absolute inset-0 z-30 pointer-events-none">
+            {/* Spotlight Overlay */}
             {spotlightId && <div className="fixed inset-0 bg-black/85 cursor-pointer pointer-events-auto animate-in fade-in duration-500 backdrop-blur-[2px]" style={{ zIndex: 9998 }} onClick={() => setSpotlightId(null)}><div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" /></div>}
 
-            {widgets?.map(w => {
-              const isChromeless = ['OVERLAY_TEXT', 'CLOCK', 'CALENDAR'].includes(w.type);
+            {/* Slide Rendering (One or Two during transition) */}
+            {(slideTransition ? [currentSlideIndex, targetSlideIndex] : [currentSlideIndex]).map(idx => {
+              const isTarget = idx === targetSlideIndex;
+              const animClass = isTarget
+                ? (slideTransition === 'forward' ? 'slide-enter-right' : 'slide-enter-left')
+                : (slideTransition ? (slideTransition === 'forward' ? 'slide-exit-left' : 'slide-exit-right') : '');
+
+              const slideWidgets = slides[idx] || [];
+              const slideBg = slideBackgrounds[idx] || background;
+
               return (
-                <DraggableResizable
-                  key={w.id}
-                  id={w.id}
-                  position={w.position}
-                  size={w.size}
-                  zIndex={w.zIndex}
-                  isSelected={selectedId === w.id}
-                  isMinimized={w.isMinimized}
-                  isSpotlighted={spotlightId === w.id}
-                  isGridEnabled={isGridEnabled}
-                  widgetType={w.type}
-                  onSelect={bringToFront}
-                  onUpdate={updateWidgetLayout}
-                  onRemove={removeWidget}
-                  onMinimizeToggle={toggleMinimize}
-                  onSpotlight={toggleSpotlight}
-                  onSettings={(id) => { setEditingWidgetId(id); setSettingsInitialTab('appearance'); setShowSettingsModal(true); }}
-                  chromeless={isChromeless}
-                  isGlassy={w.data?.isGlassy}
-                  isClosing={w.id === closingWidgetId}
-                  onToggleGlass={['CLOCK', 'CALENDAR', 'OVERLAY_TEXT', 'TEXT'].includes(w.type) ? () => {
-                    const current = w.data.isGlassy || 'solid';
-                    const next = current === 'solid' ? 'glass' : (current === 'glass' ? 'clear' : 'solid');
-                    updateWidgetData(w.id, { isGlassy: next });
-                  } : undefined}
-                  onFontSizeChange={['QR', 'WEBCAM', 'YOUTUBE', 'CALENDAR', 'CLOCK', 'TRAFFIC'].includes(w.type) ? undefined : (d) => updateWidgetData(w.id, { fontSize: Math.max(8, (w.data.fontSize || 16) + d) })}
-                >
-                  {renderWidgetContent(w)}
-                </DraggableResizable>
+                <div key={idx} className={`absolute inset-0 pointer-events-none ${animClass}`}>
+                  {/* Slide Background */}
+                  <div className="absolute inset-0 -z-10" style={getBgStyle(slideBg, !!slideTransition)} />
+
+                  {/* Slide Widgets */}
+                  {slideWidgets.map(w => {
+                    const isChromeless = ['OVERLAY_TEXT', 'CLOCK', 'CALENDAR'].includes(w.type);
+                    return (
+                      <DraggableResizable
+                        key={w.id}
+                        id={w.id}
+                        position={w.position}
+                        size={w.size}
+                        zIndex={w.zIndex}
+                        isSelected={selectedId === w.id}
+                        isMinimized={w.isMinimized}
+                        isSpotlighted={spotlightId === w.id}
+                        isGridEnabled={isGridEnabled}
+                        widgetType={w.type}
+                        onSelect={bringToFront}
+                        onUpdate={updateWidgetLayout}
+                        onRemove={removeWidget}
+                        onMinimizeToggle={toggleMinimize}
+                        onSpotlight={toggleSpotlight}
+                        onSettings={(id) => { setEditingWidgetId(id); setSettingsInitialTab('appearance'); setShowSettingsModal(true); }}
+                        chromeless={isChromeless}
+                        isGlassy={w.data?.isGlassy}
+                        isClosing={w.id === closingWidgetId}
+                        onToggleGlass={['CLOCK', 'CALENDAR', 'OVERLAY_TEXT', 'TEXT'].includes(w.type) ? () => {
+                          const current = w.data.isGlassy || 'solid';
+                          const next = current === 'solid' ? 'glass' : (current === 'glass' ? 'clear' : 'solid');
+                          updateWidgetData(w.id, { isGlassy: next });
+                        } : undefined}
+                        onFontSizeChange={['QR', 'WEBCAM', 'YOUTUBE', 'CALENDAR', 'CLOCK', 'TRAFFIC'].includes(w.type) ? undefined : (d) => updateWidgetData(w.id, { fontSize: Math.max(8, (w.data.fontSize || 16) + d) })}
+                      >
+                        {renderWidgetContent(w)}
+                      </DraggableResizable>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
