@@ -2717,7 +2717,7 @@
         const prompt = prompts[type] || prompts.HOOK;
 
         // Smart model fallback - tries multiple models for maximum compatibility
-        const MODELS = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+        const MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash-lite'];
         let lastError = null;
         let data = null;
 
@@ -3175,7 +3175,7 @@
           )}
 
           {/* Hover controls: Settings gear, Refresh, Change Location */}
-          <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-1 left-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => setShowSettings(!showSettings)}
               className={`p-1 rounded-full transition-colors ${isLight ? 'hover:bg-white/20 text-white/60' : 'hover:bg-slate-100 text-slate-400'}`}
