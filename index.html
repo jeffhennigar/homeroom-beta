@@ -389,15 +389,23 @@
       will-change: transform, opacity;
       backface-visibility: hidden;
     }
-  
+
     @keyframes drawer-popup-in {
-      0% { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.95); }
-      100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(12px) scale(0.95);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+      }
     }
+
     .animate-drawer-popup {
       animation: drawer-popup-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    </style>
+  </style>
   <!-- Babel for JSX (Pinned stable version) -->
   <script src="https://unpkg.com/@babel/standalone@7.25.9/babel.min.js"></script>
   <!-- Import Map -->
@@ -4522,15 +4530,7 @@
 
         return (
           <div ref={containerRef} className="h-full w-full" style={{ background: theme.bar, overflow: 'hidden', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
-            {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}
-    @keyframes drawer-popup-in {
-      0% { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.95); }
-      100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-    }
-    .animate-drawer-popup {
-      animation: drawer-popup-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    </style>}
+            {scrollText && <style>{`@keyframes countdownScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>}
             <div className="flex items-center h-full" style={scrollText ? { animation: 'countdownScroll 15s linear infinite', whiteSpace: 'nowrap', display: 'inline-flex', paddingLeft: 24, paddingRight: 24, overflow: 'hidden' } : { padding: '0 24px', overflow: 'hidden' }}>
               {barContent}
             </div>
