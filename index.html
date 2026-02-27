@@ -2706,12 +2706,13 @@
 
         updateData(widget.id, { isLoading: true, error: null, result: '' });
 
+        const baseRule = "Give a super short, simple response in point form (1-3 bullet points max). Literally just the spark of the idea. No intro, no closing, no fluff.";
         const prompts = {
-          HOOK: `Generate a short, engaging lesson hook about "${topic}" for middle school students to get them excited.`,
-          FACT: `Give me a surprising and fun fact about "${topic}".`,
-          JOKE: `Tell me a school-appropriate joke about "${topic}".`,
-          DISCUSSION: `Create a thought-provoking discussion question about "${topic}" for the class.`,
-          TRIVIA: `Write a trivia question about "${topic}" with the answer hidden.`
+          HOOK: `Lesson hook about "${topic}". ${baseRule}`,
+          FACT: `Fun fact about "${topic}". ${baseRule}`,
+          JOKE: `School-appropriate joke about "${topic}". ${baseRule}`,
+          DISCUSSION: `Discussion question about "${topic}". ${baseRule}`,
+          TRIVIA: `Trivia question about "${topic}" with answer. ${baseRule}`
         };
 
         const prompt = prompts[type] || prompts.HOOK;
