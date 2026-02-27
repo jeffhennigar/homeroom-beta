@@ -2895,37 +2895,37 @@
       const [settingsSearchQuery, setSettingsSearchQuery] = useState('');
 
       const WMO_CODES = {
-        0: { emoji: '\u2600\uFE0F', label: 'Clear Sky' },
-        1: { emoji: '\uD83C\uDF24\uFE0F', label: 'Mostly Clear' },
-        2: { emoji: '\u26C5', label: 'Partly Cloudy' },
-        3: { emoji: '\u2601\uFE0F', label: 'Overcast' },
-        45: { emoji: '\uD83C\uDF2B\uFE0F', label: 'Fog' },
-        48: { emoji: '\uD83C\uDF2B\uFE0F', label: 'Freezing Fog' },
-        51: { emoji: '\uD83C\uDF26\uFE0F', label: 'Light Drizzle' },
-        53: { emoji: '\uD83C\uDF26\uFE0F', label: 'Drizzle' },
-        55: { emoji: '\uD83C\uDF27\uFE0F', label: 'Heavy Drizzle' },
-        56: { emoji: '\uD83C\uDF28\uFE0F', label: 'Freezing Drizzle' },
-        57: { emoji: '\uD83C\uDF28\uFE0F', label: 'Heavy Freezing Drizzle' },
-        61: { emoji: '\uD83C\uDF27\uFE0F', label: 'Light Rain' },
-        63: { emoji: '\uD83C\uDF27\uFE0F', label: 'Rain' },
-        65: { emoji: '\uD83C\uDF27\uFE0F', label: 'Heavy Rain' },
-        66: { emoji: '\uD83C\uDF28\uFE0F', label: 'Freezing Rain' },
-        67: { emoji: '\uD83C\uDF28\uFE0F', label: 'Heavy Freezing Rain' },
-        71: { emoji: '\u2744\uFE0F', label: 'Light Snow' },
-        73: { emoji: '\u2744\uFE0F', label: 'Snow' },
-        75: { emoji: '\u2744\uFE0F', label: 'Heavy Snow' },
-        77: { emoji: '\u2744\uFE0F', label: 'Snow Grains' },
-        80: { emoji: '\uD83C\uDF26\uFE0F', label: 'Light Showers' },
-        81: { emoji: '\uD83C\uDF27\uFE0F', label: 'Showers' },
-        82: { emoji: '\u26C8\uFE0F', label: 'Heavy Showers' },
-        85: { emoji: '\uD83C\uDF28\uFE0F', label: 'Light Snow Showers' },
-        86: { emoji: '\uD83C\uDF28\uFE0F', label: 'Heavy Snow Showers' },
-        95: { emoji: '\u26C8\uFE0F', label: 'Thunderstorm' },
-        96: { emoji: '\u26C8\uFE0F', label: 'Thunderstorm + Hail' },
-        99: { emoji: '\u26C8\uFE0F', label: 'Severe Thunderstorm' }
+        0: { emoji: '☀️', label: 'Clear Sky' },
+        1: { emoji: '🌤️', label: 'Mostly Clear' },
+        2: { emoji: '⛅', label: 'Partly Cloudy' },
+        3: { emoji: '☁️', label: 'Overcast' },
+        45: { emoji: '🌫️', label: 'Fog' },
+        48: { emoji: '🌫️', label: 'Freezing Fog' },
+        51: { emoji: '🌦️', label: 'Light Drizzle' },
+        53: { emoji: '🌦️', label: 'Drizzle' },
+        55: { emoji: '🌧️', label: 'Heavy Drizzle' },
+        56: { emoji: '🌨️', label: 'Freezing Drizzle' },
+        57: { emoji: '🌨️', label: 'Heavy Freezing Drizzle' },
+        61: { emoji: '🌧️', label: 'Light Rain' },
+        63: { emoji: '🌧️', label: 'Rain' },
+        65: { emoji: '🌧️', label: 'Heavy Rain' },
+        66: { emoji: '🌨️', label: 'Freezing Rain' },
+        67: { emoji: '🌨️', label: 'Heavy Freezing Rain' },
+        71: { emoji: '❄️', label: 'Light Snow' },
+        73: { emoji: '❄️', label: 'Snow' },
+        75: { emoji: '❄️', label: 'Heavy Snow' },
+        77: { emoji: '❄️', label: 'Snow Grains' },
+        80: { emoji: '🌦️', label: 'Light Showers' },
+        81: { emoji: '🌧️', label: 'Showers' },
+        82: { emoji: '⛈️', label: 'Heavy Showers' },
+        85: { emoji: '🌨️', label: 'Light Snow Showers' },
+        86: { emoji: '🌨️', label: 'Heavy Snow Showers' },
+        95: { emoji: '⛈️', label: 'Thunderstorm' },
+        96: { emoji: '⛈️', label: 'Thunderstorm + Hail' },
+        99: { emoji: '⛈️', label: 'Severe Thunderstorm' }
       };
 
-      const getWeather = (code) => WMO_CODES[code] || { emoji: '\uD83C\uDF21\uFE0F', label: 'Unknown' };
+      const getWeather = (code) => WMO_CODES[code] || { emoji: '🌡️', label: 'Unknown' };
 
       const fetchWeather = useCallback(async (latitude, longitude, city, units) => {
         const tUnit = units?.tempUnit || tempUnit || 'F';
@@ -3029,9 +3029,9 @@
             <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Temperature</span>
             <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
               <button onClick={() => toggleSetting('tempUnit', 'F')}
-                className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'F' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>\u00B0F</button>
+                className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'F' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°F</button>
               <button onClick={() => toggleSetting('tempUnit', 'C')}
-                className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'C' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>\u00B0C</button>
+                className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'C' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°C</button>
             </div>
           </div>
 
@@ -3051,10 +3051,10 @@
 
           {/* Toggles */}
           {[
-            { key: 'showWind', label: '\uD83D\uDCA8 Wind', value: showWind },
-            { key: 'showHumidity', label: '\uD83D\uDCA7 Humidity', value: showHumidity },
-            { key: 'showFeelsLike', label: '\uD83C\uDF21\uFE0F Feels Like', value: showFeelsLike },
-            { key: 'showUV', label: '\u2600\uFE0F UV Index', value: showUV }
+            { key: 'showWind', label: '💨 Wind', value: showWind },
+            { key: 'showHumidity', label: '💧 Humidity', value: showHumidity },
+            { key: 'showFeelsLike', label: '🌡️ Feels Like', value: showFeelsLike },
+            { key: 'showUV', label: '☀️ UV Index', value: showUV }
           ].map(({ key, label, value }) => (
             <div key={key} className="flex items-center justify-between">
               <span className={`text-xs font-medium ${isLight ? 'text-white/70' : 'text-slate-600'}`}>{label}</span>
@@ -3085,7 +3085,7 @@
 
           <button onClick={() => { setShowSettings(false); detectLocation(); }}
             className={`py-1.5 rounded-full text-[10px] font-bold transition-all ${isLight ? 'bg-white/10 hover:bg-white/20 text-white/70' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
-            \uD83D\uDCCD Use My Location
+            📍 Use My Location
           </button>
         </div>
       );
@@ -3094,7 +3094,7 @@
       if (!lat && !isLoading) {
         return (
           <div className="flex flex-col items-center justify-center w-full h-full p-3 gap-2" style={{ containerType: 'size' }}>
-            <div style={{ fontSize: 'min(18cqw, 40cqh)' }}>\uD83C\uDF24\uFE0F</div>
+            <div style={{ fontSize: 'min(18cqw, 40cqh)' }}>🌤️</div>
             <div className={`font-bold text-center ${tc} opacity-90`} style={{ fontSize: 'min(5cqw, 12cqh)' }}>Weather</div>
             {error && <div className="text-xs text-red-400 text-center px-2">{error}</div>}
             <button
@@ -3102,7 +3102,7 @@
               className={`px-4 py-2 rounded-full font-bold text-xs transition-all ${isLight ? 'bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm' : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-600'}`}
               style={{ fontSize: 'min(3.5cqw, 9cqh)' }}
             >
-              \uD83D\uDCCD Use My Location
+              📍 Use My Location
             </button>
             {!showSearch ? (
               <button
@@ -3138,7 +3138,7 @@
       if (isLoading && !temperature) {
         return (
           <div className="flex flex-col items-center justify-center w-full h-full gap-2" style={{ containerType: 'size' }}>
-            <div className="animate-spin" style={{ fontSize: 'min(12cqw, 30cqh)' }}>\uD83C\uDF00</div>
+            <div className="animate-spin" style={{ fontSize: 'min(12cqw, 30cqh)' }}>🌀</div>
             <div className={`font-medium opacity-70 ${tc}`} style={{ fontSize: 'min(4cqw, 10cqh)' }}>Getting weather...</div>
           </div>
         );
@@ -3146,10 +3146,10 @@
 
       // Details row items
       const details = [];
-      if (showWind) details.push({ icon: '\uD83D\uDCA8', value: `${windSpeed} ${windUnit}` });
-      if (showHumidity) details.push({ icon: '\uD83D\uDCA7', value: `${humidity}%` });
-      if (showFeelsLike && feelsLike != null) details.push({ icon: '\uD83C\uDF21\uFE0F', value: `${feelsLike}\u00B0` });
-      if (showUV && uvIndex != null) details.push({ icon: '\u2600\uFE0F', value: `UV ${uvIndex}` });
+      if (showWind) details.push({ icon: '💨', value: `${windSpeed} ${windUnit}` });
+      if (showHumidity) details.push({ icon: '💧', value: `${humidity}%` });
+      if (showFeelsLike && feelsLike != null) details.push({ icon: '🌡️', value: `${feelsLike}°` });
+      if (showUV && uvIndex != null) details.push({ icon: '☀️', value: `UV ${uvIndex}` });
 
       // Main display - tight layout
       return (
@@ -3170,7 +3170,7 @@
           {/* Temperature */}
           <div className={`font-black tracking-tight ${tc} drop-shadow-md leading-none`}
             style={{ fontSize: 'min(18cqw, 36cqh)' }}>
-            {temperature}\u00B0{tempUnit}
+            {temperature}°{tempUnit}
           </div>
 
           {/* Condition label */}
@@ -3213,6 +3213,7 @@
         </div>
       );
     };
+
 
     const GRID_SIZE = 20;
     const HEADER_HEIGHT = 40;
