@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HomeRoom Pro</title>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="18de2e8a-75be-4d11-bc8d-18784a804ed4"></script>
   <link rel="icon" type="image/svg+xml" href="./favicon-CuRdcC1_.svg" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -2681,7 +2682,7 @@
         result = '',
         isLoading = false,
         error = null,
-        grade = 'Middle School',
+        grade = localStorage.getItem('homeroom_spark_grade') || 'Middle School',
         showConfig = false
       } = widget.data;
 
@@ -2707,11 +2708,11 @@
 
         updateData(widget.id, { isLoading: true, error: null, result: '' });
 
-        const baseRule = "Give a super short, simple response in point form (1-3 bullet points max). Each point must be a full sentence. Literally just the spark of the idea. No intro, no closing, no fluff.";
+        const baseRule = "Be creative and give a DIFFERENT answer every time, even if asked the same topic again. Give a super short, simple response in point form (1-3 bullet points max). Each point must be a full sentence. Literally just the spark of the idea. No intro, no closing, no fluff.";
         const prompts = {
           HOOK: `Lesson hook about "${topic}" for ${grade} students. ${baseRule}`,
           FACT: `Fun fact about "${topic}" for ${grade} students. ${baseRule}`,
-          JOKE: `School-appropriate joke about "${topic}" for ${grade} students. ${baseRule}`,
+          JOKE: `Tell a school-appropriate joke about "${topic}" for ${grade} students. Use a setup and punchline format (e.g. "Q: ... A: ..."). Just the joke, nothing else. Be creative and give a DIFFERENT joke every time.`,
           DISCUSSION: `Discussion question about "${topic}" for ${grade} students. ${baseRule}`,
           TRIVIA: `Trivia question about "${topic}" with answer for ${grade} students. ${baseRule}`
         };
@@ -2728,7 +2729,7 @@
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
             });
             data = await res.json();
             if (data.error) {
@@ -2784,6 +2785,12 @@
                     Get a Free Key <ExternalLink size={10} />
                   </a>
                 </div>
+                <div className="bg-green-50 border border-green-100 p-2 rounded-lg flex items-start gap-2">
+                  <Lock size={12} className="text-green-600 mt-0.5 shrink-0" />
+                  <p className="text-[10px] text-green-700 leading-relaxed font-medium">
+                    Your API key is stored <strong>only on this device</strong> and in your personal backup file. It is <strong>never</strong> sent to HomeRoom cloud storage.
+                  </p>
+                </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Your API Key</label>
                   <div className="flex gap-2">
@@ -2829,7 +2836,7 @@
                     <select
                       className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-yellow-400 outline-none bg-white"
                       value={grade}
-                      onChange={(e) => updateData(widget.id, { grade: e.target.value })}
+                      onChange={(e) => { updateData(widget.id, { grade: e.target.value }); localStorage.setItem('homeroom_spark_grade', e.target.value); }}
                     >
                       <option value="Pre-K">Pre-K</option>
                       <option value="Kindergarten">Kindergarten</option>
@@ -3213,7 +3220,7 @@
           )}
 
           {/* Hover controls: Settings gear + Refresh — bottom right, under the X */}
-          <div className="absolute bottom-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
             <button
               onClick={() => fetchWeather(lat, lon, cityName)}
               className={`p-1 rounded-full transition-colors ${isLight ? 'hover:bg-white/20 text-white/60' : 'hover:bg-slate-100 text-slate-400'}`}
@@ -9097,7 +9104,7 @@
                 else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
               }
               if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
-              if (profile.gemini_api_key) setGeminiApiKey(profile.gemini_api_key);
+              // gemini_api_key is no longer synced to cloud for security — kept in localStorage only
               if (profile.last_modified) setProfileLastModified(profile.last_modified);
             }
           })
@@ -9150,7 +9157,7 @@
 
               if (profile.clock_style) setClockStyle(profile.clock_style);
               if (profile.accent_color) setAccentColor(profile.accent_color);
-              if (profile.gemini_api_key) setGeminiApiKey(profile.gemini_api_key);
+              // gemini_api_key is no longer synced to cloud for security — kept in localStorage only
               if (activeId) setActiveRosterId(activeId);
             }
 
@@ -9463,8 +9470,8 @@
           schedule_overrides: scheduleOverrides, grid_enabled: isGridEnabled, clock_style: clockStyle,
           dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
           active_roster_id: (activeRosterId && activeRosterId !== 'default') ? activeRosterId : null,
-          accent_color: accentColor,
-          gemini_api_key: geminiApiKey
+          accent_color: accentColor
+          // gemini_api_key intentionally NOT synced to cloud for security
         };
         const profileStr = JSON.stringify(profilePayload);
         if (!hasChanges && lastSyncedRef.current.profile !== profileStr) {
@@ -9539,13 +9546,7 @@
               setProfileLastModified(last_modified);
               let { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified });
 
-              // Graceful failover: If the gemini_api_key column is missing, strip it and retry.
-              if (profileError && profileError.message && profileError.message.includes("Could not find the 'gemini_api_key' column")) {
-                console.warn("gemini_api_key column missing in Supabase. Syncing profile without it.");
-                const { gemini_api_key, ...fallbackPayload } = profilePayload;
-                const retryResult = await supabase.from('profiles').upsert({ ...fallbackPayload, id: user.id, last_modified });
-                profileError = retryResult.error;
-              }
+              // gemini_api_key column failover no longer needed — key is not sent to cloud
 
               if (profileError) throw profileError;
               lastSyncedRef.current.profile = profileStr;
@@ -9830,6 +9831,7 @@
           backupInterval,
           isGridEnabled,
           currentSlideIndex,
+          geminiApiKey,
           timestamp: Date.now()
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -9892,6 +9894,7 @@
             if (d.backupInterval !== undefined) { setBackupInterval(d.backupInterval); localStorage.setItem('homeroom_backup_interval', d.backupInterval); }
             if (d.isGridEnabled !== undefined) { setIsGridEnabled(d.isGridEnabled); localStorage.setItem('homeroom_grid_enabled', d.isGridEnabled); }
             if (d.currentSlideIndex !== undefined) { setCurrentSlideIndex(d.currentSlideIndex); }
+            if (d.geminiApiKey) { setGeminiApiKey(d.geminiApiKey); localStorage.setItem('homeroom_gemini_api_key', d.geminiApiKey); }
 
             if (d.currentSlideIndex !== undefined) { setCurrentSlideIndex(d.currentSlideIndex); }
 
