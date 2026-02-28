@@ -113,8 +113,8 @@ const DraggableResizable = ({
                 ${chromeless ? '' : 'bg-white rounded-xl shadow-xl border-2 overflow-hidden'}
                 ${isDragging ? 'shadow-2xl z-50 cursor-grabbing' : ''}
                 ${isDockEditMode ? 'animate-wobble pointer-events-none opacity-80' : ''}
-                ${closingWidgetId === id ? 'animate-shrink' : 'animate-elastic'}
-                ${isMinimized ? 'opacity-0 scale-[0.1] pointer-events-none translate-y-20' : 'opacity-100 scale-100 pointer-events-auto'}
+                ${closingWidgetId === id ? 'animate-shrink' : (isMinimized ? '' : 'animate-elastic')}
+                ${isMinimized ? 'opacity-0 scale-50 pointer-events-none translate-y-20' : 'opacity-100 scale-100 pointer-events-auto'}
                 ${borderClass}
             `}
             style={{

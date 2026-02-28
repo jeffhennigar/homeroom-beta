@@ -735,13 +735,13 @@ const App = () => {
             if (z > highestZ) highestZ = z;
         });
 
-        const isFocused = activeWidgets.some(w => w.type === id && (zIndices[w.id] || 10) === highestZ && !w.data?.isMinimized);
+        const isFocused = activeWidgets.some(w => w.type === id && (zIndices[w.id] || 10) === highestZ && !w.isMinimized);
 
         if (isFocused) {
-            const focusedWidget = activeWidgets.find(w => (zIndices[w.id] || 10) === highestZ && !w.data?.isMinimized);
+            const focusedWidget = activeWidgets.find(w => (zIndices[w.id] || 10) === highestZ && !w.isMinimized);
             if (focusedWidget) toggleMinimize(focusedWidget.id);
         } else {
-            const minimized = activeWidgets.find(w => w.data?.isMinimized);
+            const minimized = activeWidgets.find(w => w.isMinimized);
             if (minimized) {
                 toggleMinimize(minimized.id);
                 bringToFront(minimized.id);
