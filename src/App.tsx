@@ -126,6 +126,7 @@ const THEME_COLORS: Record<string, any> = {
 };
 
 const App = () => {
+    const dockClickLockRef = useRef(false);
     // Global Persisted State
     const [allRosters, setAllRosters] = useState(() => {
         try {
@@ -705,7 +706,7 @@ const App = () => {
 
     const addWidget = (type) => {
         if (isDockMinimized) return; // Fix: Prevent click when minimized
-        const id = Date.now().toString();
+        const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
         const defaults = WIDGET_SIZES[type] || { width: 300, height: 300 };
         // Center logic
         const x = Math.max(0, window.innerWidth / 2 - defaults.width / 2 + (Math.random() * 40 - 20));
@@ -713,6 +714,46 @@ const App = () => {
 
         setWidgets([...widgets, { id, type, x, y, width: defaults.width, height: defaults.height, data: {} }]);
         bringToFront(id);
+    };
+
+    const toggleMinimize = useCallback((id) => {
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, isMinimized: !w.data?.isMinimized } } : w));
+    }, []);
+
+    const handleDockClick = (id, location = 'main') => {
+        if (isDockMinimized) return;
+
+        if (dockClickLockRef.current) return;
+        dockClickLockRef.current = true;
+        setTimeout(() => { dockClickLockRef.current = false; }, 300);
+
+        const activeWidgets = widgets.filter(w => w.type === id);
+
+        let highestZ = -1;
+        widgets.forEach(w => {
+            const z = zIndices[w.id] || 10;
+            if (z > highestZ) highestZ = z;
+        });
+
+        const isFocused = activeWidgets.some(w => w.type === id && (zIndices[w.id] || 10) === highestZ && !w.data?.isMinimized);
+
+        if (isFocused) {
+            const focusedWidget = activeWidgets.find(w => (zIndices[w.id] || 10) === highestZ && !w.data?.isMinimized);
+            if (focusedWidget) toggleMinimize(focusedWidget.id);
+        } else {
+            const minimized = activeWidgets.find(w => w.data?.isMinimized);
+            if (minimized) {
+                toggleMinimize(minimized.id);
+                bringToFront(minimized.id);
+            } else if (activeWidgets.length > 0) {
+                // Focus the most recently added or highest Z one
+                bringToFront(activeWidgets[activeWidgets.length - 1].id);
+            } else {
+                addWidget(id);
+            }
+        }
+
+        if (location === 'drawer') setShowMoreDrawer(false);
     };
 
     const removeWidget = (id) => {
@@ -797,8 +838,10 @@ const App = () => {
                     onFocus={() => bringToFront(w.id)}
                     onRemove={removeWidget}
                     minWidth={200} minHeight={150}
+                    onMinimizeToggle={toggleMinimize}
                     locked={isLocked || w.data?.locked}
                     closingWidgetId={closingWidgetId}
+                    chromeless={['OVERLAY_TEXT', 'CLOCK', 'CALENDAR', 'WEATHER'].includes(w.type)}
                     {...w.data} // Pass minimized/transparent etc.
                 >
                     {(() => {
@@ -928,7 +971,10 @@ const App = () => {
             </div>
 
             {/* Dock */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10000]">
+            <div
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10000]"
+                onMouseDown={(e) => e.stopPropagation()}
+            >
                 <div className="backdrop-blur-2xl shadow-2xl rounded-2xl flex items-center p-2 gap-1 transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/50 relative">
                     <div className="absolute inset-0 bg-white/10 rounded-2xl overflow-hidden -z-10 border border-white/20">
                         <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white/5 pointer-events-none" />
@@ -936,7 +982,7 @@ const App = () => {
                     {dockOrder.main.map((type: string) => (
                         <button
                             key={type}
-                            onClick={() => addWidget(type)}
+                            onClick={() => handleDockClick(type, 'main')}
                             draggable={!isDockMinimized}
                             onDragStart={(e) => { e.currentTarget.classList.add('scale-105'); }}
                             onDragEnd={(e) => { e.currentTarget.classList.remove('scale-105'); }}
@@ -972,7 +1018,7 @@ const App = () => {
                                 {dockOrder.drawer.map((type: string) => (
                                     <button
                                         key={type}
-                                        onClick={() => { addWidget(type); setShowMoreDrawer(false); }}
+                                        onClick={() => handleDockClick(type, 'drawer')}
                                         className="p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all flex flex-col items-center gap-1"
                                     >
                                         <div>{DOCK_LABELS[type].icon}</div>
