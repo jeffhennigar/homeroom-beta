@@ -994,15 +994,15 @@ const App = () => {
                                 className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 ${isMinimizedStatus ? 'bg-indigo-100 text-indigo-700 shadow-inner' : `hover:bg-white/40 ${background?.textColor || 'text-slate-800'}`}`}
                                 title={DOCK_LABELS[type].label}
                             >
-                                <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-1 relative">
+                                <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
                                     {DOCK_LABELS[type].icon}
-                                    {isActive && (
-                                        <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : (background?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')}`} />
-                                    )}
                                 </div>
                                 <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
                                     {DOCK_LABELS[type].label}
                                 </span>
+                                {isActive && (
+                                    <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : (background?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')}`} />
+                                )}
                             </button>
                         );
                     })}
@@ -1016,7 +1016,7 @@ const App = () => {
                             className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}
                             title="More Tools"
                         >
-                            <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-1">
+                            <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
                                 {showMoreDrawer ? <ChevronDown size={24} /> : <MoreHorizontal size={24} />}
                             </div>
                             <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
@@ -1039,11 +1039,11 @@ const App = () => {
                                         >
                                             <div className="relative">
                                                 {DOCK_LABELS[type].icon}
-                                                {isActive && (
-                                                    <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : 'bg-slate-400'}`} />
-                                                )}
                                             </div>
                                             <span className="text-[10px] font-bold">{DOCK_LABELS[type].label}</span>
+                                            {isActive && (
+                                                <div className={`mt-0.5 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : 'bg-slate-400'}`} />
+                                            )}
                                         </button>
                                     );
                                 })}

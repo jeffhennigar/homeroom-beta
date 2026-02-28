@@ -114,7 +114,7 @@ const DraggableResizable = ({
                 ${isDragging ? 'shadow-2xl z-50 cursor-grabbing' : ''}
                 ${isDockEditMode ? 'animate-wobble pointer-events-none opacity-80' : ''}
                 ${closingWidgetId === id ? 'animate-shrink' : (isMinimized ? '' : 'animate-elastic')}
-                ${isMinimized ? 'opacity-0 scale-50 pointer-events-none translate-y-20' : 'opacity-100 scale-100 pointer-events-auto'}
+                ${isMinimized ? 'opacity-0 scale-[0.2] pointer-events-none translate-y-[20vh] origin-bottom' : 'opacity-100 scale-100 pointer-events-auto origin-bottom'}
                 ${borderClass}
             `}
             style={{

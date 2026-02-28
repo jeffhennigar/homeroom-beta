@@ -284,13 +284,8 @@
         inset 0 0 0 1px rgba(255, 255, 255, 0.2);
     }
 
-    /* Dock Magnification & Reflections */
-    .dock-item-premium {
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
     .dock-item-premium:hover {
-      transform: scale(1.08) translateY(-4px);
+      transform: scale(1.04) translateY(-2px);
     }
 
     .dock-reflection {
@@ -435,8 +430,8 @@
     }
 
     .dock-item-premium:hover .dock-icon-wrapper {
-      transform: translateY(-8px) scale(1.08);
-      filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.15));
+      transform: translateY(-4px) scale(1.04);
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.1));
     }
 
     .dock-reflection {
@@ -3479,7 +3474,7 @@
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
           : 'border-2 border-gray-300';
 
-      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? '' : 'animate-elastic')} ${isMinimized ? 'opacity-0 scale-[0.1] pointer-events-none translate-y-20' : 'opacity-100 scale-100 pointer-events-auto'}`}
+      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? '' : 'animate-elastic')} ${isMinimized ? 'opacity-0 scale-[0.2] pointer-events-none translate-y-[20vh] origin-bottom' : 'opacity-100 scale-100 pointer-events-auto origin-bottom'}`}
         style={{ left: position.x, top: position.y, width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
         {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
@@ -10309,9 +10304,6 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
             {/* Main Icon */}
             <div className={iconClasses}>
               {info.icon}
-              {isActive && (
-                <div className={`absolute -bottom-1 w-[4px] h-[4px] rounded-full ${isMinimizedStatus ? 'bg-indigo-500' : (currentBg?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')} transition-all`} />
-              )}
             </div>
 
             {/* Reflection (Overly Premium) */}
@@ -10323,9 +10315,12 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
               </div>
             )}
 
-            <span className={`transition-all duration-200 group-hover:scale-110 group-hover:translate-y-1 ${isMain ? 'text-[10px] font-bold' : 'text-[9px] font-extrabold'} ${isMain ? (currentBg?.textColor || 'text-slate-700') : 'text-slate-700'}`}>
+            <span className={`transition-all duration-200 group-hover:scale-105 group-hover:-translate-y-0.5 ${isMain ? 'text-[10px] font-bold' : 'text-[9px] font-extrabold'} ${isMain ? (currentBg?.textColor || 'text-slate-700') : 'text-slate-700'}`}>
               {info.label}
             </span>
+            {isActive && (
+              <div className={`mt-0.5 w-[4px] h-[4px] rounded-full ${isMinimizedStatus ? 'bg-indigo-500' : (currentBg?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')} transition-all`} />
+            )}
           </div>
         );
       };
