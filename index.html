@@ -8913,6 +8913,7 @@
     };
 
     const App = () => {
+      const dockClickLockRef = useRef(false);
       const [user, setUser] = useState(null);
       const [isSyncing, setIsSyncing] = useState(false);
       const [lastSyncError, setLastSyncError] = useState(null);
@@ -10020,7 +10021,7 @@
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type];
+        addToHistory(); const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7); const size = WIDGET_SIZES[type];
         let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20);
         if (type === 'GROUP_MAKER') startY -= 70; // 10px lower than before (-80)
         if (type === 'SCHEDULE') startY -= 60;
@@ -10266,8 +10267,30 @@
               if (!isDockLocked) { e.preventDefault(); e.stopPropagation(); handleDockDrop(e, location, id); }
             }}
             onClick={() => {
-              if (!isDockLocked || isDockMinimized) return;
-              addWidget(id);
+              if (!isDockLocked) return;
+              if (isDockMinimized) return;
+
+              if (dockClickLockRef.current) return;
+              dockClickLockRef.current = true;
+              setTimeout(() => { dockClickLockRef.current = false; }, 300);
+
+              const activeWidgets = widgets.filter(w => w.type === id);
+              const selectedWidget = widgets.find(w => String(w.id) === String(selectedId));
+              const isFocused = selectedWidget && selectedWidget.type === id && !selectedWidget.isMinimized;
+
+              if (isFocused) {
+                toggleMinimize(selectedWidget.id);
+              } else {
+                const minimized = activeWidgets.find(w => w.isMinimized);
+                if (minimized) {
+                  toggleMinimize(minimized.id);
+                  bringToFront(minimized.id);
+                } else if (activeWidgets.length > 0) {
+                  bringToFront(activeWidgets[activeWidgets.length - 1].id);
+                } else {
+                  addWidget(id);
+                }
+              }
               if (location === 'drawer') setShowMoreDrawer(false);
             }}
             className={containerClasses}
@@ -10678,7 +10701,10 @@
 
           <div className={`absolute bottom-1 left-0 right-0 z-50 flex flex-col items-center justify-end pointer-events-none transition-opacity duration-500 ${spotlightId ? 'opacity-0 pointer-events-none' : ''}`}>
             <div className={`max-w-6xl mx-4 mb-2 transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-20 opacity-0 scale-95 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
-              <div className={`flex items-center backdrop-blur-2xl rounded-3xl shadow-2xl p-0.5 ring-1 ring-white/50 relative`}>
+              <div
+                className={`flex items-center backdrop-blur-2xl rounded-3xl shadow-2xl p-0.5 ring-1 ring-white/50 relative`}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 <div className="absolute inset-0 bg-white/20 rounded-3xl overflow-hidden -z-10 border border-white/40">
                   <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-white/5 pointer-events-none" />
                 </div>
