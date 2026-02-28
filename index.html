@@ -2955,8 +2955,8 @@
       const { textColor } = extraProps || {};
       const {
         lat, lon, cityName, temperature, feelsLike, weatherCode, windSpeed, humidity, uvIndex,
-        lastFetched, isLoading, error,
-        tempUnit = 'F', windUnit = 'mph', showWind = true, showHumidity = true, showUV = false, showFeelsLike = false
+        lastFetched, isLoading, error, forecast = [],
+        tempUnit = 'F', windUnit = 'mph', showWind = true, showHumidity = true, showUV = false, showFeelsLike = false, showForecast = false
       } = widget.data || {};
 
       const [showSettings, setShowSettings] = useState(false);
@@ -3002,7 +3002,7 @@
         const windParam = wUnit === 'km/h' ? 'kmh' : 'mph';
         updateData(widget.id, { isLoading: true, error: null });
         try {
-          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m,uv_index&temperature_unit=${tempParam}&wind_speed_unit=${windParam}`);
+          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=${tempParam}&wind_speed_unit=${windParam}&forecast_days=3`);
           const data = await res.json();
           if (!data.current) throw new Error('No weather data');
           updateData(widget.id, {
@@ -3013,6 +3013,12 @@
             windSpeed: Math.round(data.current.wind_speed_10m),
             humidity: data.current.relative_humidity_2m,
             uvIndex: Math.round(data.current.uv_index),
+            forecast: data.daily ? data.daily.time.map((t, i) => ({
+              date: t,
+              weatherCode: data.daily.weather_code[i],
+              maxTemp: Math.round(data.daily.temperature_2m_max[i]),
+              minTemp: Math.round(data.daily.temperature_2m_min[i])
+            })) : [],
             lastFetched: Date.now(),
             isLoading: false, error: null
           });
@@ -3025,10 +3031,10 @@
         if (!lat || !lon) return;
         const now = Date.now();
         const elapsed = now - (lastFetched || 0);
-        if (elapsed > 15 * 60 * 1000 || !lastFetched) {
+        if (elapsed > 10 * 60 * 1000 || !lastFetched) {
           fetchWeather(lat, lon, cityName);
         }
-        const interval = setInterval(() => fetchWeather(lat, lon, cityName), 15 * 60 * 1000);
+        const interval = setInterval(() => fetchWeather(lat, lon, cityName), 10 * 60 * 1000);
         return () => clearInterval(interval);
       }, [lat, lon, cityName]);
 
@@ -3083,87 +3089,10 @@
       const isLight = tc === 'text-white';
       const weather = getWeather(weatherCode);
 
-      // Settings panel
-      const SettingsPanel = () => (
-        <div className={`absolute inset-0 z-[10010] flex flex-col p-3 gap-1.5 overflow-y-auto rounded-2xl ${isLight ? 'bg-slate-900/90 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl shadow-xl'}`}
-          onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-1 pt-1">
-            <span className={`font-black text-[10px] uppercase tracking-wider ${isLight ? 'text-white/80' : 'text-slate-500'}`}>Weather Settings</span>
-            <button onClick={() => setShowSettings(false)} className={`p-1.5 rounded-full transition-all active:scale-90 ${isLight ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}>
-              <X size={16} strokeWidth={3} />
-            </button>
-          </div>
-
-          {/* Temperature Unit */}
-          <div className="flex items-center justify-between">
-            <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Temperature</span>
-            <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
-              <button onClick={() => toggleSetting('tempUnit', 'F')}
-                className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'F' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°F</button>
-              <button onClick={() => toggleSetting('tempUnit', 'C')}
-                className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'C' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°C</button>
-            </div>
-          </div>
-
-          {/* Wind Unit */}
-          <div className="flex items-center justify-between">
-            <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Wind Speed</span>
-            <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
-              <button onClick={() => toggleSetting('windUnit', 'mph')}
-                className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'mph' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>mph</button>
-              <button onClick={() => toggleSetting('windUnit', 'km/h')}
-                className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'km/h' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>km/h</button>
-            </div>
-          </div>
-
-          <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
-          <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-300'}`}>Show Details</span>
-
-          {/* Toggles */}
-          {[
-            { key: 'showWind', label: '💨 Wind', value: showWind },
-            { key: 'showHumidity', label: '💧 Humidity', value: showHumidity },
-            { key: 'showFeelsLike', label: '🌡️ Feels Like', value: showFeelsLike },
-            { key: 'showUV', label: '☀️ UV Index', value: showUV }
-          ].map(({ key, label, value }) => (
-            <div key={key} className="flex items-center justify-between">
-              <span className={`text-xs font-medium ${isLight ? 'text-white/70' : 'text-slate-600'}`}>{label}</span>
-              <button onClick={() => toggleSetting(key, !value)}
-                className={`w-9 h-5 rounded-full transition-all relative ${value ? 'bg-blue-500' : (isLight ? 'bg-white/20' : 'bg-slate-200')}`}>
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${value ? 'left-[18px]' : 'left-0.5'}`} />
-              </button>
-            </div>
-          ))}
-
-          <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
-          <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-300'}`}>Location</span>
-
-          {/* City search in settings */}
-          <div className="flex gap-1">
-            <input
-              value={settingsSearchQuery}
-              onChange={(e) => setSettingsSearchQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
-              placeholder="Enter city name..."
-              className={`flex-1 px-2.5 py-1.5 rounded-full text-[11px] outline-none ${isLight ? 'bg-white/15 text-white placeholder-white/40' : 'bg-slate-100 text-slate-800 placeholder-slate-400'}`}
-            />
-            <button
-              onClick={() => { if (settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
-              className={`px-2.5 py-1.5 rounded-full font-bold text-[10px] ${isLight ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}
-            >Go</button>
-          </div>
-
-          <button onClick={() => { setShowSettings(false); detectLocation(); }}
-            className={`py-1.5 rounded-full text-[10px] font-bold transition-all ${isLight ? 'bg-white/10 hover:bg-white/20 text-white/70' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
-            📍 Use My Location
-          </button>
-        </div>
-      );
-
       // Setup screen
       if (!lat && !isLoading) {
         return (
-          <div className="flex flex-col items-center justify-center w-full h-full p-3 gap-2" style={{ containerType: 'size' }}>
+          <div className="flex flex-col items-center justify-center w-full h-full p-3 gap-2 font-sans" style={{ containerType: 'size' }}>
             <div style={{ fontSize: 'min(18cqw, 40cqh)' }}>🌤️</div>
             <div className={`font-bold text-center ${tc} opacity-90`} style={{ fontSize: 'min(5cqw, 12cqh)' }}>Weather</div>
             {error && <div className="text-xs text-red-400 text-center px-2">{error}</div>}
@@ -3207,7 +3136,7 @@
       // Loading screen
       if (isLoading && !temperature) {
         return (
-          <div className="flex flex-col items-center justify-center w-full h-full gap-2" style={{ containerType: 'size' }}>
+          <div className="flex flex-col items-center justify-center w-full h-full gap-2 font-sans" style={{ containerType: 'size' }}>
             <div className="animate-spin" style={{ fontSize: 'min(12cqw, 30cqh)' }}>🌀</div>
             <div className={`font-medium opacity-70 ${tc}`} style={{ fontSize: 'min(4cqw, 10cqh)' }}>Getting weather...</div>
           </div>
@@ -3223,8 +3152,89 @@
 
       // Main display - tight layout
       return (
-        <div className="flex flex-col items-center justify-center w-full h-full select-none cursor-default relative group" style={{ containerType: 'size', padding: '2px 4px' }}>
-          {showSettings && <SettingsPanel />}
+        <div className="flex flex-col items-center justify-center w-full h-full select-none cursor-default relative group overflow-hidden font-sans" style={{ containerType: 'size', padding: '2px 4px' }}>
+          {showSettings && (
+            <div className={`absolute inset-0 z-[10010] flex flex-col p-3 gap-1.5 overflow-y-auto overflow-x-hidden rounded-2xl ${isLight ? 'bg-slate-900/90 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl shadow-xl'}`}
+              onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-1 pt-1">
+                <span className={`font-black text-[10px] uppercase tracking-wider ${isLight ? 'text-white/80' : 'text-slate-500'}`}>Weather Settings</span>
+                <button onClick={() => setShowSettings(false)} className={`p-1.5 rounded-full transition-all active:scale-90 ${isLight ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}>
+                  <X size={16} strokeWidth={3} />
+                </button>
+              </div>
+
+              {/* Temperature Unit */}
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Temperature</span>
+                <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
+                  <button onClick={() => toggleSetting('tempUnit', 'F')}
+                    className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'F' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°F</button>
+                  <button onClick={() => toggleSetting('tempUnit', 'C')}
+                    className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'C' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°C</button>
+                </div>
+              </div>
+
+              {/* Wind Unit */}
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Wind Speed</span>
+                <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
+                  <button onClick={() => toggleSetting('windUnit', 'mph')}
+                    className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'mph' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>mph</button>
+                  <button onClick={() => toggleSetting('windUnit', 'km/h')}
+                    className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'km/h' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>km/h</button>
+                </div>
+              </div>
+
+              <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
+              <div className="flex items-center justify-between">
+                <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Forecast View</span>
+                <button onClick={() => toggleSetting('showForecast', !showForecast)}
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all border ${showForecast ? 'bg-blue-500 text-white border-blue-600' : (isLight ? 'text-white/50 border-white/20' : 'text-slate-400 border-slate-200')}`}> {showForecast ? '3-Day' : 'Today'} </button>
+              </div>
+
+              <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
+              <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Show Details</span>
+
+              {/* Toggles */}
+              {[
+                { key: 'showWind', label: '💨 Wind', value: showWind },
+                { key: 'showHumidity', label: '💧 Humidity', value: showHumidity },
+                { key: 'showFeelsLike', label: '🌡️ Feels Like', value: showFeelsLike },
+                { key: 'showUV', label: '☀️ UV Index', value: showUV }
+              ].map(({ key, label, value }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className={`text-xs font-medium ${isLight ? 'text-white/70' : 'text-slate-600'}`}>{label}</span>
+                  <button onClick={() => toggleSetting(key, !value)}
+                    className={`w-9 h-5 rounded-full transition-all relative ${value ? 'bg-blue-500' : (isLight ? 'bg-white/20' : 'bg-slate-200')}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${value ? 'left-[18px]' : 'left-0.5'}`} />
+                  </button>
+                </div>
+              ))}
+
+              <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
+              <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Location</span>
+
+              {/* City search in settings */}
+              <div className="flex gap-1">
+                <input
+                  value={settingsSearchQuery}
+                  onChange={(e) => setSettingsSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
+                  placeholder="Enter city name..."
+                  className={`flex-1 px-2.5 py-1.5 rounded-full text-[11px] outline-none ${isLight ? 'bg-white/15 text-white placeholder-white/40' : 'bg-slate-100 text-slate-800 placeholder-slate-400'}`}
+                />
+                <button
+                  onClick={() => { if (settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
+                  className={`px-2.5 py-1.5 rounded-full font-bold text-[10px] ${isLight ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}
+                >Go</button>
+              </div>
+
+              <button onClick={() => { setShowSettings(false); detectLocation(); }}
+                className={`py-1.5 rounded-full text-[10px] font-bold transition-all ${isLight ? 'bg-white/10 hover:bg-white/20 text-white/70' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
+                📍 Use My Location
+              </button>
+            </div>
+          )}
 
           {/* City name */}
           <div className={`font-medium tracking-wide uppercase opacity-60 ${tc} drop-shadow-sm truncate max-w-full`}
@@ -3232,31 +3242,59 @@
             {cityName || 'Weather'}
           </div>
 
-          {/* Weather emoji */}
-          <div className="relative leading-none" style={{ fontSize: 'min(24cqw, 42cqh)' }}>
-            <span className="drop-shadow-lg" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))' }}>{weather.emoji}</span>
-          </div>
+          {!showForecast ? (
+            <>
+              {/* Weather emoji */}
+              <div className="relative leading-none" style={{ fontSize: 'min(24cqw, 42cqh)' }}>
+                <span className="drop-shadow-lg" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))' }}>{weather.emoji}</span>
+              </div>
 
-          {/* Temperature */}
-          <div className={`font-black tracking-tight ${tc} drop-shadow-md leading-none`}
-            style={{ fontSize: 'min(18cqw, 36cqh)' }}>
-            {temperature}°{tempUnit}
-          </div>
+              {/* Temperature */}
+              <div className={`font-black tracking-tight ${tc} drop-shadow-md leading-none`}
+                style={{ fontSize: 'min(18cqw, 36cqh)' }}>
+                {temperature}°{tempUnit}
+              </div>
 
-          {/* Condition label */}
-          <div className={`font-semibold opacity-75 ${tc} drop-shadow-sm`}
-            style={{ fontSize: 'min(4.5cqw, 9cqh)' }}>
-            {weather.label}
-          </div>
+              {/* Condition label */}
+              <div className={`font-semibold opacity-75 ${tc} drop-shadow-sm`}
+                style={{ fontSize: 'min(4.5cqw, 9cqh)' }}>
+                {weather.label}
+              </div>
 
-          {/* Details row */}
-          {details.length > 0 && (
-            <div className="flex gap-2 items-center flex-wrap justify-center" style={{ marginTop: '1px' }}>
-              {details.map((d, i) => (
-                <div key={i} className={`flex items-center gap-0.5 opacity-60 ${tc}`} style={{ fontSize: 'min(3.2cqw, 7cqh)' }}>
-                  {d.icon} {d.value}
+              {/* Details row */}
+              {details.length > 0 && (
+                <div className="flex gap-2 items-center flex-wrap justify-center" style={{ marginTop: '1px' }}>
+                  {details.map((d, i) => (
+                    <div key={i} className={`flex items-center gap-0.5 opacity-60 ${tc}`} style={{ fontSize: 'min(3.2cqw, 7cqh)' }}>
+                      {d.icon} {d.value}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center w-full gap-1 mt-1">
+              <div className="flex items-center font-bold" style={{ fontSize: 'min(8cqw, 16cqh)' }}>
+                <span className="mr-1">{weather.emoji}</span>
+                <span className={tc}>{temperature}°{tempUnit}</span>
+              </div>
+              <div className="flex w-full gap-1 justify-center">
+                {forecast.map((d, i) => {
+                  const date = new Date(d.date);
+                  const dayName = i === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
+                  const dayWeather = getWeather(d.weatherCode);
+                  return (
+                    <div key={i} className={`flex flex-col items-center p-1 rounded-lg ${isLight ? 'bg-white/10' : 'bg-slate-50'} min-w-[30%]`} style={{ transition: 'all 0.2s' }}>
+                      <span className={`font-bold uppercase opacity-50 ${tc}`} style={{ fontSize: 'min(2.5cqw, 5cqh)' }}>{dayName}</span>
+                      <span style={{ fontSize: 'min(7cqw, 14cqh)' }}>{dayWeather.emoji}</span>
+                      <div className="flex gap-1 font-bold" style={{ fontSize: 'min(3cqw, 6cqh)' }}>
+                        <span className={tc}>{d.maxTemp}°</span>
+                        <span className="opacity-40">{d.minTemp}°</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
