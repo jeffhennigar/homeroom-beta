@@ -114,13 +114,14 @@ const DraggableResizable = ({
                 ${isDragging ? 'shadow-2xl z-50 cursor-grabbing' : ''}
                 ${isDockEditMode ? 'animate-wobble pointer-events-none opacity-80' : ''}
                 ${closingWidgetId === id ? 'animate-shrink' : 'animate-elastic'}
+                ${isMinimized ? 'opacity-0 scale-[0.1] pointer-events-none translate-y-20' : 'opacity-100 scale-100 pointer-events-auto'}
                 ${borderClass}
             `}
             style={{
                 left: position.x,
                 top: position.y,
                 width: size.width,
-                height: isMinimized ? 'auto' : size.height,
+                height: size.height,
                 zIndex: isDragging ? 9999 : zIndex,
                 touchAction: 'none',
                 ...containerStyle
@@ -167,31 +168,29 @@ const DraggableResizable = ({
             )}
 
             {/* Content */}
-            {!isMinimized && (
-                <div className={`flex-1 min-h-0 relative ${chromeless ? '' : 'overflow-hidden'}`} style={chromeless ? { overflow: 'visible' } : {}}>
-                    {children}
+            <div className={`flex-1 min-h-0 relative ${chromeless ? '' : 'overflow-hidden'}`} style={chromeless ? { overflow: 'visible' } : {}}>
+                {children}
 
-                    {/* Chromeless Drag Handle */}
-                    {chromeless && isSelected && (
-                        <div className="absolute -top-8 right-0 flex gap-1 z-50 animate-in fade-in slide-in-from-bottom-2">
-                            <button onMouseDown={handleMouseDown} className="p-1.5 bg-white shadow-md rounded-lg text-slate-500 hover:text-blue-600 cursor-move" title="Drag"><GripVertical size={16} /></button>
-                            <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1.5 bg-white shadow-md rounded-lg text-red-400 hover:text-red-600" title="Delete"><X size={16} /></button>
-                        </div>
-                    )}
+                {/* Chromeless Drag Handle */}
+                {chromeless && isSelected && (
+                    <div className="absolute -top-8 right-0 flex gap-1 z-50 animate-in fade-in slide-in-from-bottom-2">
+                        <button onMouseDown={handleMouseDown} className="p-1.5 bg-white shadow-md rounded-lg text-slate-500 hover:text-blue-600 cursor-move" title="Drag"><GripVertical size={16} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1.5 bg-white shadow-md rounded-lg text-red-400 hover:text-red-600" title="Delete"><X size={16} /></button>
+                    </div>
+                )}
 
-                    {/* Resize Handle */}
-                    {(!locked) && (
-                        <div
-                            className={`absolute bottom-0 right-0 w-8 h-8 cursor-nwse-resize z-20 flex items-end justify-end p-1 transition-opacity
-                                ${chromeless ? (isSelected ? 'opacity-100' : 'opacity-0 hover:opacity-100') : 'opacity-0 hover:opacity-100 bg-gradient-to-tl from-gray-100 to-transparent'}
-                            `}
-                            onMouseDown={handleResizeDown}
-                        >
-                            <Maximize2 size={16} className={`${chromeless ? 'text-blue-400' : 'text-gray-400'} transform rotate-90`} />
-                        </div>
-                    )}
-                </div>
-            )}
+                {/* Resize Handle */}
+                {(!locked) && (
+                    <div
+                        className={`absolute bottom-0 right-0 w-8 h-8 cursor-nwse-resize z-20 flex items-end justify-end p-1 transition-opacity
+                            ${chromeless ? (isSelected ? 'opacity-100' : 'opacity-0 hover:opacity-100') : 'opacity-0 hover:opacity-100 bg-gradient-to-tl from-gray-100 to-transparent'}
+                        `}
+                        onMouseDown={handleResizeDown}
+                    >
+                        <Maximize2 size={16} className={`${chromeless ? 'text-blue-400' : 'text-gray-400'} transform rotate-90`} />
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

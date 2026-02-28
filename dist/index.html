@@ -3452,7 +3452,7 @@
         };
       }, [isDragging, isResizing, id, isGridEnabled, resizeDirection]);
 
-      const displayHeight = isMinimized ? HEADER_HEIGHT : size.height;
+      const displayHeight = size.height; // True Minimize doesn't resize the height
       const widgetLabel = WIDGET_TYPE_LABELS[widgetType] || widgetType || '';
       const computedZIndex = isSpotlighted ? 10000 : (isSelected ? 9997 : (zIndex + 100));
       const containerStyle = {
@@ -3479,17 +3479,18 @@
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
           : 'border-2 border-gray-300';
 
-      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} pointer-events-auto ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : 'animate-elastic'}`}
+      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : 'animate-elastic'} ${isMinimized ? 'opacity-0 scale-[0.1] pointer-events-none translate-y-20' : 'opacity-100 scale-100 pointer-events-auto'}`}
         style={{ left: position.x, top: position.y, width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
         {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
           <div className="flex items-center gap-1 z-10">
             {onFontSizeChange && (<><button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(-2); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"><Minus size={14} strokeWidth={3} /></button> <button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(2); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"><Plus size={14} strokeWidth={3} /></button></>)}
           </div>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{isMinimized ? <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{widgetLabel}</span> : <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto" />}</div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto" /></div>
           <div className="flex items-center gap-1 z-10">
             {onSpotlight && (<button onClick={(e) => { e.stopPropagation(); onSpotlight(id); }} className={`p-1 rounded transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Spotlight"> <Lightbulb size={14} /> </button>)}
-            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title={isMinimized ? "Restore" : "Minimize"}> <span className="font-bold text-sm leading-none">{isMinimized ? '+' : '−'}</span> </button>)}
+            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id); }} className="p-1 text-gray-400
+hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize"> <span className="font-bold text-sm leading-none">−</span> </button>)}
             <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> </button>
           </div>
         </div>}
@@ -8914,6 +8915,7 @@
     };
 
     const App = () => {
+      const dockClickLockRef = useRef(false);
       const [user, setUser] = useState(null);
       const [isSyncing, setIsSyncing] = useState(false);
       const [lastSyncError, setLastSyncError] = useState(null);
@@ -10021,7 +10023,7 @@
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString(); const size = WIDGET_SIZES[type];
+        addToHistory(); const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7); const size = WIDGET_SIZES[type];
         let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20);
         if (type === 'GROUP_MAKER') startY -= 70; // 10px lower than before (-80)
         if (type === 'SCHEDULE') startY -= 60;
@@ -10240,11 +10242,17 @@
               ${!isDockLocked ? 'hover:bg-blue-50 border-2 border-dashed border-blue-300' : 'hover:bg-white/50 border-2 border-transparent'}`
           : `flex flex-col items-center gap-0 px-1 py-1 rounded-lg transition-all cursor-pointer group hover:bg-black/5`;
 
-        const iconClasses = `flex items-center justify-center rounded-xl transition-all dock-icon-wrapper dock-animate-hover ${!isDockLocked
+        const activeInstances = widgets.filter(w => w.type === id);
+        const isActive = activeInstances.length > 0;
+        const isMinimizedStatus = activeInstances.some(w => w.isMinimized);
+
+        const iconClasses = `flex flex-col items-center justify-center rounded-xl transition-all dock-icon-wrapper dock-animate-hover relative ${!isDockLocked
           ? 'bg-blue-100 text-slate-600'
-          : (isMain
-            ? (currentBg?.textColor === 'text-white' ? 'bg-black/20 backdrop-blur-sm text-white shadow-sm' : 'bg-white/80 text-slate-700 shadow-sm')
-            : 'bg-white/80 text-slate-600 shadow-sm shadow-black/5')
+          : isMinimizedStatus
+            ? 'bg-indigo-100 border border-indigo-200 text-indigo-600 shadow-inner'
+            : (isMain
+              ? (currentBg?.textColor === 'text-white' ? 'bg-black/20 backdrop-blur-sm text-white shadow-sm' : 'bg-white/80 text-slate-700 shadow-sm')
+              : 'bg-white/80 text-slate-600 shadow-sm shadow-black/5')
           } ${isMain ? 'w-12 h-12' : 'w-10 h-10'}`;
 
         return (
@@ -10267,8 +10275,30 @@
               if (!isDockLocked) { e.preventDefault(); e.stopPropagation(); handleDockDrop(e, location, id); }
             }}
             onClick={() => {
-              if (!isDockLocked || isDockMinimized) return;
-              addWidget(id);
+              if (!isDockLocked) return;
+              if (isDockMinimized) return;
+
+              if (dockClickLockRef.current) return;
+              dockClickLockRef.current = true;
+              setTimeout(() => { dockClickLockRef.current = false; }, 300);
+
+              const activeWidgets = widgets.filter(w => w.type === id);
+              const selectedWidget = widgets.find(w => String(w.id) === String(selectedId));
+              const isFocused = selectedWidget && selectedWidget.type === id && !selectedWidget.isMinimized;
+
+              if (isFocused) {
+                toggleMinimize(selectedWidget.id);
+              } else {
+                const minimized = activeWidgets.find(w => w.isMinimized);
+                if (minimized) {
+                  toggleMinimize(minimized.id);
+                  bringToFront(minimized.id);
+                } else if (activeWidgets.length > 0) {
+                  bringToFront(activeWidgets[activeWidgets.length - 1].id);
+                } else {
+                  addWidget(id);
+                }
+              }
               if (location === 'drawer') setShowMoreDrawer(false);
             }}
             className={containerClasses}
@@ -10279,6 +10309,9 @@
             {/* Main Icon */}
             <div className={iconClasses}>
               {info.icon}
+              {isActive && (
+                <div className={`absolute -bottom-1 w-[4px] h-[4px] rounded-full ${isMinimizedStatus ? 'bg-indigo-500' : (currentBg?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')} transition-all`} />
+              )}
             </div>
 
             {/* Reflection (Overly Premium) */}
@@ -10679,7 +10712,10 @@
 
           <div className={`absolute bottom-1 left-0 right-0 z-50 flex flex-col items-center justify-end pointer-events-none transition-opacity duration-500 ${spotlightId ? 'opacity-0 pointer-events-none' : ''}`}>
             <div className={`max-w-6xl mx-4 mb-2 transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-20 opacity-0 scale-95 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
-              <div className={`flex items-center backdrop-blur-2xl rounded-3xl shadow-2xl p-0.5 ring-1 ring-white/50 relative`}>
+              <div
+                className={`flex items-center backdrop-blur-2xl rounded-3xl shadow-2xl p-0.5 ring-1 ring-white/50 relative`}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 <div className="absolute inset-0 bg-white/20 rounded-3xl overflow-hidden -z-10 border border-white/40">
                   <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-white/5 pointer-events-none" />
                 </div>
