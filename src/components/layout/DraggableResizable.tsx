@@ -196,7 +196,7 @@ const DraggableResizable = ({
                             </button>
                         )}
                         <button
-                            onClick={() => onRemove(id)}
+                            onClick={(e) => { e.stopPropagation(); onRemove(id); }}
                             className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                             title="Close"
                         >
@@ -214,15 +214,6 @@ const DraggableResizable = ({
                 {chromeless && (
                     <div className={`absolute top-2 right-2 flex gap-1 z-50 transition-opacity duration-200 ${isSelected || isHovered ? 'opacity-100' : 'opacity-0'}`}>
                         <div className="flex bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200 p-0.5 pointer-events-auto">
-                            {onMinimizeToggle && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }}
-                                    className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                                    title="Minimize"
-                                >
-                                    <Minus size={14} />
-                                </button>
-                            )}
                             {onSettings && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onSettings(id); }}
@@ -230,6 +221,15 @@ const DraggableResizable = ({
                                     title="Settings"
                                 >
                                     <Settings size={14} />
+                                </button>
+                            )}
+                            {onMinimizeToggle && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }}
+                                    className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                    title="Minimize"
+                                >
+                                    <Minus size={14} />
                                 </button>
                             )}
                             <button

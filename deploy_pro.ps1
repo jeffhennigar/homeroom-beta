@@ -21,5 +21,8 @@ Set-Location $deployDir
 git add .
 git commit -m "Deploy: Sync from source"
 
-Write-Host "Deployment Complete!" -ForegroundColor Green
-Write-Host "You can now push these changes using: git push" -ForegroundColor Gray
+# 4. Push to Remote
+Write-Host "Pushing to GitHub..."
+git push
+
+Write-Host "Deployment and Push Complete!" -ForegroundColor Green
