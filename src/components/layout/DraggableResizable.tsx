@@ -7,7 +7,9 @@ const DraggableResizable = ({
     children, title, icon, onRemove,
     minWidth = 200, minHeight = 150,
     locked = false, isMinimized = false, isTransparent = false, isDockEditMode = false,
-    chromeless = false, isSelected = false, closingWidgetId = null
+    chromeless = false, isSelected = false, closingWidgetId = null,
+    onMinimizeToggle = null,
+    ...props
 }) => {
     const nodeRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -109,6 +111,7 @@ const DraggableResizable = ({
         <div
             ref={nodeRef}
             onMouseDown={onFocus}
+            data-widget-id={id}
             className={`absolute flex flex-col pointer-events-auto transition-all duration-200 border
                 ${chromeless ? '' : 'bg-white rounded-xl shadow-xl border-2 overflow-hidden'}
                 ${isDragging ? 'shadow-2xl z-50 cursor-grabbing' : ''}
@@ -151,7 +154,13 @@ const DraggableResizable = ({
                         {!locked && (
                             <>
                                 <button
-                                    onClick={() => onUpdate(id, { isMinimized: !isMinimized })}
+                                    onClick={(e) => {
+                                        if (onMinimizeToggle) {
+                                            onMinimizeToggle(id, e);
+                                        } else {
+                                            onUpdate(id, { isMinimized: !isMinimized });
+                                        }
+                                    }}
                                     className="p-1 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                                 >
                                     {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}

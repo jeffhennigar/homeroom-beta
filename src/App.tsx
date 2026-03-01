@@ -716,11 +716,31 @@ const App = () => {
         bringToFront(id);
     };
 
-    const toggleMinimize = useCallback((id) => {
-        setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, isMinimized: !w.data?.isMinimized } } : w));
-    }, []);
+    const toggleMinimize = useCallback((id, e = null) => {
+        const widget = widgets.find(w => w.id === id);
+        let targetRect = null;
 
-    const handleDockClick = (id, location = 'main') => {
+        if (e) {
+            targetRect = e.currentTarget.getBoundingClientRect();
+        } else if (widget) {
+            // Find the dock icon for this type
+            const dockIcon = document.querySelector(`[data-dock-type="${widget.type}"]`);
+            if (dockIcon) targetRect = dockIcon.getBoundingClientRect();
+        }
+
+        if (targetRect) {
+            const centerX = targetRect.left + targetRect.width / 2;
+            const centerY = targetRect.top + targetRect.height / 2;
+            const el = document.querySelector(`[data-widget-id="${id}"]`) as HTMLElement;
+            if (el) {
+                el.style.setProperty('--dock-x', `${centerX}px`);
+                el.style.setProperty('--dock-y', `${centerY}px`);
+            }
+        }
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, isMinimized: !w.data?.isMinimized } } : w));
+    }, [widgets]);
+
+    const handleDockClick = (id, location = 'main', e = null) => {
         if (isDockMinimized) return;
 
         if (dockClickLockRef.current) return;
@@ -739,11 +759,11 @@ const App = () => {
 
         if (isFocused) {
             const focusedWidget = activeWidgets.find(w => (zIndices[w.id] || 10) === highestZ && !w.isMinimized);
-            if (focusedWidget) toggleMinimize(focusedWidget.id);
+            if (focusedWidget) toggleMinimize(focusedWidget.id, e);
         } else {
             const minimized = activeWidgets.find(w => w.isMinimized);
             if (minimized) {
-                toggleMinimize(minimized.id);
+                toggleMinimize(minimized.id, e);
                 bringToFront(minimized.id);
             } else if (activeWidgets.length > 0) {
                 // Focus the most recently added or highest Z one
@@ -829,6 +849,7 @@ const App = () => {
                 <DraggableResizable
                     key={w.id}
                     id={w.id}
+                    data-widget-id={w.id}
                     title={w.data?.title || DOCK_LABELS[w.type]?.label || w.type}
                     icon={DOCK_LABELS[w.type]?.icon}
                     position={{ x: w.x, y: w.y }}
@@ -987,7 +1008,8 @@ const App = () => {
                         return (
                             <button
                                 key={type}
-                                onClick={() => handleDockClick(type, 'main')}
+                                data-dock-type={type}
+                                onClick={(e) => handleDockClick(type, 'main', e)}
                                 draggable={!isDockMinimized}
                                 onDragStart={(e) => { e.currentTarget.classList.add('scale-105'); }}
                                 onDragEnd={(e) => { e.currentTarget.classList.remove('scale-105'); }}
@@ -1034,7 +1056,8 @@ const App = () => {
                                     return (
                                         <button
                                             key={type}
-                                            onClick={() => handleDockClick(type, 'drawer')}
+                                            data-dock-type={type}
+                                            onClick={(e) => handleDockClick(type, 'drawer', e)}
                                             className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative ${isMinimizedStatus ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
                                         >
                                             <div className="relative">

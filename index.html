@@ -234,9 +234,9 @@
       }
 
       100% {
-        top: calc(100vh - 60px);
-        left: 50%;
-        transform: translate(-50%, 20px) scale(0);
+        top: var(--dock-y, calc(100vh - 60px));
+        left: var(--dock-x, 50%);
+        transform: translate(-50%, -50%) scale(0);
         opacity: 0;
       }
     }
@@ -252,9 +252,9 @@
     /* Premium sync: elastic-pop for widget launch */
     @keyframes elastic-pop {
       0% {
-        top: calc(100vh - 60px);
-        left: 50%;
-        transform: translate(-50%, 20px) scale(0);
+        top: var(--dock-y, calc(100vh - 60px));
+        left: var(--dock-x, 50%);
+        transform: translate(-50%, -50%) scale(0);
         opacity: 0;
       }
 
@@ -3490,7 +3490,7 @@
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
           : 'border-2 border-gray-300';
 
-      return (<div className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition duration-500'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? 'animate-minimize' : 'animate-elastic')} ${isMinimized ? 'pointer-events-none' : 'pointer-events-auto'}`}
+      return (<div data-widget-id={id} className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition duration-500'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? 'animate-minimize' : 'animate-elastic')} ${isMinimized ? 'pointer-events-none' : 'pointer-events-auto'}`}
         style={{ left: position.x, top: position.y, transform: 'translate(0px, 0px)', width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
         {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
@@ -3500,7 +3500,7 @@
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto" /></div>
           <div className="flex items-center gap-1 z-10">
             {onSpotlight && (<button onClick={(e) => { e.stopPropagation(); onSpotlight(id); }} className={`p-1 rounded transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Spotlight"> <Lightbulb size={14} /> </button>)}
-            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id); }} className="p-1 text-gray-400
+            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }} className="p-1 text-gray-400
 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize"> <span className="font-bold text-sm leading-none">−</span> </button>)}
             <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> </button>
           </div>
@@ -10136,7 +10136,29 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
           return nextZ;
         });
       };
-      const toggleMinimize = useCallback((id) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, isMinimized: !w.isMinimized } : w)); }, [setWidgets]);
+      const toggleMinimize = useCallback((id, e = null) => {
+        const widget = widgets.find(w => w.id === id);
+        let targetRect = null;
+
+        if (e) {
+          targetRect = e.currentTarget.getBoundingClientRect();
+        } else if (widget) {
+          // Find the dock icon for this type
+          const dockIcon = document.querySelector(`[data-dock-type="${widget.type}"]`);
+          if (dockIcon) targetRect = dockIcon.getBoundingClientRect();
+        }
+
+        if (targetRect) {
+          const centerX = targetRect.left + targetRect.width / 2;
+          const centerY = targetRect.top + targetRect.height / 2;
+          const el = document.querySelector(`[data-widget-id="${id}"]`);
+          if (el) {
+            el.style.setProperty('--dock-x', `${centerX}px`);
+            el.style.setProperty('--dock-y', `${centerY}px`);
+          }
+        }
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, isMinimized: !w.isMinimized } : w));
+      }, [setWidgets, widgets]);
       const toggleSpotlight = useCallback((id) => { setSpotlightId(prev => prev === id ? null : id); }, []);
       const nextSlide = () => {
         if (slideTransition) return;
@@ -10269,6 +10291,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
         return (
           <div
             key={id}
+            data-dock-type={id}
             draggable={!isDockLocked}
             onDragStart={(e) => {
               e.dataTransfer.setData('widgetType', id);
@@ -10305,11 +10328,11 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
 
               if (isFocused) {
                 const focusedWidget = activeWidgets.find(w => (w.zIndex || 10) === highestZ && !w.isMinimized);
-                if (focusedWidget) toggleMinimize(focusedWidget.id);
+                if (focusedWidget) toggleMinimize(focusedWidget.id, e);
               } else {
                 const minimized = activeWidgets.find(w => w.isMinimized);
                 if (minimized) {
-                  toggleMinimize(minimized.id);
+                  toggleMinimize(minimized.id, e);
                   bringToFront(minimized.id);
                 } else if (activeWidgets.length > 0) {
                   bringToFront(activeWidgets[activeWidgets.length - 1].id);

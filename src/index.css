@@ -29,9 +29,9 @@ body {
 /* Premium Animations */
 @keyframes elastic-pop {
   0% {
-    top: calc(100vh - 60px);
-    left: 50%;
-    transform: translate(-50%, 20px) scale(0);
+    top: var(--dock-y, calc(100vh - 60px));
+    left: var(--dock-x, 50%);
+    transform: translate(-50%, -50%) scale(0);
     opacity: 0;
   }
 
@@ -50,9 +50,9 @@ body {
   }
 
   100% {
-    top: calc(100vh - 60px);
-    left: 50%;
-    transform: translate(-50%, 20px) scale(0);
+    top: var(--dock-y, calc(100vh - 60px));
+    left: var(--dock-x, 50%);
+    transform: translate(-50%, -50%) scale(0);
     opacity: 0;
   }
 }
