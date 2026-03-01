@@ -3397,7 +3397,7 @@
     const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'Exit Ticket', SPARK: 'Spark', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
 
     // --- UTILS ---
-    const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass, isClosing = false }) => {
+    const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass, isClosing = false, title }) => {
       const [isDragging, setIsDragging] = useState(false);
       const [isResizing, setIsResizing] = useState(false);
       const [resizeDirection, setResizeDirection] = useState(null);
@@ -3558,7 +3558,7 @@
           >
             {/* Left Header Info */}
             <div className="flex items-center gap-2 text-slate-700 overflow-hidden pointer-events-none">
-              <span className="font-bold text-xs truncate ml-1">{widgetLabel}</span>
+              <span className="font-bold text-xs truncate ml-1">{title || widgetLabel}</span>
             </div>
 
             {/* Right Header Tools (Aligned from left to right: Spotlight, Transparency, Settings, Minimize, Close) */}
@@ -10456,6 +10456,8 @@
 
               // Shift click always adds a new instance
               if (e.shiftKey) {
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
                 addWidget(id);
                 if (location === 'drawer') setShowMoreDrawer(false);
                 return;
@@ -10877,6 +10879,7 @@
                         isSpotlighted={spotlightId === w.id}
                         isGridEnabled={isGridEnabled}
                         widgetType={w.type}
+                        title={w.data?.title}
                         onSelect={bringToFront}
                         onUpdate={updateWidgetLayout}
                         onRemove={removeWidget}

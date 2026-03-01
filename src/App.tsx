@@ -705,15 +705,12 @@ const App = () => {
     }, [roster]);
 
     const addWidget = (type) => {
-        if (isDockMinimized) return; // Fix: Prevent click when minimized
+        if (isDockMinimized) return;
         const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
         const defaults = WIDGET_SIZES[type] || { width: 300, height: 300 };
 
-        const existingCount = widgets.filter(w => w.type === type).length;
-        const title = existingCount > 0 ? `${DOCK_LABELS[type].label} ${existingCount + 1}` : undefined;
-
-        // Center logic
-        let x = Math.max(0, window.innerWidth / 2 - defaults.width / 2 + (Math.random() * 40 - 20));
+        // Center logic (use latest available window metrics)
+        const x = Math.max(0, window.innerWidth / 2 - defaults.width / 2 + (Math.random() * 40 - 20));
         let y = Math.max(0, window.innerHeight / 2 - defaults.height / 2 + (Math.random() * 40 - 20));
 
         if (type === 'DRAWING') y -= 80;
@@ -721,7 +718,13 @@ const App = () => {
         if (type === 'COUNTDOWN') y -= 50;
         if (type === 'SPARK') y -= 40;
 
-        setWidgets([...widgets, { id, type, x, y, width: defaults.width, height: defaults.height, data: title ? { title } : {} }]);
+        setWidgets(prev => {
+            const existingCount = prev.filter(w => w.type === type).length;
+            const title = existingCount > 0 ? `${DOCK_LABELS[type]?.label || type} ${existingCount + 1}` : undefined;
+            const newWidget = { id, type, x, y, width: defaults.width, height: defaults.height, data: title ? { title } : {} };
+            return [...prev, newWidget];
+        });
+
         bringToFront(id);
     };
 
@@ -766,6 +769,8 @@ const App = () => {
 
         // Shift click always adds a new instance
         if (e && e.shiftKey) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
             addWidget(id);
             if (location === 'drawer') setShowMoreDrawer(false);
             return;
@@ -813,8 +818,11 @@ const App = () => {
     };
 
     const bringToFront = (id) => {
-        setMaxZ(prev => prev + 1);
-        setZIndices(prev => ({ ...prev, [id]: maxZ + 1 }));
+        setMaxZ(prev => {
+            const nextZ = prev + 1;
+            setZIndices(prevIndices => ({ ...prevIndices, [id]: nextZ }));
+            return nextZ;
+        });
     };
 
     const updateRoster = (newRoster) => setRoster(newRoster);
