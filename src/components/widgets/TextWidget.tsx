@@ -15,11 +15,11 @@ const TextWidget = ({ widget, updateData }) => {
     const [focusId, setFocusId] = useState(null);
 
     const COLORS = {
-        yellow: { bg: 'bg-yellow-100', header: 'bg-yellow-100', text: 'text-yellow-900', border: 'border-yellow-300' },
-        blue: { bg: 'bg-blue-50', header: 'bg-blue-100', text: 'text-blue-900', border: 'border-blue-300' },
-        green: { bg: 'bg-green-50', header: 'bg-green-100', text: 'text-green-900', border: 'border-green-300' },
-        pink: { bg: 'bg-pink-50', header: 'bg-pink-100', text: 'text-pink-900', border: 'border-pink-300' },
-        purple: { bg: 'bg-purple-50', header: 'bg-purple-100', text: 'text-purple-900', border: 'border-purple-300' }
+        yellow: { bg: 'bg-amber-100', header: 'bg-amber-200', text: 'text-amber-900', border: 'border-amber-300' },
+        blue: { bg: 'bg-sky-100', header: 'bg-sky-200', text: 'text-sky-900', border: 'border-sky-300' },
+        green: { bg: 'bg-emerald-100', header: 'bg-emerald-200', text: 'text-emerald-900', border: 'border-emerald-300' },
+        pink: { bg: 'bg-rose-100', header: 'bg-rose-200', text: 'text-rose-900', border: 'border-rose-300' },
+        slate: { bg: 'bg-slate-200', header: 'bg-slate-300', text: 'text-slate-900', border: 'border-slate-400' }
     };
     const theme = COLORS[color] || COLORS.yellow;
 

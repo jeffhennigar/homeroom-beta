@@ -726,8 +726,14 @@ const App = () => {
 
         if (dockIcon) {
             targetRect = dockIcon.getBoundingClientRect();
-        } else if (e) {
-            targetRect = e.currentTarget.getBoundingClientRect();
+        } else {
+            // Fallback to "More" button if icon is in closed drawer
+            const moreButton = document.querySelector('[data-dock-more="true"]');
+            if (moreButton) {
+                targetRect = moreButton.getBoundingClientRect();
+            } else if (e) {
+                targetRect = e.currentTarget.getBoundingClientRect();
+            }
         }
 
         if (targetRect) {
@@ -1027,6 +1033,7 @@ const App = () => {
                     <div className="relative" ref={drawerRef}>
                         <button
                             onClick={() => setShowMoreDrawer(!showMoreDrawer)}
+                            data-dock-more="true"
                             className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}
                             title="More Tools"
                         >

@@ -10146,8 +10146,14 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
 
         if (dockIcon) {
           targetRect = dockIcon.getBoundingClientRect();
-        } else if (e) {
-          targetRect = e.currentTarget.getBoundingClientRect();
+        } else {
+          // Fallback to "More" button if icon is in closed drawer
+          const moreButton = document.querySelector('[data-dock-more="true"]');
+          if (moreButton) {
+            targetRect = moreButton.getBoundingClientRect();
+          } else if (e) {
+            targetRect = e.currentTarget.getBoundingClientRect();
+          }
         }
 
         if (targetRect) {
@@ -10790,6 +10796,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
                         setShowMoreDrawer(true);
                       }
                     }}
+                    data-dock-more="true"
                     onDrop={(e) => {
                       if (!isDockLocked) {
                         e.preventDefault();
