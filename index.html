@@ -3550,57 +3550,25 @@
       return (<div data-widget-id={id} className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition duration-500'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? 'animate-minimize' : 'animate-elastic')} ${isMinimized ? 'pointer-events-none' : 'pointer-events-auto'}`}
         style={{ left: position.x, top: position.y, transform: 'translate(0px, 0px)', width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
-        {/* Floating Action Bar (Reverted to Hover-Only) */}
-        {!chromeless && (
-          <div className="absolute -top-4 right-2 z-50 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
-            {onFontSizeChange && (
-              <>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(-2); }}
-                  className="p-1.5 bg-white text-slate-400 shadow-md hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-                  title="Decrease Font Size"
-                >
-                  <Minus size={14} strokeWidth={3} />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(2); }}
-                  className="p-1.5 bg-white text-slate-400 shadow-md hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-                  title="Increase Font Size"
-                >
-                  <Plus size={14} strokeWidth={3} />
-                </button>
-              </>
-            )}
-
-            {onSpotlight && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onSpotlight(id); }}
-                className={`p-1.5 shadow-md rounded-full transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-slate-400 bg-white hover:text-yellow-500 hover:bg-yellow-50'}`}
-                title="Spotlight"
-              >
-                <Lightbulb size={14} />
-              </button>
-            )}
-
-            {onMinimizeToggle && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }}
-                className="p-1.5 bg-white text-slate-400 shadow-md hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors flex items-center justify-center min-w-[28px] min-h-[28px]"
-                title={isMinimized ? "Restore" : "Minimize"}
-              >
-                {isMinimized ? <span className="font-bold text-sm leading-none">+</span> : <Minus size={14} />}
-              </button>
-            )}
-
-            <button
-              onClick={(e) => { e.stopPropagation(); onRemove(id); }}
-              className="p-1.5 bg-white text-slate-400 shadow-md hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-              title="Close"
-            >
-              <X size={14} />
-            </button>
+        {/* Restored Structural Header */}
+        {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-xl' : 'rounded-t-xl'}`} onMouseDown={handleMouseDown}>
+          {/* Left tools (Font sizing config, etc) */}
+          <div className={`flex items-center gap-1 z-10 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            {onFontSizeChange && (<><button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(-2); }} className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-md transition-colors"><Minus size={14} strokeWidth={3} /></button> <button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(2); }} className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-md transition-colors"><Plus size={14} strokeWidth={3} /></button></>)}
           </div>
-        )}
+
+          {/* Center Drag Handle Indicator */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{isMinimized ? <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{widgetLabel}</span> : <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto cursor-ns-resize" />}</div>
+
+          {/* Right Header Tools (Aligned from right to left as requested) */}
+          <div className={`flex items-center gap-1 z-10 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            {onSpotlight && (<button onClick={(e) => { e.stopPropagation(); onSpotlight(id); }} className={`p-1 w-7 h-7 flex flex-col items-center justify-center rounded-md transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Spotlight"> <Lightbulb size={14} /> </button>)}
+            {onToggleGlass && (<button onClick={(e) => { e.stopPropagation(); onToggleGlass(); }} className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors" title="Toggle Transparency"> <WindowIcon size={14} /> </button>)}
+            {onSettings && (<button onClick={(e) => { e.stopPropagation(); onSettings(id); }} className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors" title="Settings"> <Settings size={14} /> </button>)}
+            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }} className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-md transition-colors" title={isMinimized ? "Restore" : "Minimize"}> {isMinimized ? <span className="font-bold text-sm leading-none">+</span> : <Minus size={14} />} </button>)}
+            <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Close"> <X size={14} /> </button>
+          </div>
+        </div>}
 
 
         {/* Resize Handles - Always on top */}
