@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Maximize2, Minimize2, Lock, Unlock, Minus, GripVertical } from 'lucide-react';
+import { X, Maximize2, Minimize2, Lock, Unlock, Minus, GripVertical, Lightbulb, Settings } from 'lucide-react';
 
 const DraggableResizable = ({
     id, position, size, zIndex,
@@ -9,8 +9,12 @@ const DraggableResizable = ({
     locked = false, isMinimized = false, isTransparent = false, isDockEditMode = false,
     chromeless = false, isSelected = false, closingWidgetId = null,
     onMinimizeToggle = null,
+    onSpotlight = null, isSpotlighted = false,
+    onToggleGlass = null,
+    onSettings = null,
     ...props
 }) => {
+    const [isHovered, setIsHovered] = useState(false);
     const nodeRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
@@ -111,6 +115,8 @@ const DraggableResizable = ({
         <div
             ref={nodeRef}
             onMouseDown={onFocus}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             data-widget-id={id}
             className={`absolute flex flex-col pointer-events-auto transition-all duration-200 border
                 ${chromeless ? '' : 'bg-white rounded-xl shadow-xl border-2 overflow-hidden'}
@@ -145,40 +151,57 @@ const DraggableResizable = ({
                         <span className="font-bold text-sm truncate">{title}</span>
                     </div>
 
-                    {/* Right side tools */}
+                    {/* Right side tools (Spotlight, Transparency, Settings, Minimize, Close) */}
                     <div className={`flex items-center gap-1 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                        <button
-                            onClick={() => onUpdate(id, { locked: !locked })}
-                            className={`p-1 w-7 h-7 flex flex-col items-center justify-center rounded-md transition-colors ${locked ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                            title={locked ? "Unlock" : "Lock"}
-                        >
-                            {locked ? <Lock size={14} /> : <Unlock size={14} />}
-                        </button>
-
-                        {!locked && (
-                            <>
-                                <button
-                                    onClick={(e) => {
-                                        if (onMinimizeToggle) {
-                                            onMinimizeToggle(id, e);
-                                        } else {
-                                            onUpdate(id, { isMinimized: !isMinimized });
-                                        }
-                                    }}
-                                    className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors"
-                                    title={isMinimized ? "Restore" : "Minimize"}
-                                >
-                                    {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
-                                </button>
-                                <button
-                                    onClick={() => onRemove(id)}
-                                    className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                                    title="Close"
-                                >
-                                    <X size={14} />
-                                </button>
-                            </>
+                        {onSpotlight && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onSpotlight(id); }}
+                                className={`p-1 w-7 h-7 flex flex-col items-center justify-center rounded-md transition-colors ${isSpotlighted ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}
+                                title="Spotlight"
+                            >
+                                <Lightbulb size={14} />
+                            </button>
                         )}
+                        {onToggleGlass && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onToggleGlass(); }}
+                                className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
+                                title="Toggle Transparency"
+                            >
+                                <Maximize2 size={14} className="transform rotate-45" />
+                            </button>
+                        )}
+                        {onSettings && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onSettings(id); }}
+                                className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
+                                title="Settings"
+                            >
+                                <Settings size={14} />
+                            </button>
+                        )}
+                        {onMinimizeToggle && (
+                            <button
+                                onClick={(e) => {
+                                    if (onMinimizeToggle) {
+                                        onMinimizeToggle(id, e);
+                                    } else {
+                                        onUpdate(id, { isMinimized: !isMinimized });
+                                    }
+                                }}
+                                className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors"
+                                title={isMinimized ? "Restore" : "Minimize"}
+                            >
+                                {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
+                            </button>
+                        )}
+                        <button
+                            onClick={() => onRemove(id)}
+                            className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                            title="Close"
+                        >
+                            <X size={14} />
+                        </button>
                     </div>
                 </div>
             )}
@@ -187,11 +210,36 @@ const DraggableResizable = ({
             <div className={`flex-1 min-h-0 relative ${chromeless ? '' : 'overflow-hidden'}`} style={chromeless ? { overflow: 'visible' } : {}}>
                 {children}
 
-                {/* Chromeless Drag Handle */}
-                {chromeless && isSelected && (
-                    <div className="absolute -top-8 right-0 flex gap-1 z-50 animate-in fade-in slide-in-from-bottom-2">
-                        <button onMouseDown={handleMouseDown} className="p-1.5 bg-white shadow-md rounded-lg text-slate-500 hover:text-blue-600 cursor-move" title="Drag"><GripVertical size={16} /></button>
-                        <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1.5 bg-white shadow-md rounded-lg text-red-400 hover:text-red-600" title="Delete"><X size={16} /></button>
+                {/* Chromeless Floating Tools - Only on Hover or Selection */}
+                {chromeless && (
+                    <div className={`absolute top-2 right-2 flex gap-1 z-50 transition-opacity duration-200 ${isSelected || isHovered ? 'opacity-100' : 'opacity-0'}`}>
+                        <div className="flex bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200 p-0.5 pointer-events-auto">
+                            {onMinimizeToggle && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }}
+                                    className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                    title="Minimize"
+                                >
+                                    <Minus size={14} />
+                                </button>
+                            )}
+                            {onSettings && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onSettings(id); }}
+                                    className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                                    title="Settings"
+                                >
+                                    <Settings size={14} />
+                                </button>
+                            )}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onRemove(id); }}
+                                className="p-1 w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                title="Close"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
                     </div>
                 )}
 

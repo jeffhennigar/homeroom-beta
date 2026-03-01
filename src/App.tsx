@@ -863,9 +863,16 @@ const App = () => {
                     onRemove={removeWidget}
                     minWidth={200} minHeight={150}
                     onMinimizeToggle={toggleMinimize}
+                    onSpotlight={(id) => {
+                        const widget = widgets.find(x => x.id === id);
+                        updateWidgetData(id, { isSpotlighted: !widget?.data?.isSpotlighted });
+                    }}
+                    onToggleGlass={() => updateWidgetData(w.id, { isGlassy: w.data?.isGlassy === 'glass' ? 'solid' : (w.data?.isGlassy === 'solid' ? 'clear' : 'glass') })}
+                    onSettings={() => setShowSettings(true)}
                     locked={isLocked || w.data?.locked}
                     closingWidgetId={closingWidgetId}
                     chromeless={['OVERLAY_TEXT', 'CLOCK', 'CALENDAR', 'WEATHER'].includes(w.type)}
+                    isSelected={zIndices[w.id] === maxZ}
                     {...w.data} // Pass minimized/transparent etc.
                 >
                     {(() => {
