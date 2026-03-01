@@ -10308,7 +10308,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
             onDrop={(e) => {
               if (!isDockLocked) { e.preventDefault(); e.stopPropagation(); handleDockDrop(e, location, id); }
             }}
-            onClick={() => {
+            onClick={(e) => {
               if (!isDockLocked) return;
               if (isDockMinimized) return;
 
