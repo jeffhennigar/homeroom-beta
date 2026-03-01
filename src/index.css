@@ -36,6 +36,7 @@ body {
   }
 
   100% {
+    /* No top/left here, so it reverts to style's position */
     transform: translate(0px, 0px) scale(1);
     opacity: 1;
   }
@@ -43,6 +44,7 @@ body {
 
 @keyframes shrink-to-dock {
   0% {
+    /* Uses style's top/left */
     transform: translate(0px, 0px) scale(1);
     opacity: 1;
   }
