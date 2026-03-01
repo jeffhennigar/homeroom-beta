@@ -12,6 +12,7 @@ const DraggableResizable = ({
     onSpotlight = null, isSpotlighted = false,
     onToggleGlass = null,
     onSettings = null,
+    widgetType,
     ...props
 }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -171,7 +172,7 @@ const DraggableResizable = ({
                                 <Maximize2 size={14} className="transform rotate-45" />
                             </button>
                         )}
-                        {onSettings && (
+                        {(onSettings && (widgetType === 'CLOCK' || widgetType === 'CALENDAR')) && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); onSettings(id); }}
                                 className="p-1 w-7 h-7 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
@@ -214,7 +215,7 @@ const DraggableResizable = ({
                 {chromeless && (
                     <div className={`absolute top-2 right-2 flex gap-1 z-50 transition-opacity duration-200 ${isSelected || isHovered ? 'opacity-100' : 'opacity-0'}`}>
                         <div className="flex bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200 p-0.5 pointer-events-auto">
-                            {onSettings && (
+                            {(onSettings && (widgetType === 'CLOCK' || widgetType === 'CALENDAR')) && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onSettings(id); }}
                                     className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"

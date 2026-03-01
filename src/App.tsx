@@ -869,6 +869,7 @@ const App = () => {
                     }}
                     onToggleGlass={() => updateWidgetData(w.id, { isGlassy: w.data?.isGlassy === 'glass' ? 'solid' : (w.data?.isGlassy === 'solid' ? 'clear' : 'glass') })}
                     onSettings={() => setShowSettings(true)}
+                    widgetType={w.type}
                     locked={isLocked || w.data?.locked}
                     closingWidgetId={closingWidgetId}
                     chromeless={['OVERLAY_TEXT', 'CLOCK', 'CALENDAR', 'WEATHER'].includes(w.type)}
