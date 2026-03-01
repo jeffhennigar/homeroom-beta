@@ -300,16 +300,6 @@ const DraggableResizable: React.FC<DraggableResizableProps> = ({
           <div className="absolute left-0 top-4 bottom-4 w-2 cursor-w-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'w')} />
           <div className="absolute right-0 top-4 bottom-4 w-2 cursor-e-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'e')} />
 
-          {/* Visual handles */}
-          <div className="absolute top-0 left-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm z-[10006] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm z-[10006] pointer-events-none translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm z-[10006] pointer-events-none -translate-x-1/2 translate-y-1/2" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm z-[10006] pointer-events-none translate-x-1/2 translate-y-1/2" />
-
-          <div className="absolute top-0 left-1/2 w-6 h-1.5 bg-blue-500 rounded-full border border-white shadow-sm z-[10006] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-1/2 w-6 h-1.5 bg-blue-500 rounded-full border border-white shadow-sm z-[10006] pointer-events-none -translate-x-1/2 translate-y-1/2" />
-          <div className="absolute left-0 top-1/2 h-6 w-1.5 bg-blue-500 rounded-full border border-white shadow-sm z-[10006] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute right-0 top-1/2 h-6 w-1.5 bg-blue-500 rounded-full border border-white shadow-sm z-[10006] pointer-events-none translate-x-1/2 -translate-y-1/2" />
         </>
       )}
     </div>

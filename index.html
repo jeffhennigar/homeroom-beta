@@ -3552,9 +3552,22 @@
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
           : 'border-2 border-gray-300';
 
-      return (<div data-widget-id={id} className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition duration-500'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? 'animate-minimize' : 'animate-elastic')} ${isMinimized ? 'pointer-events-none' : 'pointer-events-auto'}`}
+      return (<div data-widget-id={id} className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : ''} group ${isDragging || isResizing ? '' : 'transition-all shadow-transition duration-500'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? 'animate-minimize' : 'animate-elastic')} pointer-events-auto`}
         style={{ left: position.x, top: position.y, transform: 'translate(0px, 0px)', width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
+        {/* Resize Handles - Always on top, invisible hit areas */}
+        {isSelected && !isMinimized && (
+          <>
+            <div className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'nw')} />
+            <div className="absolute top-0 right-0 w-4 h-4 cursor-ne-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'ne')} />
+            <div className="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'sw')} />
+            <div className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'se')} />
+            <div className="absolute top-0 left-4 right-4 h-1 cursor-n-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'n')} />
+            <div className="absolute bottom-0 left-4 right-4 h-1 cursor-s-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 's')} />
+            <div className="absolute left-0 top-4 bottom-4 w-1 cursor-w-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'w')} />
+            <div className="absolute right-0 top-4 bottom-4 w-1 cursor-e-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'e')} />
+          </>
+        )}
         {/* Restored Structural Header */}
         {!chromeless && (
           <div
