@@ -3,7 +3,7 @@ import { Bold, Italic, Underline, Type, List, RotateCcw, Palette, Trash2, Check,
 import FloatingFormattingToolbar from './FloatingFormattingToolbar';
 
 const TextWidget = ({ widget, updateData }) => {
-    const { items = [], content = "", mode = 'text', fontSize = 16, color = 'yellow', fontFamily = 'Poppins' } = widget.data;
+    const { items = [], content = "", mode = 'text', fontSize = 12, color = 'yellow', fontFamily = 'Poppins' } = widget.data;
     const [newItemText, setNewItemText] = useState("");
     const editorRef = useRef(null);
     const [formats, setFormats] = useState({ bold: false, italic: false, underline: false });
