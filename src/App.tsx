@@ -708,6 +708,10 @@ const App = () => {
         if (isDockMinimized) return; // Fix: Prevent click when minimized
         const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
         const defaults = WIDGET_SIZES[type] || { width: 300, height: 300 };
+
+        const existingCount = widgets.filter(w => w.type === type).length;
+        const title = existingCount > 0 ? `${DOCK_LABELS[type].label} ${existingCount + 1}` : undefined;
+
         // Center logic
         let x = Math.max(0, window.innerWidth / 2 - defaults.width / 2 + (Math.random() * 40 - 20));
         let y = Math.max(0, window.innerHeight / 2 - defaults.height / 2 + (Math.random() * 40 - 20));
@@ -717,7 +721,7 @@ const App = () => {
         if (type === 'COUNTDOWN') y -= 50;
         if (type === 'SPARK') y -= 40;
 
-        setWidgets([...widgets, { id, type, x, y, width: defaults.width, height: defaults.height, data: {} }]);
+        setWidgets([...widgets, { id, type, x, y, width: defaults.width, height: defaults.height, data: title ? { title } : {} }]);
         bringToFront(id);
     };
 
@@ -760,20 +764,33 @@ const App = () => {
         dockClickLockRef.current = true;
         setTimeout(() => { dockClickLockRef.current = false; }, 300);
 
-        const activeWidgets = widgets.filter(w => w.type === id);
-        const openWidget = activeWidgets.find(w => !w.data?.isMinimized);
+        // Shift click always adds a new instance
+        if (e && e.shiftKey) {
+            addWidget(id);
+            if (location === 'drawer') setShowMoreDrawer(false);
+            return;
+        }
 
-        if (openWidget) {
-            // If any instance is open, minimize it
-            toggleMinimize(openWidget.id, e);
-        } else {
-            const minimized = activeWidgets.find(w => w.data?.isMinimized);
-            if (minimized) {
-                toggleMinimize(minimized.id, e);
-                bringToFront(minimized.id);
+        const activeWidgets = widgets.filter(w => w.type === id);
+
+        if (activeWidgets.length > 0) {
+            // Find the most recently used (highest Z)
+            const sorted = [...activeWidgets].sort((a, b) => (zIndices[b.id] || 0) - (zIndices[a.id] || 0));
+            const topMost = sorted[0];
+
+            if (topMost.data?.isMinimized) {
+                toggleMinimize(topMost.id, e);
+                bringToFront(topMost.id);
             } else {
-                addWidget(id);
+                // If it's already focused (maxZ), minimize it. Otherwise bring to front.
+                if (zIndices[topMost.id] === maxZ) {
+                    toggleMinimize(topMost.id, e);
+                } else {
+                    bringToFront(topMost.id);
+                }
             }
+        } else {
+            addWidget(id);
         }
 
         if (location === 'drawer') setShowMoreDrawer(false);
@@ -1033,6 +1050,11 @@ const App = () => {
                                 <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
                                     {DOCK_LABELS[type].label}
                                 </span>
+                                {activeInstances.length > 1 && (
+                                    <div className="absolute top-2 right-2 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/50 animate-in zoom-in duration-300">
+                                        {activeInstances.length}
+                                    </div>
+                                )}
                                 {isActive && (
                                     <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : (background?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')}`} />
                                 )}
@@ -1076,6 +1098,11 @@ const App = () => {
                                                 {DOCK_LABELS[type].icon}
                                             </div>
                                             <span className="text-[10px] font-bold">{DOCK_LABELS[type].label}</span>
+                                            {activeInstances.length > 1 && (
+                                                <div className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20">
+                                                    {activeInstances.length}
+                                                </div>
+                                            )}
                                             {isActive && (
                                                 <div className={`mt-0.5 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : 'bg-slate-400'}`} />
                                             )}

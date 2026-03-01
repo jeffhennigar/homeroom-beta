@@ -10115,6 +10115,9 @@
         const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
         const size = WIDGET_SIZES[type] || { width: 400, height: 300 };
 
+        const existingCount = (slides[currentSlideIndex] || []).filter(w => w.type === type).length;
+        const autoTitle = existingCount > 0 ? `${DOCK_LABELS[type]?.label || type} ${existingCount + 1}` : undefined;
+
         // Centered position for specific widgets like Randomizer
         let startX, startY;
         if (type === 'RANDOMIZER') {
@@ -10151,6 +10154,8 @@
         if (type === 'TEXT') fontSize = 12;
 
         let data = { fontSize };
+        if (autoTitle) data.title = autoTitle;
+
         if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' };
         if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] };
         if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
@@ -10449,21 +10454,35 @@
               dockClickLockRef.current = true;
               setTimeout(() => { dockClickLockRef.current = false; }, 300);
 
-              const activeWidgets = widgets.filter(w => w.type === id);
-              const openWidget = activeWidgets.find(w => !w.isMinimized);
-
-              if (openWidget) {
-                // If any instance is open, minimize it
-                toggleMinimize(openWidget.id, e);
-              } else {
-                const minimized = activeWidgets.find(w => w.isMinimized);
-                if (minimized) {
-                  toggleMinimize(minimized.id, e);
-                  bringToFront(minimized.id);
-                } else {
-                  addWidget(id);
-                }
+              // Shift click always adds a new instance
+              if (e.shiftKey) {
+                addWidget(id);
+                if (location === 'drawer') setShowMoreDrawer(false);
+                return;
               }
+
+              const activeWidgets = (slides[currentSlideIndex] || []).filter(w => w.type === id);
+
+              if (activeWidgets.length > 0) {
+                // Find the most recently used (highest Z)
+                const sorted = [...activeWidgets].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
+                const topMost = sorted[0];
+
+                if (topMost.isMinimized) {
+                  toggleMinimize(topMost.id, e);
+                  bringToFront(topMost.id);
+                } else {
+                  // If it's already focused (maxZ), minimize it. Otherwise bring to front.
+                  if (topMost.zIndex === maxZIndex) {
+                    toggleMinimize(topMost.id, e);
+                  } else {
+                    bringToFront(topMost.id);
+                  }
+                }
+              } else {
+                addWidget(id);
+              }
+
               if (location === 'drawer') setShowMoreDrawer(false);
             }}
             className={containerClasses}
@@ -10474,6 +10493,11 @@
             {/* Main Icon */}
             <div className={iconClasses}>
               {info.icon}
+              {activeInstances.length > 1 && (
+                <div className="absolute top-1 right-1 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20 animate-in zoom-in duration-300">
+                  {activeInstances.length}
+                </div>
+              )}
             </div>
 
             {/* Reflection (Overly Premium) */}
