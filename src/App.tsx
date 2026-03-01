@@ -718,14 +718,16 @@ const App = () => {
 
     const toggleMinimize = useCallback((id, e = null) => {
         const widget = widgets.find(w => w.id === id);
-        let targetRect = null;
+        if (!widget) return;
 
-        if (e) {
+        let targetRect = null;
+        // ALWAYS try to find the dock icon for this type first
+        const dockIcon = document.querySelector(`[data-dock-type="${widget.type}"]`);
+
+        if (dockIcon) {
+            targetRect = dockIcon.getBoundingClientRect();
+        } else if (e) {
             targetRect = e.currentTarget.getBoundingClientRect();
-        } else if (widget) {
-            // Find the dock icon for this type
-            const dockIcon = document.querySelector(`[data-dock-type="${widget.type}"]`);
-            if (dockIcon) targetRect = dockIcon.getBoundingClientRect();
         }
 
         if (targetRect) {
@@ -748,26 +750,16 @@ const App = () => {
         setTimeout(() => { dockClickLockRef.current = false; }, 300);
 
         const activeWidgets = widgets.filter(w => w.type === id);
+        const openWidget = activeWidgets.find(w => !w.data?.isMinimized);
 
-        let highestZ = -1;
-        widgets.forEach(w => {
-            const z = zIndices[w.id] || 10;
-            if (z > highestZ) highestZ = z;
-        });
-
-        const isFocused = activeWidgets.some(w => w.type === id && (zIndices[w.id] || 10) === highestZ && !w.isMinimized);
-
-        if (isFocused) {
-            const focusedWidget = activeWidgets.find(w => (zIndices[w.id] || 10) === highestZ && !w.isMinimized);
-            if (focusedWidget) toggleMinimize(focusedWidget.id, e);
+        if (openWidget) {
+            // If any instance is open, minimize it
+            toggleMinimize(openWidget.id, e);
         } else {
-            const minimized = activeWidgets.find(w => w.isMinimized);
+            const minimized = activeWidgets.find(w => w.data?.isMinimized);
             if (minimized) {
                 toggleMinimize(minimized.id, e);
                 bringToFront(minimized.id);
-            } else if (activeWidgets.length > 0) {
-                // Focus the most recently added or highest Z one
-                bringToFront(activeWidgets[activeWidgets.length - 1].id);
             } else {
                 addWidget(id);
             }
