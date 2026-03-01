@@ -131,49 +131,51 @@ const DraggableResizable = ({
                 ...containerStyle
             }}
         >
-            {/* Header */}
+            {/* Floating Action Bar (Reverted to Hover-Only) */}
             {!chromeless && (
                 <div
-                    className={`h-10 flex items-center justify-between px-3 shrink-0 select-none border-b border-slate-100
-          ${locked ? 'cursor-default bg-slate-50' : 'cursor-grab active:cursor-grabbing bg-white'}
-        `}
-                    onMouseDown={handleMouseDown}
+                    className={`absolute -top-4 right-2 z-50 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto`}
                 >
-                    <div className="flex items-center gap-2 text-slate-700 overflow-hidden">
-                        <div className="text-indigo-500">{icon}</div>
-                        <span className="font-bold text-sm truncate">{title}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={() => onUpdate(id, { locked: !locked })}
-                            className={`p-1 rounded-lg transition-colors ${locked ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            {locked ? <Lock size={14} /> : <Unlock size={14} />}
-                        </button>
+                    <button
+                        onMouseDown={handleMouseDown}
+                        className={`p-1.5 rounded-full shadow-md transition-colors ${locked ? 'text-amber-500 bg-amber-50 cursor-default' : 'text-slate-400 bg-white hover:text-blue-500 cursor-grab active:cursor-grabbing'}`}
+                        title="Drag / Lock"
+                    >
+                        {locked ? <Lock size={14} /> : <GripVertical size={14} />}
+                    </button>
 
-                        {!locked && (
-                            <>
-                                <button
-                                    onClick={(e) => {
-                                        if (onMinimizeToggle) {
-                                            onMinimizeToggle(id, e);
-                                        } else {
-                                            onUpdate(id, { isMinimized: !isMinimized });
-                                        }
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                                >
-                                    {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
-                                </button>
-                                <button
-                                    onClick={() => onRemove(id)}
-                                    className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                >
-                                    <X size={14} />
-                                </button>
-                            </>
-                        )}
-                    </div>
+                    <button
+                        onClick={() => onUpdate(id, { locked: !locked })}
+                        className={`p-1.5 rounded-full bg-white shadow-md transition-colors ${locked ? 'text-amber-500 hover:bg-amber-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                        title={locked ? "Unlock" : "Lock"}
+                    >
+                        {locked ? <Unlock size={14} /> : <Lock size={14} />}
+                    </button>
+
+                    {!locked && (
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    if (onMinimizeToggle) {
+                                        onMinimizeToggle(id, e);
+                                    } else {
+                                        onUpdate(id, { isMinimized: !isMinimized });
+                                    }
+                                }}
+                                className="p-1.5 bg-white text-slate-400 shadow-md hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                                title={isMinimized ? "Restore" : "Minimize"}
+                            >
+                                {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
+                            </button>
+                            <button
+                                onClick={() => onRemove(id)}
+                                className="p-1.5 bg-white text-slate-400 shadow-md hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                title="Close"
+                            >
+                                <X size={14} />
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
 
