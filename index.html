@@ -233,17 +233,12 @@
     /* Premium sync: elastic-pop for widget launch */
     @keyframes elastic-pop {
       0% {
-        transform: scale(0.95);
+        transform: scale(0.2) translateY(20vh);
         opacity: 0;
       }
 
-      60% {
-        transform: scale(1.02);
-        opacity: 1;
-      }
-
       100% {
-        transform: scale(1);
+        transform: scale(1) translateY(0);
         opacity: 1;
       }
     }
@@ -10277,11 +10272,18 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
               setTimeout(() => { dockClickLockRef.current = false; }, 300);
 
               const activeWidgets = widgets.filter(w => w.type === id);
-              const selectedWidget = widgets.find(w => String(w.id) === String(selectedId));
-              const isFocused = selectedWidget && selectedWidget.type === id && !selectedWidget.isMinimized;
+
+              let highestZ = -1;
+              widgets.forEach(w => {
+                const z = w.zIndex || 10;
+                if (z > highestZ) highestZ = z;
+              });
+
+              const isFocused = activeWidgets.some(w => w.type === id && (w.zIndex || 10) === highestZ && !w.isMinimized);
 
               if (isFocused) {
-                toggleMinimize(selectedWidget.id);
+                const focusedWidget = activeWidgets.find(w => (w.zIndex || 10) === highestZ && !w.isMinimized);
+                if (focusedWidget) toggleMinimize(focusedWidget.id);
               } else {
                 const minimized = activeWidgets.find(w => w.isMinimized);
                 if (minimized) {
