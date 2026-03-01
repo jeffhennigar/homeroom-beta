@@ -29,12 +29,14 @@ body {
 /* Premium Animations */
 @keyframes elastic-pop {
   0% {
-    transform: scale(0.2) translateY(20vh);
+    top: calc(100vh - 60px);
+    left: 50%;
+    transform: translate(-50%, 20px) scale(0);
     opacity: 0;
   }
 
   100% {
-    transform: scale(1) translateY(0);
+    transform: translate(0px, 0px) scale(1);
     opacity: 1;
   }
 }
