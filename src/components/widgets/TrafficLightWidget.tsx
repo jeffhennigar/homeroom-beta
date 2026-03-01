@@ -68,10 +68,12 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
         if (!analyserRef.current || !dataArrayRef.current) return;
         analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-        let sum = 0;
+        let max = 0;
         const data = dataArrayRef.current;
-        for (let i = 0; i < data.length; i++) sum += data[i];
-        const avg = sum / data.length;
+        for (let i = 0; i < data.length; i++) {
+            if (data[i] > max) max = data[i];
+        }
+        const avg = max; // use max peak explicitly
 
         // Sensitivity (1-100) -> Multiplier (0.5 - 3.0)
         const multiplier = 0.5 + (sensitivity / 50);

@@ -93,7 +93,7 @@ const BACKGROUNDS = [
 
 const WIDGET_SIZES = {
     TIMER: { width: 280, height: 340 },
-    RANDOMIZER: { width: 250, height: 250 },
+    RANDOMIZER: { width: 250, height: 290 },
     GROUP_MAKER: { width: 600, height: 400 },
     SEAT_PICKER: { width: 900, height: 600 },
     TEXT: { width: 340, height: 260 },
@@ -109,7 +109,7 @@ const WIDGET_SIZES = {
     COUNTDOWN: { width: 280, height: 280 },
     SOUNDBOARD: { width: 440, height: 500 },
     POLYPAD: { width: 800, height: 600 },
-    CALENDAR: { width: 340, height: 320 }
+    CALENDAR: { width: 340, height: 290 }
 };
 
 const THEME_COLORS: Record<string, any> = {
@@ -709,8 +709,13 @@ const App = () => {
         const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
         const defaults = WIDGET_SIZES[type] || { width: 300, height: 300 };
         // Center logic
-        const x = Math.max(0, window.innerWidth / 2 - defaults.width / 2 + (Math.random() * 40 - 20));
-        const y = Math.max(0, window.innerHeight / 2 - defaults.height / 2 + (Math.random() * 40 - 20));
+        let x = Math.max(0, window.innerWidth / 2 - defaults.width / 2 + (Math.random() * 40 - 20));
+        let y = Math.max(0, window.innerHeight / 2 - defaults.height / 2 + (Math.random() * 40 - 20));
+
+        if (type === 'DRAWING') y -= 80;
+        if (type === 'CALCULATOR') y -= 60;
+        if (type === 'COUNTDOWN') y -= 50;
+        if (type === 'SPARK') y -= 40;
 
         setWidgets([...widgets, { id, type, x, y, width: defaults.width, height: defaults.height, data: {} }]);
         bringToFront(id);
@@ -1011,7 +1016,7 @@ const App = () => {
                                 draggable={!isDockMinimized}
                                 onDragStart={(e) => { e.currentTarget.classList.add('scale-105'); }}
                                 onDragEnd={(e) => { e.currentTarget.classList.remove('scale-105'); }}
-                                className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 ${isMinimizedStatus ? 'bg-indigo-100 text-indigo-700 shadow-inner' : `hover:bg-white/40 ${background?.textColor || 'text-slate-800'}`}`}
+                                className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background?.textColor || 'text-slate-800'}`}
                                 title={DOCK_LABELS[type].label}
                             >
                                 <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
@@ -1057,7 +1062,7 @@ const App = () => {
                                             key={type}
                                             data-dock-type={type}
                                             onClick={(e) => handleDockClick(type, 'drawer', e)}
-                                            className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative ${isMinimizedStatus ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                                            className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative text-slate-600 hover:bg-indigo-50 hover:text-indigo-600`}
                                         >
                                             <div className="relative">
                                                 {DOCK_LABELS[type].icon}

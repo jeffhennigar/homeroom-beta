@@ -776,7 +776,8 @@
       showFontColorMenu,
       setShowFontColorMenu,
       showFontMenu,
-      setShowFontMenu
+      setShowFontMenu,
+      onMinimize
     }) => {
       if (!pos) return null;
 
@@ -829,7 +830,10 @@
             </>
           )}
 
-          <div className="w-px h-5 bg-slate-200 mx-1" />
+          {onMinimize && (
+            <button onClick={onMinimize} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-blue-500 transition-all" title="Minimize to Dock"><Minus size={16} /></button>
+          )}
+
           <button onClick={onClose} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"><X size={16} /></button>
         </div>,
         document.body
@@ -1017,8 +1021,8 @@
 
     const WIDGET_SIZES = {
       TIMER: { width: 280, height: 340 },
-      CLOCK: { width: 280, height: 240 },
-      RANDOMIZER: { width: 250, height: 250 },
+      CLOCK: { width: 280, height: 210 },
+      RANDOMIZER: { width: 250, height: 290 },
       GROUP_MAKER: { width: 900, height: 550 },
       SEAT_PICKER: { width: 900, height: 530 },
       TEXT: { width: 300, height: 300 },
@@ -1026,18 +1030,18 @@
       WEBCAM: { width: 900, height: 550 },
       DICE: { width: 300, height: 320 },
       TRAFFIC: { width: 220, height: 360 },
-      QR: { width: 500, height: 400 },
+      QR: { width: 500, height: 470 },
       VOTE: { width: 400, height: 350 },
       DRAWING: { width: 900, height: 550 },
       SCHEDULE: { width: 380, height: 500 },
       EMBED: { width: 480, height: 360 },
-      CALENDAR: { width: 320, height: 380 },
+      CALENDAR: { width: 320, height: 350 },
       MARBLE_JAR: { width: 400, height: 500 },
       SOUNDBOARD: { width: 600, height: 500 },
       CALCULATOR: { width: 280, height: 390 },
       COUNTDOWN: { width: 300, height: 400 },
       SPARK: { width: 400, height: 450 },
-      WEATHER: { width: 230, height: 230 },
+      WEATHER: { width: 300, height: 300 },
       POLYPAD: { width: 900, height: 600 }
     };
 
@@ -2023,6 +2027,7 @@
                   formats={formats}
                   exec={exec}
                   onClose={() => setToolbarPos(null)}
+                  onMinimize={() => toggleMinimize(widget.id)}
                   updateData={updateData}
                   widgetId={widget.id}
                   hasShadow={data.hasShadow}
@@ -2302,10 +2307,12 @@
         if (!analyserRef.current || !dataArrayRef.current) return;
         analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-        let sum = 0;
+        let max = 0;
         const data = dataArrayRef.current;
-        for (let i = 0; i < data.length; i++) sum += data[i];
-        const avg = sum / data.length;
+        for (let i = 0; i < data.length; i++) {
+          if (data[i] > max) max = data[i];
+        }
+        const avg = max; // use max peak explicitly
 
         // Apply sensitivity (1-100) -> Multiplier (0.5 - 3.0)
         // Sensitivity 50 = 1.0x
@@ -2713,7 +2720,7 @@
                     {type === 'mc' && (
                       <div className="mt-3 bg-white border border-slate-200 rounded-xl p-3 text-left shadow-sm">
                         <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Configure Options</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-2">
                           {options.map((opt, i) => (
                             <div key={i} className="flex items-center gap-1">
                               <span className="text-[10px] font-bold text-slate-400 w-4">{String.fromCharCode(65 + i)}</span>
@@ -3550,9 +3557,8 @@
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto" /></div>
           <div className="flex items-center gap-1 z-10">
             {onSpotlight && (<button onClick={(e) => { e.stopPropagation(); onSpotlight(id); }} className={`p-1 rounded transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Spotlight"> <Lightbulb size={14} /> </button>)}
-            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }} className="p-1 text-gray-400
-hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize"> <span className="font-bold text-sm leading-none">−</span> </button>)}
-            <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> </button>
+            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize"> <Minus size={14} /> </button>)}
+            <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Close"> <X size={14} /> </button>
           </div>
         </div>}
 
@@ -3591,37 +3597,44 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
 
         {chromeless && isSelected && (
           <div className="absolute top-2 right-2 flex gap-1 z-[10006]">
-            {widgetType === 'CLOCK' && (
-              <button
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); onSettings?.(id); }}
-                className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
-                title="Clock Settings"
-              >
-                <Settings size={14} />
-              </button>
-            )}
-            {onToggleGlass && (
-              <button
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); onToggleGlass(); }}
-                className={`p-1.5 shadow-md rounded-lg transition-all border pointer-events-auto ${isGlassy && isGlassy !== 'solid' ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white/90 text-slate-500 hover:text-indigo-600 border-slate-200'}`}
-                title="Toggle Transparency State"
-              >
-                <WindowIcon size={14} />
-              </button>
-            )}
             <button
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onRemove(id); }}
-              className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-400 hover:text-red-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
-              title="Delete"
+              onClick={(e) => { e.stopPropagation(); onMinimizeToggle?.(id, e); }}
+              className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
+              title="Minimize to Dock"
             >
-              <X size={14} />
+              <Minus size={14} strokeWidth={3} />
+            </button>
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onSettings?.(id); }}
+              className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
+              title="Widget Settings"
+            >
+              <Settings size={14} />
             </button>
           </div>
         )}
-      </div>);
+        {onToggleGlass && (
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onToggleGlass(); }}
+            className={`p-1.5 shadow-md rounded-lg transition-all border pointer-events-auto ${isGlassy && isGlassy !== 'solid' ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white/90 text-slate-500 hover:text-indigo-600 border-slate-200'}`}
+            title="Toggle Transparency State"
+          >
+            <WindowIcon size={14} />
+          </button>
+        )}
+        <button
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onRemove(id); }}
+          className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-400 hover:text-red-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
+          title="Delete"
+        >
+          <X size={14} />
+        </button>
+      </div>
+      );
     };
 
     const SimpleTextWidget = ({ widget, updateData, isGlassy, isSelected }) => {
@@ -3744,6 +3757,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
             formats={formats}
             exec={exec}
             onClose={() => setToolbarPos(null)}
+            onMinimize={() => toggleMinimize(widget.id)}
             updateData={updateData}
             widgetId={widget.id}
             hasShadow={hasShadow}
@@ -3881,7 +3895,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
         const digitColor = 'text-[#38ff38]';
         const isTransparent = isGlassy === 'clear';
         return (
-          <div className={`flex flex-col items-center justify-center p-4 relative overflow-hidden group/clock w-full h-full transition-all ${isTransparent ? 'bg-transparent border-0' : (isGlassy === 'glass' ? 'bg-black/40 backdrop-blur-md rounded-2xl' : 'bg-[#0a0a0a] shadow-[inset_0_0_20px_rgba(0,0,0,1)] border-[6px] border-[#1a1a1a] rounded-2xl')}`}
+          <div className={`flex flex-col items-center justify-center p-1 relative overflow-hidden group/clock w-full h-full transition-all ${isTransparent ? 'bg-transparent border-0' : (isGlassy === 'glass' ? 'bg-black/40 backdrop-blur-md rounded-2xl' : 'bg-[#0a0a0a] shadow-[inset_0_0_20px_rgba(0,0,0,1)] border-[6px] border-[#1a1a1a] rounded-2xl')}`}
             style={{ containerType: 'size' }}>
             {!isTransparent && <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-sm z-20" />}
             <div className={`absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_4px,6px_100%] pointer-events-none ${isTransparent ? 'opacity-40' : 'opacity-20'}`} />
@@ -3898,7 +3912,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
         const accentColor = textColor === 'text-white' ? '#ffffff' : '#1e293b';
 
         return (
-          <div className="flex flex-col items-center justify-center w-full h-full p-[2cqw] gap-[5cqh]">
+          <div className="flex flex-col items-center justify-center w-full h-full p-0 gap-[5cqh]">
             {/* Minimalist Square Clock Face */}
             <div className={`relative flex items-center justify-center transition-all duration-500 ${isGlassy === 'clear' ? (textColor === 'text-white' ? 'bg-white/10 border border-white/20' : 'bg-slate-800/5 border border-slate-800/10') : (textColor === 'text-white' ? 'bg-white/20 backdrop-blur-xl border border-white/20 shadow-2xl' : 'bg-white/95 border-slate-100 shadow-[0_15px_35px_rgba(0,0,0,0.1)]')}`}
               style={{
@@ -5607,9 +5621,9 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Background Color</label>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap pr-4">
                   {['#e0e7ff', '#fee2e2', '#dcfce7', '#fef9c3', '#f3e8ff', '#ffffff'].map(c => (
-                    <button key={c} onClick={() => updateData(widget.id, { bgColor: c })} className={`w-6 h-6 rounded-full border shadow-sm ${bgColor === c ? 'ring-2 ring-gray-400' : ''}`} style={{ backgroundColor: c }} />
+                    <button key={c} onClick={() => updateData(widget.id, { bgColor: c })} className={`w-7 h-7 rounded-full border-2 shadow-sm shrink-0 ${bgColor === c ? 'ring-2 ring-indigo-400' : ''}`} style={{ backgroundColor: c }} />
                   ))}
                 </div>
               </div>
@@ -9059,9 +9073,9 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
             id: 'default-clock',
             type: 'CLOCK',
             position: { x: 0, y: 0 },
-            size: { width: 290, height: 130 },
+            size: { width: 290, height: 100 },
             zIndex: 1,
-            data: { fontSize: 16, style: 'standard', isGlassy: 'clear' },
+            data: { fontSize: 20, style: 'standard', isGlassy: 'clear' },
             isMinimized: false
           };
           initialSlides = [[defaultClock]];
@@ -10084,29 +10098,49 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
 
       // --- WIDGET MANAGEMENT ---
       const addWidget = (type, extraData = {}) => {
-        addToHistory(); const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7); const size = WIDGET_SIZES[type];
-        let startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20);
-        if (type === 'GROUP_MAKER') startY -= 70; // 10px lower than before (-80)
-        if (type === 'SCHEDULE') startY -= 60;
-        if (type === 'SEAT_PICKER') startY = 30;
-        if (type === 'QR') startY = 20;
-        let startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20);
-        if (type === 'SEAT_PICKER') startX += 60;
-        if (type === 'QR') startX = (window.innerWidth / 2) - (size.width / 2);
-        if (type === 'WEBCAM') {
-          startY = (window.innerHeight / 2) - (size.height / 2) - 100;
-          startX = (window.innerWidth / 2) - (size.width / 2);
+        addToHistory();
+        const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
+        const size = WIDGET_SIZES[type] || { width: 400, height: 300 };
+
+        // Centered position for specific widgets like Randomizer
+        let startX, startY;
+        if (type === 'RANDOMIZER') {
+          startX = Math.round((window.innerWidth - size.width) / 2);
+          startY = Math.round((window.innerHeight - size.height) / 2 - 50); // Slightly above middle
+        } else {
+          startY = (window.innerHeight / 2) - (size.height / 2) + (Math.random() * 40 - 20);
+          if (type === 'GROUP_MAKER') startY -= 70;
+          if (type === 'SCHEDULE') startY -= 60;
+          if (type === 'SEAT_PICKER') startY = 30;
+          if (type === 'QR') startY = 20;
+
+          if (type === 'DRAWING') startY -= 80;
+          if (type === 'CALCULATOR') startY -= 60;
+          if (type === 'COUNTDOWN') startY -= 50;
+          if (type === 'SPARK') startY -= 40;
+          startX = (window.innerWidth / 2) - (size.width / 2) + (Math.random() * 40 - 20);
+          if (type === 'SEAT_PICKER') startX += 60;
+          if (type === 'QR') startX = (window.innerWidth / 2) - (size.width / 2);
+          if (type === 'WEBCAM') {
+            startY = (window.innerHeight / 2) - (size.height / 2) - 100;
+            startX = (window.innerWidth / 2) - (size.width / 2);
+          }
         }
+
         const position = { x: startX, y: startY };
         let fontSize = 36;
         if (type === 'RANDOMIZER') fontSize = 20;
         if (type === 'GROUP_MAKER') fontSize = 20;
-        if (type === 'SEAT_PICKER') fontSize = 16; // Reduced by ~2 clicks
+        if (type === 'SEAT_PICKER') fontSize = 16;
         if (type === 'DICE' || type === 'TRAFFIC') fontSize = 16;
         if (type === 'TIMER') fontSize = 14;
-        if (type === 'SCHEDULE') fontSize = 24; // User requested 2 clicks smaller (28 -> 24)
-        if (type === 'TEXT') fontSize = 12; // User requested 8pts smaller (formerly 36 or 16)
-        let data = { fontSize }; if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' }; if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] }; if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
+        if (type === 'SCHEDULE') fontSize = 24;
+        if (type === 'TEXT') fontSize = 12;
+
+        let data = { fontSize };
+        if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' };
+        if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] };
+        if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
         if (type === 'SEAT_PICKER') {
           const existing = (slides[currentSlideIndex] || []).find(w => w.type === 'SEAT_PICKER');
           if (existing) {
@@ -10122,8 +10156,36 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
             }
           }
         }
+        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] };
+        if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false };
+        if (type === 'WEBCAM') data = { ...data, isMirrored: false, isActive: true };
+        if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false };
+        if (type === 'TRAFFIC') data = { ...data, activeLight: null };
+        if (type === 'QR') data = { ...data, url: '' };
+        if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] };
+        if (type === 'DRAWING') {
+          startY += 80;
+          position.y = startY;
+          data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null };
+        }
+        if (type === 'SCHEDULE') {
+          const template = getScheduleTemplate();
+          const today = DAYS_OF_WEEK[new Date().getDay()];
+          data = { ...data, items: template[today] || [] };
+        }
+        if (type === 'YOUTUBE') data = { ...data, youtubeUrl: '' };
+        if (type === 'CLOCK') data = { ...data, style: 'standard', isGlassy: 'clear', is24Hour: false, fontSize: 20 };
+        if (type === 'CALENDAR') data = { ...data, isGlassy: true };
+        if (type === 'MARBLE_JAR') data = { ...data, title: 'Classroom Goal', marbles: 0, goalCount: 50, theme: 'classic', sound: 'clink', jarColor: 'standard' };
+        if (type === 'SOUNDBOARD') data = { ...data };
+        if (type === 'CALCULATOR') data = { ...data, display: '0', prevValue: null, operator: null, expression: '' };
+        if (type === 'COUNTDOWN') data = { ...data, eventName: '', targetDate: '', isRunning: false };
 
-        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [] }; if (type === 'OVERLAY_TEXT') data = { ...data, content: '', isGlassy: false }; if (type === 'WEBCAM') data = { ...data, isMirrored: false, isActive: true }; if (type === 'DICE') data = { ...data, sides: 6, diceCount: 1, results: [1], isRolling: false }; if (type === 'TRAFFIC') data = { ...data, activeLight: null }; if (type === 'QR') data = { ...data, url: '' }; if (type === 'VOTE') data = { ...data, question: 'Class Poll', options: [{ id: 1, text: 'Yes', count: 0 }, { id: 2, text: 'No', count: 0 }] }; if (type === 'DRAWING') { startY += 80; position.y = startY; data = { ...data, canvasData: null, color: '#000000', brushSize: 5, tool: 'pen', initialImage: null, pastedImage: null }; } if (type === 'SCHEDULE') { const template = getScheduleTemplate(); const today = DAYS_OF_WEEK[new Date().getDay()]; data = { ...data, items: template[today] || [] }; } if (type === 'YOUTUBE') { data = { ...data, youtubeUrl: '' }; } if (type === 'CLOCK') { data = { ...data, style: 'standard', isGlassy: 'clear', is24Hour: false }; } if (type === 'CALENDAR') { data = { ...data, isGlassy: true }; } if (type === 'MARBLE_JAR') { data = { ...data, title: 'Classroom Goal', marbles: 0, goalCount: 50, theme: 'classic', sound: 'clink', jarColor: 'standard' }; } if (type === 'SOUNDBOARD') { data = { ...data }; } if (type === 'CALCULATOR') { data = { ...data, display: '0', prevValue: null, operator: null, expression: '' }; } if (type === 'COUNTDOWN') { data = { ...data, eventName: '', targetDate: '', isRunning: false }; } data = { ...data, ...extraData }; const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false }; setWidgets(prev => [...prev, newWidget]); setMaxZIndex(prev => prev + 1); setSelectedId(id);
+        data = { ...data, ...extraData };
+        const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false };
+        setWidgets(prev => [...prev, newWidget]);
+        setMaxZIndex(prev => prev + 1);
+        setSelectedId(id);
       };
       // Paste Listener
       useEffect(() => {
@@ -10484,7 +10546,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
         }
       };
 
-      if (authLoading || activeRosterId === 'loading' || isSyncing) {
+      if (authLoading || activeRosterId === 'loading') {
         return (
           <div className="w-screen h-screen bg-premium-flow relative overflow-hidden flex items-center justify-center p-6">
             {/* Ambient Halos */}
@@ -10496,7 +10558,7 @@ hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-orange-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                 <div className="relative w-24 h-24 glass-tile rounded-[2rem] flex items-center justify-center text-white text-5xl font-black shadow-2xl animate-[logo-float_4s_ease-in-out_infinite] border-none">
-                  <span className="bg-clip-text text-transparent bg-gradient-to-br from-white to-white/50">H</span>
+                  <img src="./homeroom-logo.png" className="w-full h-full object-contain p-4" alt="HomeRoom" />
                 </div>
               </div>
 
