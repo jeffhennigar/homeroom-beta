@@ -22,6 +22,9 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
         if (isListening && !rafId.current) analyze();
     }, [sensitivity, threshold]);
 
+    const lastRedTimeRef = useRef(0);
+    const lastYellowTimeRef = useRef(0);
+
     const activeLightRef = useRef(activeLight);
 
     useEffect(() => {
@@ -82,11 +85,27 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
         // Threshold (1-100) -> Cutoff (0-255)
         const limit = (threshold / 100) * 255;
 
-        // Determine Light
-        let newLight = 'green';
+        // Determine target light based on instantaneous volume
+        let targetLight = 'green';
         if (volume > limit) {
-            newLight = 'red';
+            targetLight = 'red';
         } else if (volume > limit * 0.7) {
+            targetLight = 'yellow';
+        }
+
+        const now = Date.now();
+        if (targetLight === 'red') {
+            lastRedTimeRef.current = now;
+        } else if (targetLight === 'yellow') {
+            lastYellowTimeRef.current = now;
+        }
+
+        // Apply 2.5 second hold time (debounce)
+        const HOLD_TIME = 2500;
+        let newLight = 'green';
+        if (now - lastRedTimeRef.current < HOLD_TIME) {
+            newLight = 'red';
+        } else if (now - lastYellowTimeRef.current < HOLD_TIME) {
             newLight = 'yellow';
         }
 

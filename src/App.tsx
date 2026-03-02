@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown
+    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // Components
@@ -1029,103 +1029,116 @@ const App = () => {
 
             {/* Dock */}
             <div
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10000]"
-                onMouseDown={(e) => e.stopPropagation()}
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10000] flex flex-col items-center justify-end pointer-events-none transition-opacity duration-500"
             >
-                <div className="backdrop-blur-2xl shadow-2xl rounded-2xl flex items-center p-2 gap-1 transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/50 relative">
-                    <div className="absolute inset-0 bg-white/10 rounded-2xl overflow-hidden -z-10 border border-white/20">
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white/5 pointer-events-none" />
-                    </div>
-                    {dockOrder.main.map((type: string) => {
-                        const activeInstances = widgets.filter(w => w.type === type);
-                        const isActive = activeInstances.length > 0;
-                        const isMinimizedStatus = activeInstances.some(w => w.isMinimized);
+                <div className={`transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-12 opacity-0 scale-50 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
+                    <div
+                        className="backdrop-blur-2xl shadow-2xl rounded-2xl flex items-center p-2 gap-1 transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/50 relative"
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <div className="absolute inset-0 bg-white/10 rounded-2xl overflow-hidden -z-10 border border-white/20">
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white/5 pointer-events-none" />
+                        </div>
+                        {dockOrder.main.map((type: string) => {
+                            const activeInstances = widgets.filter(w => w.type === type);
+                            const isActive = activeInstances.length > 0;
+                            const isMinimizedStatus = activeInstances.some(w => w.isMinimized);
 
-                        return (
+                            return (
+                                <button
+                                    key={type}
+                                    data-dock-type={type}
+                                    onClick={(e) => handleDockClick(type, 'main', e)}
+                                    draggable={!isDockMinimized}
+                                    onDragStart={(e) => { e.currentTarget.classList.add('scale-105'); }}
+                                    onDragEnd={(e) => { e.currentTarget.classList.remove('scale-105'); }}
+                                    className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background?.textColor || 'text-slate-800'}`}
+                                    title={DOCK_LABELS[type].label}
+                                >
+                                    <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
+                                        {DOCK_LABELS[type].icon}
+                                    </div>
+                                    <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
+                                        {DOCK_LABELS[type].label}
+                                    </span>
+                                    {activeInstances.length > 1 && (
+                                        <div className="absolute top-2 right-2 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/50 animate-in zoom-in duration-300">
+                                            {activeInstances.length}
+                                        </div>
+                                    )}
+                                    {isActive && (
+                                        <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : (background?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')}`} />
+                                    )}
+                                </button>
+                            );
+                        })}
+
+                        <div className="w-px h-8 bg-slate-400/40 mx-2" />
+
+                        {/* More Drawer Button */}
+                        <div className="relative" ref={drawerRef}>
                             <button
-                                key={type}
-                                data-dock-type={type}
-                                onClick={(e) => handleDockClick(type, 'main', e)}
-                                draggable={!isDockMinimized}
-                                onDragStart={(e) => { e.currentTarget.classList.add('scale-105'); }}
-                                onDragEnd={(e) => { e.currentTarget.classList.remove('scale-105'); }}
-                                className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background?.textColor || 'text-slate-800'}`}
-                                title={DOCK_LABELS[type].label}
+                                onClick={() => setShowMoreDrawer(!showMoreDrawer)}
+                                data-dock-more="true"
+                                className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}
+                                title="More Tools"
                             >
                                 <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
-                                    {DOCK_LABELS[type].icon}
+                                    {showMoreDrawer ? <ChevronDown size={24} /> : <MoreHorizontal size={24} />}
                                 </div>
                                 <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
-                                    {DOCK_LABELS[type].label}
+                                    More
                                 </span>
-                                {activeInstances.length > 1 && (
-                                    <div className="absolute top-2 right-2 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/50 animate-in zoom-in duration-300">
-                                        {activeInstances.length}
-                                    </div>
-                                )}
-                                {isActive && (
-                                    <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : (background?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')}`} />
-                                )}
                             </button>
-                        );
-                    })}
 
-                    <div className="w-px h-8 bg-slate-400/40 mx-2" />
+                            {showMoreDrawer && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-3 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 grid grid-cols-3 gap-2 min-w-[280px] z-50 animate-in slide-in-from-bottom-2 duration-200">
+                                    {dockOrder.drawer.map((type: string) => {
+                                        const activeInstances = widgets.filter(w => w.type === type);
+                                        const isActive = activeInstances.length > 0;
+                                        const isMinimizedStatus = activeInstances.some(w => w.isMinimized);
 
-                    {/* More Drawer Button */}
-                    <div className="relative" ref={drawerRef}>
-                        <button
-                            onClick={() => setShowMoreDrawer(!showMoreDrawer)}
-                            data-dock-more="true"
-                            className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}
-                            title="More Tools"
-                        >
-                            <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
-                                {showMoreDrawer ? <ChevronDown size={24} /> : <MoreHorizontal size={24} />}
-                            </div>
-                            <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
-                                More
-                            </span>
-                        </button>
-
-                        {showMoreDrawer && (
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-3 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 grid grid-cols-3 gap-2 min-w-[280px] z-50 animate-in slide-in-from-bottom-2 duration-200">
-                                {dockOrder.drawer.map((type: string) => {
-                                    const activeInstances = widgets.filter(w => w.type === type);
-                                    const isActive = activeInstances.length > 0;
-                                    const isMinimizedStatus = activeInstances.some(w => w.isMinimized);
-
-                                    return (
-                                        <button
-                                            key={type}
-                                            data-dock-type={type}
-                                            onClick={(e) => handleDockClick(type, 'drawer', e)}
-                                            className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative text-slate-600 hover:bg-indigo-50 hover:text-indigo-600`}
-                                        >
-                                            <div className="relative">
-                                                {DOCK_LABELS[type].icon}
-                                            </div>
-                                            <span className="text-[10px] font-bold">{DOCK_LABELS[type].label}</span>
-                                            {activeInstances.length > 1 && (
-                                                <div className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20">
-                                                    {activeInstances.length}
+                                        return (
+                                            <button
+                                                key={type}
+                                                data-dock-type={type}
+                                                onClick={(e) => handleDockClick(type, 'drawer', e)}
+                                                className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative text-slate-600 hover:bg-indigo-50 hover:text-indigo-600`}
+                                            >
+                                                <div className="relative">
+                                                    {DOCK_LABELS[type].icon}
                                                 </div>
-                                            )}
-                                            {isActive && (
-                                                <div className={`mt-0.5 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : 'bg-slate-400'}`} />
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                                                <span className="text-[10px] font-bold">{DOCK_LABELS[type].label}</span>
+                                                {activeInstances.length > 1 && (
+                                                    <div className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20">
+                                                        {activeInstances.length}
+                                                    </div>
+                                                )}
+                                                {isActive && (
+                                                    <div className={`mt-0.5 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : 'bg-slate-400'}`} />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
-                    <div className="w-px h-8 bg-slate-400/40 mx-2" />
+                        <div className="w-px h-8 bg-slate-400/40 mx-2" />
 
-                    <div className="flex flex-col gap-1">
-                        <button onClick={() => setShowSettings(true)} className={`p-2 rounded-lg hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}><Settings size={20} /></button>
+                        <div className="flex flex-col gap-1">
+                            <button onClick={() => setShowSettings(true)} className={`p-2 rounded-lg hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}><Settings size={20} /></button>
+                        </div>
                     </div>
+                </div>
+
+                <div className="pointer-events-auto transition-all duration-300 z-50 mt-1">
+                    <button
+                        onClick={() => setIsDockMinimized(!isDockMinimized)}
+                        className="bg-white/90 backdrop-blur-md hover:bg-white text-slate-500 hover:text-blue-600 p-1.5 rounded-full shadow-lg border border-white/50 transition-all active:scale-95"
+                    >
+                        {isDockMinimized ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
+                    </button>
                 </div>
             </div>
 

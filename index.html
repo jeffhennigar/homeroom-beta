@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HomeRoom Pro</title>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="18de2e8a-75be-4d11-bc8d-18784a804ed4"></script>
-  <link rel="icon" type="image/svg+xml" href="./favicon-CuRdcC1_.svg" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -7041,7 +7041,7 @@
                   {[
                     { name: "UFLI Blending Board", url: "https://research.dwi.ufl.edu/op.n/file/bca9ju45kvvrvoan/?embed", color: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
                     { name: "Base-10 Blocks", url: "https://apps.mathlearningcenter.org/number-pieces/", color: "bg-orange-50 text-orange-600 hover:bg-orange-100" },
-                    { name: "Virtual Manipulatives", url: "https://www.mathlearningcenter.org/apps", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
+                    { name: "Polypad Manipulatives", url: "https://polypad.amplify.com/embed/#numbers", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
                   ].map(l => (
                     <button
                       key={l.name}
@@ -7065,6 +7065,11 @@
               {embedSrc.includes('ufl.edu') && (
                 <div className="bg-slate-50 text-[10px] text-slate-500 py-1.5 px-3 text-center border-t border-slate-200 font-medium shrink-0">
                   Resources provided by <a href="https://ufli.education.ufl.edu/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">UFLI</a>
+                </div>
+              )}
+              {embedSrc.includes('polypad') && (
+                <div className="bg-slate-50 text-[10px] text-slate-500 py-1.5 px-3 text-center border-t border-slate-200 font-medium shrink-0">
+                  Materials created using <a href="https://amplify.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Polypad by Amplify</a>
                 </div>
               )}
               <button
@@ -8775,8 +8780,8 @@
                 {activeTab === 'about' && (
                   <div className="p-4">
                     <div className="flex flex-col items-center mb-6 mt-4">
-                      <div className="w-32 h-32 mb-4 hover:scale-105 transition-transform duration-300">
-                        <img src="/homeroom-logo.png" alt="HomeRoom Logo" className="w-full h-full object-contain" />
+                      <div className="w-48 h-auto mb-4 hover:scale-105 transition-transform duration-300">
+                        <img src="./effortless_edtech_logo.png" alt="HomeRoom Logo" className="w-full h-full object-contain" />
                       </div>
                       <h2 className="text-2xl font-bold text-gray-800 leading-tight">HomeRoom</h2>
                       <div className="mt-2 px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full tracking-widest uppercase border border-indigo-100">Pro Version 1.0</div>
