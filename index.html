@@ -6084,17 +6084,21 @@
         const canvas = canvasRef.current;
         if (!canvas) return;
         const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
         const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, rect.width, rect.height);
 
         // Load existing canvas data if present
         if (widget.data.canvasData) {
           const img = new Image();
           img.onload = () => {
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
             saveToHistory(); // Save the restored state as the first history point
           };
           img.src = widget.data.canvasData;
@@ -6121,13 +6125,17 @@
             }
             lastDimensions.current = { width: rect.width, height: rect.height };
             const imageData = canvas.toDataURL();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
             const img = new Image();
             img.onload = () => {
+              ctxRef.current.scale(dpr, dpr);
               ctxRef.current.fillStyle = '#ffffff';
-              ctxRef.current.fillRect(0, 0, canvas.width, canvas.height);
-              ctxRef.current.drawImage(img, 0, 0);
+              ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+              ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
             };
             img.src = imageData;
           }, 50); // Much shorter debounce for responsiveness
@@ -6153,9 +6161,11 @@
         setHistoryIndex(newIndex);
         const img = new Image();
         img.onload = () => {
+          const rect = canvasRef.current.parentElement.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
           ctxRef.current.fillStyle = '#ffffff';
-          ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          ctxRef.current.drawImage(img, 0, 0);
+          ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+          ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
         };
         img.src = history[newIndex];
       };
@@ -6166,9 +6176,11 @@
         setHistoryIndex(newIndex);
         const img = new Image();
         img.onload = () => {
+          const rect = canvasRef.current.parentElement.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
           ctxRef.current.fillStyle = '#ffffff';
-          ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          ctxRef.current.drawImage(img, 0, 0);
+          ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+          ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
         };
         img.src = history[newIndex];
       };
@@ -10954,7 +10966,7 @@
           </div>
 
           <div className={`absolute bottom-1 left-0 right-0 z-50 flex flex-col items-center justify-end pointer-events-none transition-opacity duration-500 ${spotlightId ? 'opacity-0 pointer-events-none' : ''}`}>
-            <div className={`max-w-6xl mx-4 mb-2 transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-20 opacity-0 scale-95 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
+            <div className={`max-w-6xl mx-4 mb-2 transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-12 opacity-0 scale-50 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
               <div
                 className={`flex items-center backdrop-blur-2xl rounded-3xl shadow-2xl p-0.5 ring-1 ring-white/50 relative`}
                 onMouseDown={(e) => e.stopPropagation()}
