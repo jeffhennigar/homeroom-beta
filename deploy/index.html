@@ -1063,14 +1063,14 @@
       );
 
       if (style === 'modern-analog') return (
-        <div className="relative w-full aspect-square rounded-[22%] bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden scale-90">
+        <div className="relative w-full aspect-square rounded-[22%] bg-slate-200/80 flex items-center justify-center border border-slate-300/50 shadow-inner overflow-hidden" style={{ boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.08)' }}>
           {[...Array(12)].map((_, i) => (
-            <div key={i} className="absolute w-[0.8px] h-1 bg-slate-300 rounded-full left-1/2 top-1/2 -ml-[0.4px] -mt-[0.5px]" style={{ transform: `rotate(${i * 30}deg) translateY(-14px)` }} />
+            <div key={i} className="absolute bg-slate-400 rounded-full" style={{ width: '2px', height: i % 3 === 0 ? '4px' : '3px', left: '50%', top: '50%', marginLeft: '-1px', transformOrigin: '50% 0', transform: `rotate(${i * 30}deg) translateY(-${i % 3 === 0 ? 17 : 18}px)` }} />
           ))}
-          <div className="absolute w-[1.5px] h-3 bg-slate-800 rounded-full origin-bottom left-1/2 top-1/2 -ml-[0.75px] -mt-[3px]" style={{ transform: `translateY(-3px) rotate(${getRotation(hours % 12 + minutes / 60, 12)}deg)` }} />
-          <div className="absolute w-[1px] h-5 bg-slate-600 rounded-full origin-bottom left-1/2 top-1/2 -ml-[0.5px] -mt-[5px]" style={{ transform: `translateY(-5px) rotate(${getRotation(minutes, 60)}deg)` }} />
-          <div className="absolute w-[0.5px] h-6 bg-red-400 rounded-full origin-bottom left-1/2 top-1/2 -ml-[0.25px] -mt-[6px]" style={{ transform: `translateY(-6px) rotate(${getRotation(seconds, 60)}deg)` }} />
-          <div className="w-1.5 h-1.5 bg-white border border-red-500 rounded-full z-10" />
+          <div className="absolute bg-slate-700 rounded-full" style={{ width: '2px', height: '12px', left: '50%', bottom: '50%', marginLeft: '-1px', transformOrigin: 'bottom center', transform: `rotate(${getRotation(hours % 12 + minutes / 60, 12)}deg)` }} />
+          <div className="absolute bg-slate-900 rounded-full" style={{ width: '1.5px', height: '16px', left: '50%', bottom: '50%', marginLeft: '-0.75px', transformOrigin: 'bottom center', transform: `rotate(${getRotation(minutes, 60)}deg)` }} />
+          <div className="absolute bg-red-500 rounded-full" style={{ width: '1px', height: '18px', left: '50%', bottom: '50%', marginLeft: '-0.5px', transformOrigin: 'bottom center', transform: `rotate(${getRotation(seconds, 60)}deg)` }} />
+          <div className="absolute w-2 h-2 bg-white border-2 border-red-500 rounded-full z-10" style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
         </div>
       );
 
@@ -3634,6 +3634,15 @@
             className={`absolute top-2 right-2 flex gap-1 z-[10006] transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
           >
             <div className="flex bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200 p-0.5 pointer-events-auto">
+              {(onSettings && widgetType === 'CLOCK') && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSettings(id); }}
+                  className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                  title="Settings"
+                >
+                  <Settings size={14} />
+                </button>
+              )}
               {onToggleGlass && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onToggleGlass(); }}
@@ -3641,15 +3650,6 @@
                   title="Toggle Transparency"
                 >
                   <WindowIcon size={14} />
-                </button>
-              )}
-              {(onSettings && (widgetType === 'CLOCK' || widgetType === 'CALENDAR')) && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onSettings(id); }}
-                  className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                  title="Settings"
-                >
-                  <Settings size={14} />
                 </button>
               )}
               {onMinimizeToggle && (
