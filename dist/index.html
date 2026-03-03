@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HomeRoom Pro</title>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="18de2e8a-75be-4d11-bc8d-18784a804ed4"></script>
-  <link rel="icon" type="image/svg+xml" href="./favicon-CuRdcC1_.svg" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -625,7 +625,6 @@
 
 <body>
   <div id="root"></div>
-
 
 
   <script type="importmap">
@@ -3224,85 +3223,90 @@
       return (
         <div className="flex flex-col items-center justify-center w-full h-full select-none cursor-default relative group overflow-hidden font-sans" style={{ containerType: 'size', padding: '2px 4px' }}>
           {showSettings && (
-            <div className={`absolute inset-0 z-[10010] flex flex-col p-3 gap-1.5 overflow-y-auto overflow-x-hidden rounded-2xl ${isLight ? 'bg-slate-900/90 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl shadow-xl'}`}
+            <div className={`absolute inset-0 z-[10010] flex flex-col rounded-2xl overflow-hidden ${isLight ? 'bg-slate-900/90 backdrop-blur-xl' : 'bg-white/95 backdrop-blur-xl shadow-xl'}`}
               onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-1 pt-1">
+
+              {/* Fixed Header */}
+              <div className="flex items-center justify-between p-3 pb-2 border-b border-transparent">
                 <span className={`font-black text-[10px] uppercase tracking-wider ${isLight ? 'text-white/80' : 'text-slate-500'}`}>Weather Settings</span>
                 <button onClick={() => setShowSettings(false)} className={`p-1.5 rounded-full transition-all active:scale-90 ${isLight ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}>
                   <X size={16} strokeWidth={3} />
                 </button>
               </div>
 
-              {/* Temperature Unit */}
-              <div className="flex items-center justify-between">
-                <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Temperature</span>
-                <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
-                  <button onClick={() => toggleSetting('tempUnit', 'F')}
-                    className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'F' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°F</button>
-                  <button onClick={() => toggleSetting('tempUnit', 'C')}
-                    className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'C' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°C</button>
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 pt-1 flex flex-col gap-1.5 custom-scrollbar">
+                {/* Temperature Unit */}
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Temperature</span>
+                  <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
+                    <button onClick={() => toggleSetting('tempUnit', 'F')}
+                      className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'F' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°F</button>
+                    <button onClick={() => toggleSetting('tempUnit', 'C')}
+                      className={`px-3 py-1 text-[10px] font-bold transition-all ${tempUnit === 'C' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>°C</button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Wind Unit */}
-              <div className="flex items-center justify-between">
-                <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Wind Speed</span>
-                <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
-                  <button onClick={() => toggleSetting('windUnit', 'mph')}
-                    className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'mph' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>mph</button>
-                  <button onClick={() => toggleSetting('windUnit', 'km/h')}
-                    className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'km/h' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>km/h</button>
+                {/* Wind Unit */}
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-semibold ${isLight ? 'text-white/70' : 'text-slate-600'}`}>Wind Speed</span>
+                  <div className={`flex rounded-full overflow-hidden border ${isLight ? 'border-white/20' : 'border-slate-200'}`}>
+                    <button onClick={() => toggleSetting('windUnit', 'mph')}
+                      className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'mph' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>mph</button>
+                    <button onClick={() => toggleSetting('windUnit', 'km/h')}
+                      className={`px-2.5 py-1 text-[10px] font-bold transition-all ${windUnit === 'km/h' ? 'bg-blue-500 text-white' : (isLight ? 'text-white/50' : 'text-slate-400')}`}>km/h</button>
+                  </div>
                 </div>
-              </div>
 
-              <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
-              <div className="flex items-center justify-between">
-                <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Forecast View</span>
-                <button onClick={() => toggleSetting('showForecast', !showForecast)}
-                  className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all border ${showForecast ? 'bg-blue-500 text-white border-blue-600' : (isLight ? 'text-white/50 border-white/20' : 'text-slate-400 border-slate-200')}`}> {showForecast ? '3-Day' : 'Today'} </button>
-              </div>
-
-              <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
-              <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Show Details</span>
-
-              {/* Toggles */}
-              {[
-                { key: 'showWind', label: '💨 Wind', value: showWind },
-                { key: 'showHumidity', label: '💧 Humidity', value: showHumidity },
-                { key: 'showFeelsLike', label: '🌡️ Feels Like', value: showFeelsLike },
-                { key: 'showUV', label: '☀️ UV Index', value: showUV }
-              ].map(({ key, label, value }) => (
-                <div key={key} className="flex items-center justify-between">
-                  <span className={`text-xs font-medium ${isLight ? 'text-white/70' : 'text-slate-600'}`}>{label}</span>
-                  <button onClick={() => toggleSetting(key, !value)}
-                    className={`w-9 h-5 rounded-full transition-all relative ${value ? 'bg-blue-500' : (isLight ? 'bg-white/20' : 'bg-slate-200')}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${value ? 'left-[18px]' : 'left-0.5'}`} />
-                  </button>
+                <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
+                <div className="flex items-center justify-between">
+                  <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Forecast View</span>
+                  <button onClick={() => toggleSetting('showForecast', !showForecast)}
+                    className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all border ${showForecast ? 'bg-blue-500 text-white border-blue-600' : (isLight ? 'text-white/50 border-white/20' : 'text-slate-400 border-slate-200')}`}> {showForecast ? '3-Day' : 'Today'} </button>
                 </div>
-              ))}
 
-              <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
-              <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Location</span>
+                <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
+                <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Show Details</span>
 
-              {/* City search in settings */}
-              <div className="flex gap-1">
-                <input
-                  value={settingsSearchQuery}
-                  onChange={(e) => setSettingsSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
-                  placeholder="Enter city name..."
-                  className={`flex-1 px-2.5 py-1.5 rounded-full text-[11px] outline-none ${isLight ? 'bg-white/15 text-white placeholder-white/40' : 'bg-slate-100 text-slate-800 placeholder-slate-400'}`}
-                />
-                <button
-                  onClick={() => { if (settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
-                  className={`px-2.5 py-1.5 rounded-full font-bold text-[10px] ${isLight ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}
-                >Go</button>
+                {/* Toggles */}
+                {[
+                  { key: 'showWind', label: '💨 Wind', value: showWind },
+                  { key: 'showHumidity', label: '💧 Humidity', value: showHumidity },
+                  { key: 'showFeelsLike', label: '🌡️ Feels Like', value: showFeelsLike },
+                  { key: 'showUV', label: '☀️ UV Index', value: showUV }
+                ].map(({ key, label, value }) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className={`text-xs font-medium ${isLight ? 'text-white/70' : 'text-slate-600'}`}>{label}</span>
+                    <button onClick={() => toggleSetting(key, !value)}
+                      className={`w-9 h-5 rounded-full transition-all relative ${value ? 'bg-blue-500' : (isLight ? 'bg-white/20' : 'bg-slate-200')}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${value ? 'left-[18px]' : 'left-0.5'}`} />
+                    </button>
+                  </div>
+                ))}
+
+                <div className={`border-t my-0.5 ${isLight ? 'border-white/10' : 'border-slate-100'}`} />
+                <span className={`text-[9px] font-black uppercase tracking-wider ${isLight ? 'text-white/40' : 'text-slate-500'}`}>Location</span>
+
+                {/* City search in settings */}
+                <div className="flex gap-1">
+                  <input
+                    value={settingsSearchQuery}
+                    onChange={(e) => setSettingsSearchQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
+                    placeholder="Enter city name..."
+                    className={`flex-1 px-2.5 py-1.5 rounded-full text-[11px] outline-none ${isLight ? 'bg-white/15 text-white placeholder-white/40' : 'bg-slate-100 text-slate-800 placeholder-slate-400'}`}
+                  />
+                  <button
+                    onClick={() => { if (settingsSearchQuery.length >= 2) { searchCity(settingsSearchQuery); setShowSettings(false); } }}
+                    className={`px-2.5 py-1.5 rounded-full font-bold text-[10px] ${isLight ? 'bg-white/20 text-white' : 'bg-blue-500 text-white'}`}
+                  >Go</button>
+                </div>
+
+                <button onClick={() => { setShowSettings(false); detectLocation(); }}
+                  className={`py-1.5 rounded-full text-[10px] font-bold transition-all ${isLight ? 'bg-white/10 hover:bg-white/20 text-white/70' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
+                  📍 Use My Location
+                </button>
               </div>
-
-              <button onClick={() => { setShowSettings(false); detectLocation(); }}
-                className={`py-1.5 rounded-full text-[10px] font-bold transition-all ${isLight ? 'bg-white/10 hover:bg-white/20 text-white/70' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}>
-                📍 Use My Location
-              </button>
             </div>
           )}
 
@@ -3398,7 +3402,7 @@
     const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'Exit Ticket', SPARK: 'Spark', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
 
     // --- UTILS ---
-    const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass, isClosing = false }) => {
+    const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass, isClosing = false, title }) => {
       const [isDragging, setIsDragging] = useState(false);
       const [isResizing, setIsResizing] = useState(false);
       const [resizeDirection, setResizeDirection] = useState(null);
@@ -3548,23 +3552,10 @@
           ? 'border-2 border-transparent hover:border-blue-400/30 hover:bg-blue-400/5 transition-all'
           : 'border-2 border-gray-300';
 
-      return (<div data-widget-id={id} className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : 'overflow-hidden'} ${isDragging || isResizing ? '' : 'transition-all shadow-transition duration-500'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? 'animate-minimize' : 'animate-elastic')} ${isMinimized ? 'pointer-events-none' : 'pointer-events-auto'}`}
+      return (<div data-widget-id={id} className={`absolute flex flex-col ${getWidgetStyleClass()} widget-glow-hover ${chromeless ? 'overflow-visible' : ''} group ${isDragging || isResizing ? '' : 'transition-all shadow-transition duration-500'} ${borderClass} ${isSpotlighted ? 'scale-[1.02] shadow-[0_0_40px_rgba(255,255,255,0.9),0_0_100px_rgba(255,255,255,0.6),0_0_200px_rgba(255,255,255,0.35),0_0_400px_rgba(255,255,255,0.2),0_0_600px_rgba(200,210,255,0.12)] ring-2 ring-white/50 z-[10000] brightness-[1.1]' : ''} ${isClosing ? 'animate-shrink-out' : (isMinimized ? 'animate-minimize' : 'animate-elastic')} pointer-events-auto`}
         style={{ left: position.x, top: position.y, transform: 'translate(0px, 0px)', width: size.width, height: displayHeight, zIndex: computedZIndex, touchAction: 'none', cursor: chromeless ? 'grab' : 'default', ...containerStyle }}
         onMouseDown={(e) => { e.stopPropagation(); if (!isSelected) onSelect(id); if (chromeless) handleMouseDown(e); }}>
-        {!chromeless && <div className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-2xl' : 'rounded-t-2xl'}`} onMouseDown={handleMouseDown}>
-          <div className="flex items-center gap-1 z-10">
-            {onFontSizeChange && (<><button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(-2); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"><Minus size={14} strokeWidth={3} /></button> <button onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(2); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"><Plus size={14} strokeWidth={3} /></button></>)}
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors pointer-events-auto" /></div>
-          <div className="flex items-center gap-1 z-10">
-            {onSpotlight && (<button onClick={(e) => { e.stopPropagation(); onSpotlight(id); }} className={`p-1 rounded transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`} title="Spotlight"> <Lightbulb size={14} /> </button>)}
-            {onMinimizeToggle && (<button onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors" title="Minimize"> <Minus size={14} /> </button>)}
-            <button onClick={(e) => { e.stopPropagation(); onRemove(id); }} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Close"> <X size={14} /> </button>
-          </div>
-        </div>}
-
-
-        {/* Resize Handles - Always on top */}
+        {/* Resize Handles - Always on top, invisible hit areas */}
         {isSelected && !isMinimized && (
           <>
             <div className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'nw')} />
@@ -3577,63 +3568,102 @@
             <div className="absolute right-0 top-4 bottom-4 w-1 cursor-e-resize z-[10005]" onMouseDown={(e) => handleResizeStart(e, 'e')} />
           </>
         )}
+        {/* Restored Structural Header */}
+        {!chromeless && (
+          <div
+            className={`h-10 bg-gray-50 flex items-center justify-between px-2 cursor-move border-b border-gray-300 group select-none flex-shrink-0 relative ${isMinimized ? 'rounded-xl' : 'rounded-t-xl'}`}
+            onMouseDown={handleMouseDown}
+          >
+            {/* Left Header Info */}
+            <div className="flex items-center gap-2 text-slate-700 overflow-hidden pointer-events-none">
+              <span className="font-bold text-xs truncate ml-1">{title || widgetLabel}</span>
+            </div>
+
+            {/* Right Header Tools (Aligned from left to right: Spotlight, Transparency, Settings, Minimize, Close) */}
+            <div className={`flex items-center gap-1 z-10 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+              {onSpotlight && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSpotlight(id); }}
+                  className={`p-1 w-7 h-7 flex flex-col items-center justify-center rounded-md transition-colors ${isSpotlighted ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'}`}
+                  title="Spotlight"
+                >
+                  <Lightbulb size={14} />
+                </button>
+              )}
+              {window.WindowIcon && onToggleGlass && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onToggleGlass(); }}
+                  className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
+                  title="Toggle Transparency"
+                >
+                  <WindowIcon size={14} />
+                </button>
+              )}
+              {(onSettings && (widgetType === 'CLOCK' || widgetType === 'CALENDAR')) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSettings(id); }}
+                  className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
+                  title="Settings"
+                >
+                  <Settings size={14} />
+                </button>
+              )}
+              {onMinimizeToggle && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }}
+                  className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-md transition-colors"
+                  title={isMinimized ? "Restore" : "Minimize"}
+                >
+                  {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
+                </button>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemove(id); }}
+                className="p-1 w-7 h-7 flex flex-col items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                title="Close"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Chromeless Floating Tools - Only on Hover or Selection */}
+        {chromeless && (
+          <div
+            className={`absolute top-2 right-2 flex gap-1 z-[10006] transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+          >
+            <div className="flex bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200 p-0.5 pointer-events-auto">
+              {(onSettings && (widgetType === 'CLOCK' || widgetType === 'CALENDAR')) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSettings(id); }}
+                  className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                  title="Settings"
+                >
+                  <Settings size={14} />
+                </button>
+              )}
+              {onMinimizeToggle && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onMinimizeToggle(id, e); }}
+                  className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                  title="Minimize"
+                >
+                  <Minus size={14} />
+                </button>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemove(id); }}
+                className="p-1 w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                title="Close"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className={`flex-1 relative flex flex-col custom-scrollbar ${chromeless && widgetType === 'OVERLAY_TEXT' ? 'overflow-visible' : `overflow-hidden ${chromeless ? 'rounded-2xl' : 'rounded-b-2xl'}`}`} style={contentStyle}>{children}</div>
-
-        {!isMinimized && isSelected && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            {/* Corner handles - dots (Larger hit area with p-1 bg-clip-content) */}
-            <div className="absolute top-0 left-0 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 'nw')} style={{ transform: 'translate(-50%, -50%)' }} />
-            <div className="absolute top-0 right-0 w-4 h-4 bg-blue-500 rounded-full cursor-nesw-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 'ne')} style={{ transform: 'translate(50%, -50%)' }} />
-            <div className="absolute bottom-0 left-0 w-4 h-4 bg-blue-500 rounded-full cursor-nesw-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 'sw')} style={{ transform: 'translate(-50%, 50%)' }} />
-            <div className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 rounded-full cursor-nwse-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 'se')} style={{ transform: 'translate(50%, 50%)' }} />
-
-            {/* Edge handles - dashes (Larger hit area) */}
-            <div className="absolute top-0 left-1/2 w-8 h-4 bg-blue-500 rounded-sm cursor-ns-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 'n')} style={{ transform: 'translate(-50%, -50%)' }} />
-            <div className="absolute bottom-0 left-1/2 w-8 h-4 bg-blue-500 rounded-sm cursor-ns-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 's')} style={{ transform: 'translate(-50%, 50%)' }} />
-            <div className="absolute top-1/2 left-0 w-4 h-8 bg-blue-500 rounded-sm cursor-ew-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 'w')} style={{ transform: 'translate(-50%, -50%)' }} />
-            <div className="absolute top-1/2 right-0 w-4 h-8 bg-blue-500 rounded-sm cursor-ew-resize z-20 p-1 bg-clip-content" onMouseDown={(e) => handleResizeStart(e, 'e')} style={{ transform: 'translate(50%, -50%)' }} />
-          </div>
-        )}
-
-        {chromeless && isSelected && (
-          <div className="absolute top-2 right-2 flex gap-1 z-[10006]">
-            <button
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onMinimizeToggle?.(id, e); }}
-              className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
-              title="Minimize to Dock"
-            >
-              <Minus size={14} strokeWidth={3} />
-            </button>
-            <button
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onSettings?.(id); }}
-              className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
-              title="Widget Settings"
-            >
-              <Settings size={14} />
-            </button>
-          </div>
-        )}
-        {onToggleGlass && (
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onToggleGlass(); }}
-            className={`p-1.5 shadow-md rounded-lg transition-all border pointer-events-auto ${isGlassy && isGlassy !== 'solid' ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white/90 text-slate-500 hover:text-indigo-600 border-slate-200'}`}
-            title="Toggle Transparency State"
-          >
-            <WindowIcon size={14} />
-          </button>
-        )}
-        <button
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); onRemove(id); }}
-          className="p-1.5 bg-white/90 shadow-md rounded-lg text-slate-400 hover:text-red-600 hover:bg-white transition-all border border-slate-200 pointer-events-auto"
-          title="Delete"
-        >
-          <X size={14} />
-        </button>
       </div>
       );
     };
@@ -6054,17 +6084,21 @@
         const canvas = canvasRef.current;
         if (!canvas) return;
         const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
         const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, rect.width, rect.height);
 
         // Load existing canvas data if present
         if (widget.data.canvasData) {
           const img = new Image();
           img.onload = () => {
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
             saveToHistory(); // Save the restored state as the first history point
           };
           img.src = widget.data.canvasData;
@@ -6091,13 +6125,17 @@
             }
             lastDimensions.current = { width: rect.width, height: rect.height };
             const imageData = canvas.toDataURL();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
             const img = new Image();
             img.onload = () => {
+              ctxRef.current.scale(dpr, dpr);
               ctxRef.current.fillStyle = '#ffffff';
-              ctxRef.current.fillRect(0, 0, canvas.width, canvas.height);
-              ctxRef.current.drawImage(img, 0, 0);
+              ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+              ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
             };
             img.src = imageData;
           }, 50); // Much shorter debounce for responsiveness
@@ -6123,9 +6161,11 @@
         setHistoryIndex(newIndex);
         const img = new Image();
         img.onload = () => {
+          const rect = canvasRef.current.parentElement.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
           ctxRef.current.fillStyle = '#ffffff';
-          ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          ctxRef.current.drawImage(img, 0, 0);
+          ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+          ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
         };
         img.src = history[newIndex];
       };
@@ -6136,9 +6176,11 @@
         setHistoryIndex(newIndex);
         const img = new Image();
         img.onload = () => {
+          const rect = canvasRef.current.parentElement.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
           ctxRef.current.fillStyle = '#ffffff';
-          ctxRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          ctxRef.current.drawImage(img, 0, 0);
+          ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+          ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
         };
         img.src = history[newIndex];
       };
@@ -7011,7 +7053,7 @@
                   {[
                     { name: "UFLI Blending Board", url: "https://research.dwi.ufl.edu/op.n/file/bca9ju45kvvrvoan/?embed", color: "bg-blue-50 text-blue-600 hover:bg-blue-100" },
                     { name: "Base-10 Blocks", url: "https://apps.mathlearningcenter.org/number-pieces/", color: "bg-orange-50 text-orange-600 hover:bg-orange-100" },
-                    { name: "Virtual Manipulatives", url: "https://www.mathlearningcenter.org/apps", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
+                    { name: "Polypad Manipulatives", url: "https://polypad.amplify.com/embed/#numbers", color: "bg-purple-50 text-purple-600 hover:bg-purple-100" }
                   ].map(l => (
                     <button
                       key={l.name}
@@ -7035,6 +7077,11 @@
               {embedSrc.includes('ufl.edu') && (
                 <div className="bg-slate-50 text-[10px] text-slate-500 py-1.5 px-3 text-center border-t border-slate-200 font-medium shrink-0">
                   Resources provided by <a href="https://ufli.education.ufl.edu/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">UFLI</a>
+                </div>
+              )}
+              {embedSrc.includes('polypad') && (
+                <div className="bg-slate-50 text-[10px] text-slate-500 py-1.5 px-3 text-center border-t border-slate-200 font-medium shrink-0">
+                  Materials created using <a href="https://amplify.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Polypad by Amplify</a>
                 </div>
               )}
               <button
@@ -8745,8 +8792,8 @@
                 {activeTab === 'about' && (
                   <div className="p-4">
                     <div className="flex flex-col items-center mb-6 mt-4">
-                      <div className="w-32 h-32 mb-4 hover:scale-105 transition-transform duration-300">
-                        <img src="/homeroom-logo.png" alt="HomeRoom Logo" className="w-full h-full object-contain" />
+                      <div className="w-48 h-auto mb-4 hover:scale-105 transition-transform duration-300">
+                        <img src="./effortless_edtech_logo.png" alt="HomeRoom Logo" className="w-full h-full object-contain" />
                       </div>
                       <h2 className="text-2xl font-bold text-gray-800 leading-tight">HomeRoom</h2>
                       <div className="mt-2 px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full tracking-widest uppercase border border-indigo-100">Pro Version 1.0</div>
@@ -10103,6 +10150,9 @@
         const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
         const size = WIDGET_SIZES[type] || { width: 400, height: 300 };
 
+        const existingCount = (slides[currentSlideIndex] || []).filter(w => w.type === type).length;
+        const autoTitle = existingCount > 0 ? `${DOCK_LABELS[type]?.label || type} ${existingCount + 1}` : undefined;
+
         // Centered position for specific widgets like Randomizer
         let startX, startY;
         if (type === 'RANDOMIZER') {
@@ -10139,6 +10189,8 @@
         if (type === 'TEXT') fontSize = 12;
 
         let data = { fontSize };
+        if (autoTitle) data.title = autoTitle;
+
         if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual' };
         if (type === 'RANDOMIZER') data = { ...data, students: getInitialStudents(), currentName: null, isAnimating: false, pickedStudents: [] };
         if (type === 'GROUP_MAKER') data = { ...data, students: getInitialStudents(), groupCount: 4, groups: [] };
@@ -10437,21 +10489,37 @@
               dockClickLockRef.current = true;
               setTimeout(() => { dockClickLockRef.current = false; }, 300);
 
-              const activeWidgets = widgets.filter(w => w.type === id);
-              const openWidget = activeWidgets.find(w => !w.isMinimized);
-
-              if (openWidget) {
-                // If any instance is open, minimize it
-                toggleMinimize(openWidget.id, e);
-              } else {
-                const minimized = activeWidgets.find(w => w.isMinimized);
-                if (minimized) {
-                  toggleMinimize(minimized.id, e);
-                  bringToFront(minimized.id);
-                } else {
-                  addWidget(id);
-                }
+              // Shift click always adds a new instance
+              if (e.shiftKey) {
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
+                addWidget(id);
+                if (location === 'drawer') setShowMoreDrawer(false);
+                return;
               }
+
+              const activeWidgets = (slides[currentSlideIndex] || []).filter(w => w.type === id);
+
+              if (activeWidgets.length > 0) {
+                // Find the most recently used (highest Z)
+                const sorted = [...activeWidgets].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
+                const topMost = sorted[0];
+
+                if (topMost.isMinimized) {
+                  toggleMinimize(topMost.id, e);
+                  bringToFront(topMost.id);
+                } else {
+                  // If it's already focused (maxZ), minimize it. Otherwise bring to front.
+                  if (topMost.zIndex === maxZIndex) {
+                    toggleMinimize(topMost.id, e);
+                  } else {
+                    bringToFront(topMost.id);
+                  }
+                }
+              } else {
+                addWidget(id);
+              }
+
               if (location === 'drawer') setShowMoreDrawer(false);
             }}
             className={containerClasses}
@@ -10462,6 +10530,11 @@
             {/* Main Icon */}
             <div className={iconClasses}>
               {info.icon}
+              {activeInstances.length > 1 && (
+                <div className="absolute top-1 right-1 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20 animate-in zoom-in duration-300">
+                  {activeInstances.length}
+                </div>
+              )}
             </div>
 
             {/* Reflection (Overly Premium) */}
@@ -10559,7 +10632,7 @@
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-orange-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                 <div className="relative w-24 h-24 glass-tile rounded-[2rem] flex items-center justify-center text-white text-5xl font-black shadow-2xl animate-[logo-float_4s_ease-in-out_infinite] border-none">
-                  <img src="./homeroom-logo.png" className="w-full h-full object-contain p-4" alt="HomeRoom" />
+                  <img src="./homeroom-logo-transparent.png" className="w-full h-full object-contain p-4" alt="HomeRoom" />
                 </div>
               </div>
 
@@ -10841,6 +10914,7 @@
                         isSpotlighted={spotlightId === w.id}
                         isGridEnabled={isGridEnabled}
                         widgetType={w.type}
+                        title={w.data?.title}
                         onSelect={bringToFront}
                         onUpdate={updateWidgetLayout}
                         onRemove={removeWidget}
@@ -10892,7 +10966,7 @@
           </div>
 
           <div className={`absolute bottom-1 left-0 right-0 z-50 flex flex-col items-center justify-end pointer-events-none transition-opacity duration-500 ${spotlightId ? 'opacity-0 pointer-events-none' : ''}`}>
-            <div className={`max-w-6xl mx-4 mb-2 transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-20 opacity-0 scale-95 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
+            <div className={`max-w-6xl mx-4 mb-2 transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-12 opacity-0 scale-50 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
               <div
                 className={`flex items-center backdrop-blur-2xl rounded-3xl shadow-2xl p-0.5 ring-1 ring-white/50 relative`}
                 onMouseDown={(e) => e.stopPropagation()}
