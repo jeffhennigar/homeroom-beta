@@ -205,17 +205,19 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                         style={{ fontSize: titleFontSize }}
                                         placeholder="Activity name"
                                     />
-                                    <textarea
-                                        data-autosize
-                                        value={item.description || ''}
-                                        onChange={(e) => updateItem(index, 'description', e.target.value)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
-                                        className="w-full text-gray-500 bg-transparent border-none outline-none resize-none placeholder-gray-300 font-medium overflow-hidden"
-                                        style={{ fontSize: descFontSize, lineHeight: 1.4 }}
-                                        placeholder="Add details..."
-                                        rows={1}
-                                        onInput={(e: any) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                                    />
+                                    {scheduleSettings?.showDescriptions !== false && (
+                                        <textarea
+                                            data-autosize
+                                            value={item.description || ''}
+                                            onChange={(e) => updateItem(index, 'description', e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+                                            className="w-full text-gray-500 bg-transparent border-none outline-none resize-none placeholder-gray-300 font-medium overflow-hidden"
+                                            style={{ fontSize: descFontSize, lineHeight: 1.4 }}
+                                            placeholder="Add details..."
+                                            rows={1}
+                                            onInput={(e: any) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                                        />
+                                    )}
                                 </div>
 
                                 {/* Duplicate and Remove buttons */}
