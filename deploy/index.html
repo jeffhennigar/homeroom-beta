@@ -9703,12 +9703,10 @@
               const widgetsStr = JSON.stringify(slides[idx]);
               if (lastSyncedRef.current.slides[idx] === widgetsStr) continue;
 
-              const { data: existing } = await supabase.from('slides').select('id').match({ user_id: user.id, slide_index: idx }).maybeSingle();
-              let slideError;
-              const payload = { widgets: slides[idx] };
-
-              if (existing) { ({ error: slideError } = await supabase.from('slides').update(payload).match({ user_id: user.id, slide_index: idx })); }
-              else { ({ error: slideError } = await supabase.from('slides').insert({ user_id: user.id, slide_index: idx, ...payload })); }
+              const { error: slideError } = await supabase.from('slides').upsert(
+                { user_id: user.id, slide_index: idx, widgets: slides[idx] },
+                { onConflict: 'user_id,slide_index' }
+              );
               if (slideError) throw slideError;
               lastSyncedRef.current.slides[idx] = widgetsStr;
               slideSyncCount++;
