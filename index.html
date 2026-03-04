@@ -824,8 +824,9 @@
           <div className="flex items-center gap-0.5 bg-slate-50 px-1 rounded-lg border border-slate-100 mx-1">
             <button
               onClick={() => {
-                if (fontSize !== undefined) updateData(widgetId, { fontSize: Math.max(8, fontSize - 1) });
-                else if (fontScale !== undefined) updateData(widgetId, { fontScale: Math.max(0.1, fontScale - 0.1) });
+                const baseSize = fontSize || 12;
+                if (fontScale !== undefined) updateData(widgetId, { fontScale: Math.max(0.1, (Math.round(baseSize * fontScale) - 1) / baseSize) });
+                else updateData(widgetId, { fontSize: Math.max(8, baseSize - 1) });
               }}
               className="p-1 hover:text-indigo-600 transition-colors"
               title="Decrease Font Size"
@@ -833,12 +834,13 @@
               <Minus size={12} />
             </button>
             <div className="min-w-[24px] text-center text-[10px] font-bold text-slate-500 select-none">
-              {fontSize !== undefined ? Math.round(fontSize) : Math.round(fontScale * 12)}
+              {Math.round((fontSize || 12) * (fontScale || 1))}
             </div>
             <button
               onClick={() => {
-                if (fontSize !== undefined) updateData(widgetId, { fontSize: Math.min(100, fontSize + 1) });
-                else if (fontScale !== undefined) updateData(widgetId, { fontScale: Math.min(10, fontScale + 0.1) });
+                const baseSize = fontSize || 12;
+                if (fontScale !== undefined) updateData(widgetId, { fontScale: Math.min(10, (Math.round(baseSize * fontScale) + 1) / baseSize) });
+                else updateData(widgetId, { fontSize: Math.min(100, baseSize + 1) });
               }}
               className="p-1 hover:text-indigo-600 transition-colors"
               title="Increase Font Size"
@@ -3810,6 +3812,7 @@
             widgetId={widget.id}
             hasShadow={hasShadow}
             fontScale={fontScale}
+            fontSize={widget.data.fontSize}
             fontFamily={fontFamily}
             showFontColorMenu={showFontColorMenu}
             setShowFontColorMenu={setShowFontColorMenu}
@@ -9211,6 +9214,7 @@
       const [authLoading, setAuthLoading] = useState(true);
       const [cloudSyncEnabled, setCloudSyncEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_cloud_sync_enabled')) ?? true; } catch { return true; } });
       const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
+      const [hasLocalChanges, setHasLocalChanges] = useState(false);
       const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('homeroom_gemini_api_key') || '');
 
       // --- DERIVED STATE ---
@@ -9263,7 +9267,7 @@
 
         const channel = supabase.channel(`realtime:${user.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` }, (payload) => {
-            if (isSyncing) return;
+            if (isSyncing || hasLocalChanges) return;
             const updatedSlide = payload.new;
             if (updatedSlide && updatedSlide.slide_index !== undefined) {
               // Ignore if this is just an echo of our own change
@@ -9631,8 +9635,15 @@
         // Persist logic handled by useEffect
       };
 
-      const updateWidgetLayout = useCallback((id, newPos, newSize) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, position: newPos, size: newSize } : w)); }, [currentSlideIndex]);
-      const updateWidgetData = useCallback((id, updates) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...updates } } : w)); }, [currentSlideIndex]);
+      const updateWidgetLayout = useCallback((id, newPos, newSize) => {
+        setHasLocalChanges(true);
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, position: newPos, size: newSize } : w));
+      }, [currentSlideIndex]);
+
+      const updateWidgetData = useCallback((id, updates) => {
+        setHasLocalChanges(true);
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...updates } } : w));
+      }, [currentSlideIndex]);
 
       const addToHistory = () => {
         setHistory(prev => [...prev.slice(-19), slides]);
@@ -9795,6 +9806,7 @@
             setLastSyncError(e.message || "Unknown Sync Error");
           } finally {
             setIsSyncing(false);
+            setHasLocalChanges(false);
             setTimeout(() => { savingRef.current = false; }, 1000);
           }
         };
