@@ -784,7 +784,7 @@
 
       return createPortal(
         <div
-          className="fixed z-[10010] bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex items-center gap-1 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200"
+          className="fixed z-[10010] bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex items-center gap-1 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200 floating-toolbar-portal"
           style={{
             top: Math.max(10, pos.top - 55),
             left: Math.max(100, Math.min(window.innerWidth - 100, pos.left)),
@@ -1995,6 +1995,16 @@
       };
       const handleDragEnd = () => { setDraggedItemIndex(null); };
 
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (toolbarPos && editorRef.current && !editorRef.current.contains(e.target) && !e.target.closest('.floating-toolbar-portal')) {
+            setToolbarPos(null);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, [toolbarPos]);
+
       return (
         <div className={`h-full flex flex-col relative group rounded-2xl ${isGlassy && isGlassy !== 'solid' ? 'bg-transparent' : theme.bg} ${(!isGlassy || isGlassy === 'solid') && !chromeless ? 'border' : ''}`} style={{ boxShadow: (!isGlassy || isGlassy === 'solid') ? 'inset 0 0 20px rgba(0,0,0,0.05)' : 'none', fontFamily: 'Poppins, sans-serif' }} onClick={() => { setShowColorMenu(false); setShowFontColorMenu(false); setShowFontMenu(false); }}>
           {(isGlassy === 'solid' || !isGlassy) && (
@@ -2839,13 +2849,13 @@
         const prompt = prompts[type] || prompts.HOOK;
 
         // Smart model fallback - tries multiple models for maximum compatibility
-        const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+        const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'];
         let lastError = null;
         let data = null;
 
         for (const modelId of MODELS) {
           try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
@@ -3736,6 +3746,16 @@
           }
         }
       }, [content, isFocused]);
+
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (toolbarPos && editorRef.current && !editorRef.current.contains(e.target) && !e.target.closest('.floating-toolbar-portal')) {
+            setToolbarPos(null);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, [toolbarPos]);
 
       return (
         <div className='w-full h-full relative group flex flex-col items-center justify-center p-2' onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); setShowFontColorMenu(false); setShowFontMenu(false); }} onClick={() => setIsHovered(true)}>
