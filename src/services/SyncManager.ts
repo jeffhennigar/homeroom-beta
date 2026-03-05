@@ -101,7 +101,9 @@ class SyncManagerService {
     // Add event to debounced queue
     private enqueue(id: string, type: 'profile' | 'slide' | 'roster' | 'roster_delete' | 'slide_delete', payload: any) {
         const now = Date.now();
-        this.queue.set(id, { type, payload, timestamp: now });
+        // Ensure payload has a timestamp for local-first comparison
+        const timestampedPayload = { ...payload, last_modified: now };
+        this.queue.set(id, { type, payload: timestampedPayload, timestamp: now });
         this.setStatus('pending');
 
         // Reset quiet timer
@@ -118,23 +120,28 @@ class SyncManagerService {
 
     // API Methods
     public async updateProfile(userId: string, updates: any) {
+        const timestamp = Date.now();
+        const payload = { ...updates, last_modified: timestamp };
         // 1. Instantly update local mirror
-        this.saveToLocalMirror(`profile_${userId}`, updates);
+        this.saveToLocalMirror(`profile_${userId}`, payload);
         // 2. Queue for db
-        this.enqueue(`profile_${userId}`, 'profile', { userId, updates });
+        this.enqueue(`profile_${userId}`, 'profile', { userId, updates: payload });
     }
 
     public async saveSlide(userId: string, slideIndex: number, widgets: Widget[]) {
+        const timestamp = Date.now();
+        const payload = { widgets, last_modified: timestamp };
         // 1. Instantly update local mirror
-        this.saveToLocalMirror(`slide_${userId}_${slideIndex}`, widgets);
+        this.saveToLocalMirror(`slide_${userId}_${slideIndex}`, payload);
         // 2. Queue
-        this.enqueue(`slide_${userId}_${slideIndex}`, 'slide', { userId, slideIndex, widgets });
+        this.enqueue(`slide_${userId}_${slideIndex}`, 'slide', { userId, slideIndex, widgets, last_modified: timestamp });
     }
 
     public async saveRoster(userId: string, rosterData: { id?: string; name: string; roster: Student[] }) {
+        const timestamp = Date.now();
         // Provide a dummy ID instantly if generating local-first
         const processingId = rosterData.id && rosterData.id !== 'default' ? rosterData.id : `temp_${Date.now()}`;
-        const payload = { ...rosterData, id: processingId };
+        const payload = { ...rosterData, id: processingId, last_modified: timestamp };
 
         let localRosters = this.getFromLocalMirror(`rosters_${userId}`) || [];
         const idx = localRosters.findIndex((r: any) => r.id === processingId);

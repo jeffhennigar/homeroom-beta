@@ -2919,39 +2919,42 @@
 
         const prompt = prompts[type] || prompts.HOOK;
 
-        // Smart model fallback - tries multiple models on stable v1 endpoint
-        const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+        // Universal Model Fallback - tries multiple versions and stable models
+        const VERSIONS = ['v1', 'v1beta'];
+        const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
         let lastError = null;
         let data = null;
 
-        for (const modelId of MODELS) {
-          try {
-            const fetchUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
-            const res = await fetch(fetchUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
-            });
+        apiLoop: for (const version of VERSIONS) {
+          for (const modelId of MODELS) {
+            try {
+              const fetchUrl = `https://generativelanguage.googleapis.com/${version}/models/${modelId}:generateContent?key=${apiKey}`;
+              const res = await fetch(fetchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
+              });
 
-            data = await res.json();
+              data = await res.json();
 
-            if (res.status === 429 || (data.error && data.error.message?.toLowerCase().includes('quota'))) {
-              lastError = "Google's AI is currently at its free limit for your account. Please wait about a minute and try again.";
-              console.warn(`Spark: ${modelId} rate limited (429)`);
-              continue;
+              if (res.status === 429 || (data.error && data.error.message?.toLowerCase().includes('quota'))) {
+                lastError = "Google's AI is currently at its free limit for your account. Please wait about a minute and try again.";
+                console.warn(`Spark: ${modelId} (${version}) rate limited (429)`);
+                continue;
+              }
+
+              if (data.error) {
+                lastError = `[${modelId}] ${data.error.message}`;
+                console.warn(`Spark: ${modelId} (${version}) failed, trying next...`, data.error.message);
+                continue;
+              }
+
+              lastError = null;
+              break apiLoop; // Success!
+            } catch (err) {
+              lastError = err.message;
+              console.warn(`Spark: ${modelId} (${version}) error, trying next...`, err.message);
             }
-
-            if (data.error) {
-              lastError = `[${modelId}] ${data.error.message}`;
-              console.warn('Spark: ' + modelId + ' failed, trying next...', data.error.message);
-              continue;
-            }
-
-            lastError = null;
-            break;
-          } catch (err) {
-            lastError = err.message;
-            console.warn('Spark: ' + modelId + ' error, trying next...', err.message);
           }
         }
 

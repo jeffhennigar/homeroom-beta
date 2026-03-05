@@ -130,8 +130,11 @@ const App = () => {
     // Global Persisted State
     const [allRosters, setAllRosters] = useState(() => {
         try {
-            const parsed = JSON.parse(localStorage.getItem('homeroom_all_rosters'));
-            return Array.isArray(parsed) ? parsed : [{ id: 'default', name: "My Class", roster: DEFAULT_NAMES.map(n => ({ id: Math.random().toString(36).substr(2, 9), name: n, active: true })) }];
+            const raw = localStorage.getItem('homeroom_all_rosters');
+            if (!raw) return [{ id: 'default', name: "My Class", roster: DEFAULT_NAMES.map(n => ({ id: Math.random().toString(36).substr(2, 9), name: n, active: true })) }];
+            const parsed = JSON.parse(raw);
+            const data = (parsed && typeof parsed === 'object' && 'rosters' in parsed) ? parsed.rosters : parsed;
+            return Array.isArray(data) ? data : [{ id: 'default', name: "My Class", roster: [] }];
         }
         catch { return [{ id: 'default', name: "My Class", roster: [] }]; }
     });
@@ -139,15 +142,30 @@ const App = () => {
 
     // Schedule Global State
     const [scheduleTemplate, setScheduleTemplate] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_schedule_template')) || { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] }; }
+        try {
+            const raw = localStorage.getItem('homeroom_schedule_template');
+            const data = raw ? JSON.parse(raw) : null;
+            const template = (data && typeof data === 'object' && 'template' in data) ? data.template : (data || {});
+            return { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], ...template };
+        }
         catch { return { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] }; }
     });
     const [scheduleOverrides, setScheduleOverrides] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_schedule_overrides')) || {}; }
+        try {
+            const raw = localStorage.getItem('homeroom_schedule_overrides');
+            const data = raw ? JSON.parse(raw) : null;
+            const overrides = (data && typeof data === 'object' && 'overrides' in data) ? data.overrides : (data || {});
+            return overrides;
+        }
         catch { return {}; }
     });
     const [scheduleSettings, setScheduleSettings] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_schedule_settings')) || { scheduleMode: 'weekly', dayLabels: [] }; }
+        try {
+            const raw = localStorage.getItem('homeroom_schedule_settings');
+            const data = raw ? JSON.parse(raw) : null;
+            const settings = (data && typeof data === 'object' && 'settings' in data) ? data.settings : (data || {});
+            return { scheduleMode: 'weekly', dayLabels: [], ...settings };
+        }
         catch { return { scheduleMode: 'weekly', dayLabels: [] }; }
     });
 
@@ -158,24 +176,37 @@ const App = () => {
     });
 
     const [background, setBackground] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_background')) || BACKGROUNDS[0]; } catch { return BACKGROUNDS[0]; }
+        try {
+            const raw = localStorage.getItem('homeroom_background');
+            const data = raw ? JSON.parse(raw) : BACKGROUNDS[0];
+            return (data && typeof data === 'object' && 'id' in data) ? data : (data || BACKGROUNDS[0]);
+        } catch { return BACKGROUNDS[0]; }
     });
 
     const [customBackgrounds, setCustomBackgrounds] = useState(() => {
         try {
-            const parsed = JSON.parse(localStorage.getItem('homeroom_custom_backgrounds'));
-            return Array.isArray(parsed) ? parsed : [];
+            const raw = localStorage.getItem('homeroom_custom_backgrounds');
+            const data = raw ? JSON.parse(raw) : [];
+            return Array.isArray(data) ? data : [];
         } catch { return []; }
     });
 
     const [slideBackgrounds, setSlideBackgrounds] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('homeroom_slide_backgrounds')) || {}; }
+        try {
+            const raw = localStorage.getItem('homeroom_slide_backgrounds');
+            const data = raw ? JSON.parse(raw) : {};
+            const backgrounds = (data && typeof data === 'object' && 'backgrounds' in data) ? data.backgrounds : (data || {});
+            return backgrounds;
+        }
         catch { return {}; }
     });
 
     const [dockOrder, setDockOrder] = useState<any>(() => {
         try {
-            const parsed = JSON.parse(localStorage.getItem('homeroom_dock_order'));
+            const raw = localStorage.getItem('homeroom_dock_order');
+            const data = raw ? JSON.parse(raw) : null;
+            const parsed = (data && typeof data === 'object' && 'items' in data) ? data.items : data;
+
             const mainDefaults = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT'];
             const drawerDefaults = INIT_DOCK_ORDER.filter(id => !mainDefaults.includes(id));
 
@@ -432,89 +463,122 @@ const App = () => {
         syncToCloud();
     }, [user, widgets, allRosters, activeRosterId, showGrid, clockStyle, accentColor, dockOrder, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, scheduleSettings, cloudSyncEnabled, currentSlideIndex, isCheckingPro]);
 
-    // Load Data from Cloud
+    // Load Data from Cloud (with Local-First timestamp comparison)
     useEffect(() => {
         const loadCloudData = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
             try {
+                // Helper to get local timestamp
+                const getLocalTime = (key: string) => {
+                    const raw = localStorage.getItem(key);
+                    if (!raw) return 0;
+                    try {
+                        const parsed = JSON.parse(raw);
+                        return parsed?.last_modified || 0;
+                    } catch { return 0; }
+                };
+
                 // 1. Load Profile
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (profile) {
-                    if (profile.background) setBackground(profile.background);
-                    if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
-                    if (profile.clock_style) setClockStyle(profile.clock_style);
-                    if (profile.accent_color) setAccentColor(profile.accent_color);
-                    if (profile.grid_enabled !== undefined) setShowGrid(profile.grid_enabled);
-                    if (profile.dock_order) setDockOrder(profile.dock_order);
+                    const cloudTime = profile.last_modified || 0;
+                    // We check profile fields individually or as a block depending on how specific we want to be.
+                    // For now, if the cloud profile is older than ANY local piece, we might want to skip some.
+                    // Let's do a general profile check first.
+                    const localProfileTime = Math.max(
+                        getLocalTime('homeroom_background'),
+                        getLocalTime('homeroom_dock_order'),
+                        getLocalTime('homeroom_schedule_template'),
+                        getLocalTime('homeroom_schedule_settings')
+                    );
 
-                    // Schedule Sync
-                    if (profile.schedule) {
-                        // Unpack settings if they were consolidated
-                        const { _settings, ...template } = profile.schedule;
-                        setScheduleTemplate(template);
-                        if (_settings) setScheduleSettings(_settings);
-                        else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
-                    }
-                    if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
-                    // Fallback for legacy standalone column
-                    if (!profile.schedule?._settings && profile.schedule_settings) {
-                        setScheduleSettings(profile.schedule_settings);
+                    if (cloudTime >= localProfileTime) {
+                        if (profile.background) setBackground(profile.background);
+                        if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+                        if (profile.clock_style) setClockStyle(profile.clock_style);
+                        if (profile.accent_color) setAccentColor(profile.accent_color);
+                        if (profile.grid_enabled !== undefined) setShowGrid(profile.grid_enabled);
+                        if (profile.dock_order) setDockOrder(profile.dock_order);
+
+                        if (profile.schedule) {
+                            const { _settings, ...template } = profile.schedule;
+                            setScheduleTemplate(template);
+                            if (_settings) setScheduleSettings(_settings);
+                            else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+                        }
+                        if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
+                        if (!profile.schedule?._settings && profile.schedule_settings) {
+                            setScheduleSettings(profile.schedule_settings);
+                        }
+                    } else {
+                        console.log('Sync: Local profile is newer than cloud, skipping overwrite.');
+                        addDebugLog("Local profile is newer than cloud. Keeping local.");
                     }
                 }
 
-                // 2. Load Slides (Widgets) for current slide
+                // 2. Load Slides (Widgets)
                 const rawSlides = await dataService.getSlides(user.id);
                 const slides = rawSlides ? rawSlides.map(s => ({ ...s, widgets: syncManager.decompressPayload(s.widgets) })) : [];
                 if (slides && Array.isArray(slides)) {
                     const slide = slides.find(s => s.slide_index === currentSlideIndex);
-                    if (slide && Array.isArray(slide.widgets)) {
-                        setWidgets(slide.widgets);
+                    if (slide) {
+                        const cloudTime = slide.last_modified || 0;
+                        const localTime = getLocalTime(`homeroom_mirror_slide_${user.id}_${currentSlideIndex}`); // SyncManager's mirror also has timestamps now
+
+                        if (cloudTime >= localTime) {
+                            if (Array.isArray(slide.widgets)) {
+                                setWidgets(slide.widgets);
+                            }
+                        } else {
+                            console.log(`Sync: Local slide ${currentSlideIndex} is newer than cloud.`);
+                            addDebugLog(`Local slide ${currentSlideIndex} is newer. Keeping local.`);
+                        }
                     } else {
                         setWidgets([]);
                     }
                 }
 
-                // 3. Load Rosters & Smart Merge
+                // 3. Load Rosters
                 const rawRosters = await dataService.getRosters(user.id);
                 const cloudRosters = rawRosters ? rawRosters.map(r => ({ ...r, roster: syncManager.decompressPayload(r.roster) })) : [];
-                let mergedRosters = allRosters;
 
+                // For rosters, we merge but prioritize newest
+                const localRostersWrapper = JSON.parse(localStorage.getItem('homeroom_all_rosters') || '{}');
+                const localRosters = localRostersWrapper.rosters || [];
+                const localRostersTime = localRostersWrapper.last_modified || 0;
+
+                let mergedRosters = allRosters;
                 if (cloudRosters && Array.isArray(cloudRosters)) {
                     const uniqueMap = new Map();
-                    const cloudRosterIds = new Set(cloudRosters.map((r: any) => r.id));
-
-                    // Cloud is source of truth
+                    // Merge logic: If cloud is newer overall, prefer it. Otherwise, look at individual rosters.
                     cloudRosters.forEach((r: any) => uniqueMap.set(r.id, r));
 
-                    // Local rosters: keep only if they don't conflict, and strip zombie UUIDs
                     allRosters.forEach(r => {
-                        // Check if this roster already exists in cloud (by ID or exact name)
-                        const existsInCloud = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
-
-                        if (!existsInCloud) {
+                        const cloudMatch = cloudRosters.find(cr => cr.id === r.id);
+                        if (cloudMatch) {
+                            const cloudTime = cloudMatch.last_modified || 0;
+                            const localTime = r.last_modified || 0;
+                            if (localTime > cloudTime) {
+                                uniqueMap.set(r.id, r); // Local wins for this specific roster
+                            }
+                        } else {
                             // If it has a UUID but isn't in cloud, it's from another account. Strip it!
                             const isUUID = r.id && r.id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(r.id));
                             const sanitizedRoster = isUUID ? { ...r, id: 'default' } : r;
-
-                            if (!uniqueMap.has(sanitizedRoster.id) || sanitizedRoster.id === 'default') {
-                                // For 'default' we might want to be careful, but saveRoster handles 'default' by stripping it.
-                                uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
-                            }
+                            uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
                         }
                     });
+
                     mergedRosters = Array.from(uniqueMap.values()).map(r => {
                         if (typeof r.id === 'string' && r.id.startsWith('temp-')) return { ...r, id: 'default' };
                         return r;
                     });
                     setAllRosters(mergedRosters);
-                    mergedRosters.forEach(r => {
-                        lastSyncedRef.current.rosters[r.id] = JSON.stringify(r);
-                    });
                 }
 
-                // Set Active Roster from profile or fallbackvoid immediate re-save
+                // Update lastSyncedRef to match what we just loaded or kept
                 const profilePayload = {
                     grid_enabled: profile?.grid_enabled ?? false,
                     clock_style: profile?.clock_style ?? '12h',
@@ -539,7 +603,6 @@ const App = () => {
             } catch (e) {
                 console.error("Error loading cloud data", e);
             } finally {
-                // Mark cloud as loaded AFTER data is fetched — this unblocks the save effect
                 cloudLoaded.current = true;
             }
         };
@@ -682,16 +745,43 @@ const App = () => {
         if (!localStorage.getItem('homeroom_onboarded')) setShowOnboarding(true);
     }, []);
 
-    // Persist Effects
-    useEffect(() => { localStorage.setItem('homeroom_background', JSON.stringify(background)); }, [background]);
-    useEffect(() => { localStorage.setItem('homeroom_dock_order', JSON.stringify(dockOrder)); }, [dockOrder]);
-    useEffect(() => { localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters)); }, [allRosters]);
-    useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
-    useEffect(() => { localStorage.setItem('homeroom_schedule_template', JSON.stringify(scheduleTemplate)); }, [scheduleTemplate]);
-    useEffect(() => { localStorage.setItem('homeroom_schedule_overrides', JSON.stringify(scheduleOverrides)); }, [scheduleOverrides]);
-    useEffect(() => { localStorage.setItem('homeroom_schedule_settings', JSON.stringify(scheduleSettings)); }, [scheduleSettings]);
-    useEffect(() => { localStorage.setItem('homeroom_accent_color', accentColor); }, [accentColor]);
-    useEffect(() => { localStorage.setItem('homeroom_grid', String(showGrid)); }, [showGrid]);
+    // Persist Effects (with timestamps for local-first sync)
+    useEffect(() => {
+        localStorage.setItem('homeroom_background', JSON.stringify({ ...background, last_modified: Date.now() }));
+    }, [background]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_dock_order', JSON.stringify({ items: dockOrder, last_modified: Date.now() }));
+    }, [dockOrder]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_all_rosters', JSON.stringify({ rosters: allRosters, last_modified: Date.now() }));
+    }, [allRosters]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify({ backgrounds: slideBackgrounds, last_modified: Date.now() }));
+    }, [slideBackgrounds]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_schedule_template', JSON.stringify({ template: scheduleTemplate, last_modified: Date.now() }));
+    }, [scheduleTemplate]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_schedule_overrides', JSON.stringify({ overrides: scheduleOverrides, last_modified: Date.now() }));
+    }, [scheduleOverrides]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_schedule_settings', JSON.stringify({ settings: scheduleSettings, last_modified: Date.now() }));
+    }, [scheduleSettings]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_accent_color', accentColor);
+    }, [accentColor]);
+
+    useEffect(() => {
+        localStorage.setItem('homeroom_grid', String(showGrid));
+    }, [showGrid]);
+
     useEffect(() => {
         localStorage.setItem('homeroom_active_roster_id', activeRosterId);
         // Sync roster state when ID changes
