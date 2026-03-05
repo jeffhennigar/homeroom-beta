@@ -2632,10 +2632,16 @@
         const channel = window.supabaseClient.channel(`exit_ticket:${sessionId}`);
         channelRef.current = channel;
 
+        const updateDebug = (msg) => {
+          const el = document.getElementById(`debug-${widget.id}`);
+          if (el) el.textContent = `[Debug] ${msg}`;
+        };
+
         channel.on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState();
           const count = Object.keys(state).length;
           setConnectedCount(count);
+          updateDebug(`Presence Sync: ${count} users`);
         });
 
         channel.on(
@@ -2646,8 +2652,11 @@
               ...prevData,
               results: [...(prevData.results || []), payload.payload]
             }));
+            updateDebug(`Received Answer`);
           }
-        ).subscribe();
+        ).subscribe((status) => {
+          updateDebug(`Socket: ${status}`);
+        });
 
         // Broadcast current config periodically as a fallback for late joiners
         const configTimer = setInterval(() => {
@@ -2848,6 +2857,11 @@
                 )}
               </div>
             )}
+
+            {/* Debug Overlay */}
+            <div id={`debug-${widget.id}`} className="mt-2 text-[10px] font-mono text-slate-400 bg-slate-100 p-1 rounded">
+              [Debug] Waiting for socket...
+            </div>
           </div>
         </div >
       );
