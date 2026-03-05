@@ -2639,9 +2639,10 @@
           'broadcast',
           { event: 'answer' },
           (payload) => {
-            updateData(widget.id, {
-              results: [...(widget.data.results || []), payload.payload]
-            });
+            updateData(widget.id, (prevData) => ({
+              ...prevData,
+              results: [...(prevData.results || []), payload.payload]
+            }));
           }
         ).subscribe();
 
@@ -2658,7 +2659,7 @@
           clearInterval(configTimer);
           window.supabaseClient.removeChannel(channel);
         };
-      }, [isActive, sessionId, widget.id, type, question, JSON.stringify(options)]);
+      }, [isActive, sessionId, widget.id, type, question, JSON.stringify(options), isStarted]);
 
       const toggleSession = () => {
         if (!isActive) {
