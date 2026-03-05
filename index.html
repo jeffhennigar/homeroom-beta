@@ -2875,16 +2875,24 @@
 
 
     const SparkWidget = ({ widget, updateData, extraProps }) => {
-      const { geminiApiKey, setGeminiApiKey } = extraProps;
+      const {
+        geminiApiKey,
+        setGeminiApiKey,
+        sparkGrade,
+        setSparkGrade,
+        studentName,
+        setStudentName
+      } = extraProps;
       const {
         topic = '',
         type = 'HOOK',
         result = '',
         isLoading = false,
         error = null,
-        grade = localStorage.getItem('homeroom_spark_grade') || 'Middle School',
         showConfig = false
       } = widget.data;
+
+      const grade = sparkGrade;
 
       const [tempKey, setTempKey] = useState(geminiApiKey || '');
 
@@ -3084,7 +3092,10 @@
                     <select
                       className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-yellow-400 outline-none bg-white"
                       value={grade}
-                      onChange={(e) => { updateData(widget.id, { grade: e.target.value }); localStorage.setItem('homeroom_spark_grade', e.target.value); }}
+                      onChange={(e) => {
+                        updateData(widget.id, { grade: e.target.value });
+                        setSparkGrade(e.target.value);
+                      }}
                     >
                       <option value="Pre-K">Pre-K</option>
                       <option value="Kindergarten">Kindergarten</option>
@@ -9388,6 +9399,8 @@
       const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
       const [hasLocalChanges, setHasLocalChanges] = useState(false);
       const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('homeroom_gemini_api_key') || '');
+      const [sparkGrade, setSparkGrade] = useState(() => localStorage.getItem('homeroom_spark_grade') || 'Middle School');
+      const [studentName, setStudentName] = useState(() => localStorage.getItem('homeroom_student_name') || '');
 
       const [profilesLastModified, setProfilesLastModified] = useState(() => {
         try { return JSON.parse(localStorage.getItem('homeroom_profiles_last_modified') || '0'); } catch { return 0; }
@@ -9912,6 +9925,12 @@
         }, 1000);
         return () => clearTimeout(t);
       }, [slides, roster]);
+
+      // LocalStorage Save Spark Settings
+      useEffect(() => {
+        localStorage.setItem('homeroom_spark_grade', sparkGrade);
+        localStorage.setItem('homeroom_student_name', studentName);
+      }, [sparkGrade, studentName]);
 
       const firstChangeTimeRef = useRef(null);
 
@@ -10891,7 +10910,11 @@
             setGeminiApiKey: (key) => {
               setGeminiApiKey(key);
               localStorage.setItem('homeroom_gemini_api_key', key);
-            }
+            },
+            sparkGrade,
+            setSparkGrade,
+            studentName,
+            setStudentName
           }
         };
 
