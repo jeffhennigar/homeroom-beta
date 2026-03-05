@@ -2920,7 +2920,7 @@
         const prompt = prompts[type] || prompts.HOOK;
 
         // Smart model fallback - tries multiple models on stable v1 endpoint
-        const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+        const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
         let lastError = null;
         let data = null;
 
@@ -2932,12 +2932,21 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
             });
+
             data = await res.json();
+
+            if (res.status === 429 || (data.error && data.error.message?.toLowerCase().includes('quota'))) {
+              lastError = "Google's AI is currently at its free limit for your account. Please wait about a minute and try again.";
+              console.warn(`Spark: ${modelId} rate limited (429)`);
+              continue;
+            }
+
             if (data.error) {
-              lastError = `[DEBUG URL: ${fetchUrl.split('?key')[0]}]\n` + data.error.message;
+              lastError = `[${modelId}] ${data.error.message}`;
               console.warn('Spark: ' + modelId + ' failed, trying next...', data.error.message);
               continue;
             }
+
             lastError = null;
             break;
           } catch (err) {
