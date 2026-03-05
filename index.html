@@ -2892,7 +2892,9 @@
         setTempKey(geminiApiKey || '');
       }, [geminiApiKey]);
 
-      const getApiKey = () => geminiApiKey;
+      const getApiKey = () => {
+        return geminiApiKey || window.GEMINI_API_KEY || window.GOOGLE_API_KEY;
+      };
 
       const saveKey = () => {
         setGeminiApiKey(tempKey);
@@ -2919,14 +2921,24 @@
 
         const prompt = prompts[type] || prompts.HOOK;
 
-        // Universal Model Fallback - tries multiple versions and stable models
-        const VERSIONS = ['v1', 'v1beta'];
-        const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+        // Robust Model Fallback Logic
+        const VERSIONS = ['v1', 'v1beta', 'v1alpha'];
+        const MODELS = [
+          'gemini-3.1-pro',
+          'gemini-3.1-flash',
+          'gemini-3.1-flash-lite',
+          'gemini-3-flash-preview',
+          'gemini-2.5-pro',
+          'gemini-2.5-flash',
+          'gemini-2.0-pro-exp-02-05',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash'
+        ];
         let lastError = null;
         let data = null;
 
-        apiLoop: for (const version of VERSIONS) {
-          for (const modelId of MODELS) {
+        apiLoop: for (const modelId of MODELS) {
+          for (const version of VERSIONS) {
             try {
               const fetchUrl = `https://generativelanguage.googleapis.com/${version}/models/${modelId}:generateContent?key=${apiKey}`;
               const res = await fetch(fetchUrl, {
@@ -2937,23 +2949,46 @@
 
               data = await res.json();
 
+              // 1. Handle Rate Limiting (Stop immediately)
               if (res.status === 429 || (data.error && data.error.message?.toLowerCase().includes('quota'))) {
                 lastError = "Google's AI is currently at its free limit for your account. Please wait about a minute and try again.";
                 console.warn(`Spark: ${modelId} (${version}) rate limited (429)`);
+                break apiLoop;
+              }
+
+              // 2. Handle Invalid API Key (Stop immediately)
+              if (res.status === 400 && data.error?.message?.toLowerCase().includes('api key')) {
+                lastError = "Invalid API Key. Please check your Gemini API key in settings.";
+                console.error("Spark: Invalid API Key detected");
+                break apiLoop;
+              }
+
+              // 3. Handle Model Not Found or Invalid Version (Continue to next version/model)
+              const errorMessage = data.error?.message?.toLowerCase() || '';
+              if (
+                res.status === 404 ||
+                res.status === 400 ||
+                errorMessage.includes('not found') ||
+                errorMessage.includes('not supported') ||
+                errorMessage.includes('not available')
+              ) {
+                console.log(`Spark: ${modelId} not found/supported on ${version}, trying next...`);
                 continue;
               }
 
+              // 4. Handle Generic Errors
               if (data.error) {
                 lastError = `[${modelId}] ${data.error.message}`;
-                console.warn(`Spark: ${modelId} (${version}) failed, trying next...`, data.error.message);
+                console.warn(`Spark: ${modelId} (${version}) unknown error:`, data.error.message);
                 continue;
               }
 
               lastError = null;
-              break apiLoop; // Success!
+              console.log(`Spark: SUCCESS with ${modelId} (${version})`);
+              break apiLoop;
             } catch (err) {
               lastError = err.message;
-              console.warn(`Spark: ${modelId} (${version}) error, trying next...`, err.message);
+              console.warn(`Spark: ${modelId} (${version}) fetch error:`, err.message);
             }
           }
         }
@@ -9184,7 +9219,8 @@
           .from('rosters')
           .upsert({
             ...rosterPayload,
-            user_id: userId
+            user_id: userId,
+            last_modified: rosterPayload.last_modified || Date.now()
           })
           .select()
           .single();
@@ -9210,7 +9246,15 @@
       const [profileLastModified, setProfileLastModified] = useState(null);
       const savingRef = useRef(false);
       const cloudLoaded = useRef(false);
-      const lastSyncedRef = useRef({ profile: null, slides: {}, rosters: {} });
+      const lastSyncedRef = useRef({
+        profile: null,
+        slides: {},
+        rosters: {},
+        profile_background: null,
+        slides_serialized: null,
+        rosters_serialized: null,
+        schedule_serialized: null
+      });
 
       // Diagnostics State
       const [debugLog, setDebugLog] = useState([]);
@@ -9344,6 +9388,16 @@
       const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
       const [hasLocalChanges, setHasLocalChanges] = useState(false);
       const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('homeroom_gemini_api_key') || '');
+
+      const [profilesLastModified, setProfilesLastModified] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_profiles_last_modified') || '0'); } catch { return 0; }
+      });
+      const [slidesLastModified, setSlidesLastModified] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_slides_last_modified') || '0'); } catch { return 0; }
+      });
+      const [rostersLastModified, setRostersLastModified] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_rosters_last_modified') || '0'); } catch { return 0; }
+      });
 
       // --- DERIVED STATE ---
       const currentBg = slideBackgrounds[currentSlideIndex] || background;
@@ -9499,38 +9553,49 @@
             let activeId = profile?.active_roster_id;
 
             if (profile) {
-              if (profile.dock_order) {
-                const order = profile.dock_order;
-                if (Array.isArray(order)) {
-                  const allDefaults = [...DOCK_MAIN_DEFAULTS, ...DOCK_DRAWER_DEFAULTS];
-                  setDockOrder({
-                    main: DOCK_MAIN_DEFAULTS.filter(id => order.includes(id)),
-                    drawer: [...DOCK_DRAWER_DEFAULTS.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
-                  });
-                } else {
-                  setDockOrder({
-                    main: order?.main || [],
-                    drawer: order?.drawer || []
-                  });
+              const cloudModified = profile.last_modified || 0;
+              const localModified = profilesLastModified;
+
+              if (cloudModified >= localModified) {
+                console.log("Cloud profile is newer or equal. Updating local state.");
+                if (profile.dock_order) {
+                  const order = profile.dock_order;
+                  if (Array.isArray(order)) {
+                    const allDefaults = [...DOCK_MAIN_DEFAULTS, ...DOCK_DRAWER_DEFAULTS];
+                    setDockOrder({
+                      main: DOCK_MAIN_DEFAULTS.filter(id => order.includes(id)),
+                      drawer: [...DOCK_DRAWER_DEFAULTS.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                    });
+                  } else {
+                    setDockOrder({
+                      main: order?.main || [],
+                      drawer: order?.drawer || []
+                    });
+                  }
                 }
-              }
-              if (profile.background) setBackground(profile.background);
-              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
-              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
+                if (profile.background) setBackground(profile.background);
+                if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+                if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
 
-              // Complete Schedule Sync
-              if (profile.schedule) {
-                const { _settings, ...template } = profile.schedule;
-                setScheduleTemplate(template);
-                if (_settings) setScheduleSettings(_settings);
-                else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
-              }
-              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
+                // Complete Schedule Sync
+                if (profile.schedule) {
+                  const { _settings, ...template } = profile.schedule;
+                  setScheduleTemplate(template);
+                  if (_settings) setScheduleSettings(_settings);
+                  else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+                }
+                if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
 
-              if (profile.clock_style) setClockStyle(profile.clock_style);
-              if (profile.accent_color) setAccentColor(profile.accent_color);
-              // gemini_api_key is no longer synced to cloud for security — kept in localStorage only
-              if (activeId) setActiveRosterId(activeId);
+                if (profile.clock_style) setClockStyle(profile.clock_style);
+                if (profile.accent_color) setAccentColor(profile.accent_color);
+                if (profile.spark_grade) setSparkGrade(profile.spark_grade);
+                if (profile.student_name) setStudentName(profile.student_name);
+
+                setProfilesLastModified(cloudModified);
+                if (activeId) setActiveRosterId(activeId);
+              } else {
+                console.log("Local profile is newer. Keeping local version.");
+              }
             }
 
             const [cloudRosters, cloudSlides] = await Promise.all([
@@ -9540,43 +9605,58 @@
             let mergedRosters = allRosters;
 
             if (cloudRosters && Array.isArray(cloudRosters)) {
-              const uniqueMap = new Map();
-              cloudRosters.forEach(r => uniqueMap.set(r.id, r));
+              const maxCloudModified = Math.max(...cloudRosters.map(r => r.last_modified || 0));
 
-              allRosters.forEach(r => {
-                const alreadyExistsInCloud = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
-                if (!alreadyExistsInCloud) {
-                  const isUUID = r.id && r.id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(r.id));
-                  const sanitizedRoster = isUUID ? { ...r, id: 'default' } : r;
-                  if (!uniqueMap.has(sanitizedRoster.id) || sanitizedRoster.id === 'default') {
-                    uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
+              if (maxCloudModified >= rostersLastModified) {
+                console.log("Cloud rosters are newer or equal. Updating local state.");
+                const uniqueMap = new Map();
+                cloudRosters.forEach(r => uniqueMap.set(r.id, r));
+
+                allRosters.forEach(r => {
+                  const alreadyExistsInCloud = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
+                  if (!alreadyExistsInCloud) {
+                    const isUUID = r.id && r.id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(r.id));
+                    const sanitizedRoster = isUUID ? { ...r, id: 'default' } : r;
+                    if (!uniqueMap.has(sanitizedRoster.id) || sanitizedRoster.id === 'default') {
+                      uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
+                    }
                   }
-                }
-              });
+                });
 
-              mergedRosters = Array.from(uniqueMap.values()).map(r => {
-                if (typeof r.id === 'string' && r.id.startsWith('temp-')) return { ...r, id: 'default' };
-                return r;
-              });
-              setAllRosters(mergedRosters);
-              mergedRosters.forEach(r => {
-                lastSyncedRef.current.rosters[r.id] = JSON.stringify(r);
-              });
+                mergedRosters = Array.from(uniqueMap.values()).map(r => {
+                  if (typeof r.id === 'string' && r.id.startsWith('temp-')) return { ...r, id: 'default' };
+                  return r;
+                });
+                setAllRosters(mergedRosters);
+                setRostersLastModified(maxCloudModified);
+                mergedRosters.forEach(r => {
+                  lastSyncedRef.current.rosters[r.id] = JSON.stringify(r);
+                });
+              } else {
+                console.log("Local rosters are newer. Keeping local version.");
+              }
             }
 
             // Map cloud slides to the state
             if (cloudSlides && cloudSlides.length > 0) {
-              const slideArray = [[]];
-              cloudSlides.forEach(s => {
-                if (s.slide_index !== undefined) {
-                  slideArray[s.slide_index] = s.widgets || [];
+              const maxCloudModified = Math.max(...cloudSlides.map(s => s.last_modified || 0));
+              if (maxCloudModified >= slidesLastModified) {
+                console.log("Cloud slides are newer or equal. Updating local state.");
+                const slideArray = [[]];
+                cloudSlides.forEach(s => {
+                  if (s.slide_index !== undefined) {
+                    slideArray[s.slide_index] = s.widgets || [];
+                  }
+                });
+                // Ensure we don't have holes in the array
+                for (let i = 0; i < slideArray.length; i++) {
+                  if (!slideArray[i]) slideArray[i] = [];
                 }
-              });
-              // Ensure we don't have holes in the array
-              for (let i = 0; i < slideArray.length; i++) {
-                if (!slideArray[i]) slideArray[i] = [];
+                setSlides(slideArray);
+                setSlidesLastModified(maxCloudModified);
+              } else {
+                console.log("Local slides are newer. Keeping local version.");
               }
-              setSlides(slideArray);
             }
 
             // Set Active Roster from the Merged Data
@@ -9807,7 +9887,17 @@
       // LocalStorage Save allRosters
       useEffect(() => {
         const t = setTimeout(() => {
-          try { localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters)); } catch (e) { console.error(e); }
+          try {
+            localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters));
+            if (!isSyncing && !savingRef.current) {
+              const str = JSON.stringify(allRosters);
+              if (lastSyncedRef.current.rosters_serialized !== str) {
+                lastSyncedRef.current.rosters_serialized = str;
+                setRostersLastModified(Date.now());
+                setHasLocalChanges(true);
+              }
+            }
+          } catch (e) { console.error(e); }
         }, 2000);
         return () => clearTimeout(t);
       }, [allRosters]);
@@ -9849,7 +9939,9 @@
           schedule_overrides: scheduleOverrides, grid_enabled: isGridEnabled, clock_style: clockStyle,
           dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
           active_roster_id: (activeRosterId && activeRosterId !== 'default') ? activeRosterId : null,
-          accent_color: accentColor
+          accent_color: accentColor,
+          spark_grade: sparkGrade,
+          student_name: studentName
           // gemini_api_key intentionally NOT synced to cloud for security
         };
         const profileStr = JSON.stringify(profilePayload);
@@ -9864,7 +9956,7 @@
         }
 
         const syncToCloud = async () => {
-          if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current || !hasChanges) return;
+          if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current || !hasLocalChanges) return;
           setIsSyncing(true);
           savingRef.current = true;
           firstChangeTimeRef.current = null;
@@ -9876,8 +9968,9 @@
               const widgetsStr = JSON.stringify(slides[idx]);
               if (lastSyncedRef.current.slides[idx] === widgetsStr) continue;
 
+              const now = Date.now();
               const { error: slideError } = await supabase.from('slides').upsert(
-                { user_id: user.id, slide_index: idx, widgets: slides[idx] },
+                { user_id: user.id, slide_index: idx, widgets: slides[idx], last_modified: now },
                 { onConflict: 'user_id,slide_index' }
               );
               if (slideError) throw slideError;
@@ -9918,17 +10011,22 @@
             }
 
             // 3. Sync Profile
-            if (lastSyncedRef.current.profile !== profileStr || slideSyncCount > 0 || rostersChanged) {
-              const last_modified = Date.now();
-              setProfileLastModified(last_modified);
-              let { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified });
+            if (lastSyncedRef.current.profile === profileStr && slideSyncCount === 0 && !rostersChanged) {
+              // Nothing changed, skip profile upsert
+            } else {
+              const now = Date.now();
+              setProfilesLastModified(now);
+              if (slideSyncCount > 0) setSlidesLastModified(now);
+              if (rostersChanged) setRostersLastModified(now);
+
+              let { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified: now });
 
               // gemini_api_key column failover no longer needed — key is not sent to cloud
 
               if (profileError) throw profileError;
               lastSyncedRef.current.profile = profileStr;
-              addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
             }
+            addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
           } catch (e) {
             console.error("Sync Exception:", e);
             setLastSyncError(e.message || "Unknown Sync Error");
@@ -9950,7 +10048,7 @@
         }
 
         const t = setTimeout(() => {
-          if (hasChanges) syncToCloud();
+          if (hasLocalChanges) syncToCloud();
         }, delay);
         return () => clearTimeout(t);
       }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
@@ -10047,11 +10145,26 @@
         }
       }, [user]);
 
-      useEffect(() => { localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(background)); }, [background]);
+      useEffect(() => {
+        localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(background));
+        if (!isSyncing && !savingRef.current) {
+          const str = JSON.stringify(background);
+          if (lastSyncedRef.current.profile_background !== str) {
+            lastSyncedRef.current.profile_background = str;
+            setProfilesLastModified(Date.now());
+            setHasLocalChanges(true);
+          }
+        }
+      }, [background]);
       useEffect(() => { localStorage.setItem('homeroom_clock_style', clockStyle); }, [clockStyle]);
       useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
       useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
       useEffect(() => { localStorage.setItem('homeroom_grid_enabled', JSON.stringify(isGridEnabled)); }, [isGridEnabled]);
+
+      // Persistence Timestamps
+      useEffect(() => { localStorage.setItem('homeroom_profiles_last_modified', JSON.stringify(profilesLastModified)); }, [profilesLastModified]);
+      useEffect(() => { localStorage.setItem('homeroom_slides_last_modified', JSON.stringify(slidesLastModified)); }, [slidesLastModified]);
+      useEffect(() => { localStorage.setItem('homeroom_rosters_last_modified', JSON.stringify(rostersLastModified)); }, [rostersLastModified]);
 
       // Cross-tab sync for global settings
       useEffect(() => {
@@ -10087,7 +10200,17 @@
         localStorage.setItem('homeroom_accent_color', accentColor);
       }, [accentColor]);
       useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
-      useEffect(() => { localStorage.setItem('homeroom_slides', JSON.stringify(slides)); }, [slides]);
+      useEffect(() => {
+        localStorage.setItem('homeroom_slides', JSON.stringify(slides));
+        if (!isSyncing && !savingRef.current) {
+          const str = JSON.stringify(slides);
+          if (lastSyncedRef.current.slides_serialized !== str) {
+            lastSyncedRef.current.slides_serialized = str;
+            setSlidesLastModified(Date.now());
+            setHasLocalChanges(true);
+          }
+        }
+      }, [slides]);
       useEffect(() => { localStorage.setItem('homeroom_current_slide', currentSlideIndex.toString()); }, [currentSlideIndex]);
       useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
@@ -10102,6 +10225,14 @@
 
       useEffect(() => {
         saveScheduleTemplate(scheduleTemplate);
+        if (!isSyncing && !savingRef.current) {
+          const str = JSON.stringify(scheduleTemplate);
+          if (lastSyncedRef.current.schedule_serialized !== str) {
+            lastSyncedRef.current.schedule_serialized = str;
+            setProfilesLastModified(Date.now());
+            setHasLocalChanges(true);
+          }
+        }
       }, [scheduleTemplate]);
       useEffect(() => {
         saveScheduleOverrides(scheduleOverrides);
