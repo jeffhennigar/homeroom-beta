@@ -2623,11 +2623,14 @@
       const [showNames, setShowNames] = useState(true);
       const [connectedCount, setConnectedCount] = useState(0);
 
+      const channelRef = useRef(null);
+
       useEffect(() => {
         if (!window.supabaseClient) return; // Guard for no key
         if (!isActive) return;
 
         const channel = window.supabaseClient.channel(`exit_ticket:${sessionId}`);
+        channelRef.current = channel;
 
         channel.on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState();
@@ -2646,20 +2649,35 @@
           }
         ).subscribe();
 
-        // Broadcast current config periodically so new joiners get it
+        // Broadcast current config periodically as a fallback for late joiners
         const configTimer = setInterval(() => {
-          channel.send({
-            type: 'broadcast',
-            event: 'config',
-            payload: { type, question, options, isActive, isStarted }
-          });
+          if (channelRef.current) {
+            channelRef.current.send({
+              type: 'broadcast',
+              event: 'config',
+              // Use fresh state via refs or just trust the closure for periodic fallback
+              payload: { type, question, options, isActive, isStarted }
+            });
+          }
         }, 3000);
 
         return () => {
           clearInterval(configTimer);
           window.supabaseClient.removeChannel(channel);
+          channelRef.current = null;
         };
-      }, [isActive, sessionId, widget.id, type, question, JSON.stringify(options), isStarted]);
+      }, [isActive, sessionId, widget.id]); // Removed type, question, options, isStarted from deps stringently to prevent reconnects
+
+      // Broadcast immediately when config changes
+      useEffect(() => {
+        if (channelRef.current && isActive) {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'config',
+            payload: { type, question, options, isActive, isStarted }
+          });
+        }
+      }, [type, question, options, isActive, isStarted]);
 
       const toggleSession = (e) => {
         if (e && e.stopPropagation) e.stopPropagation();
