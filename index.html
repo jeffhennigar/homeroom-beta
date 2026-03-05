@@ -2661,7 +2661,8 @@
         };
       }, [isActive, sessionId, widget.id, type, question, JSON.stringify(options), isStarted]);
 
-      const toggleSession = () => {
+      const toggleSession = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
         if (!isActive) {
           const code = Math.random().toString(36).substring(2, 8).toUpperCase();
           updateData(widget.id, { isActive: true, isStarted: false, results: [], sessionId: code });
@@ -2670,7 +2671,8 @@
         }
       };
 
-      const startSession = () => {
+      const startSession = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
         updateData(widget.id, { isStarted: true });
       };
 
