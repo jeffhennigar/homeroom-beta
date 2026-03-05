@@ -2880,8 +2880,8 @@
 
         const prompt = prompts[type] || prompts.HOOK;
 
-        // Smart model fallback - tries multiple models for maximum compatibility
-        const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'];
+        // Smart model fallback - tries multiple models for maximum compatibility on the stable v1 API
+        const MODELS = ['gemini-1.5-flash-8b', 'gemini-1.5-flash'];
         let lastError = null;
         let data = null;
 
