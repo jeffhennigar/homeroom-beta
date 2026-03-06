@@ -3835,7 +3835,7 @@
           </div>
         )}
 
-        <div className={`flex-1 relative flex flex-col custom-scrollbar ${chromeless && widgetType === 'OVERLAY_TEXT' ? 'overflow-visible' : `overflow-hidden ${chromeless ? 'rounded-2xl' : 'rounded-b-2xl'}`}`} style={contentStyle}>{children}</div>
+        <div className={`flex-1 relative flex flex-col min-h-0 custom-scrollbar ${chromeless && widgetType === 'OVERLAY_TEXT' ? 'overflow-visible' : `overflow-hidden ${chromeless ? 'rounded-2xl' : 'rounded-b-2xl'}`}`} style={contentStyle}>{children}</div>
       </div>
       );
     };
@@ -6627,9 +6627,9 @@
       }, [widget.data.initialImage, widget.data.pastedImage]);
 
       return (
-        <div className="h-full bg-white flex flex-col relative no-drag">
+        <div className="h-full bg-white flex flex-col min-h-0 relative no-drag">
           {/* Toolbar */}
-          <div className="bg-gray-50 p-2 border-b flex items-center gap-1 shrink-0 z-20 flex-wrap">
+          <div className="bg-gray-50 p-2 border-b flex items-center gap-1 shrink-0 z-20 flex-nowrap overflow-x-auto custom-scrollbar">
             {/* Color */}
             <div className="relative">
               <button onClick={() => setShowColorPicker(!showColorPicker)} className="w-7 h-7 rounded-full border-2 border-white shadow-md" style={{ backgroundColor: color }} />
@@ -6676,7 +6676,7 @@
           )}
 
           {/* Canvas + Overlays */}
-          <div className="flex-1 relative overflow-hidden bg-white" onMouseDown={(e) => tool === 'select' && setSelectedItem(null)}>
+          <div className="flex-1 relative overflow-hidden bg-white min-h-0" onMouseDown={(e) => tool === 'select' && setSelectedItem(null)}>
             {/* Drawing Layer */}
             <div
               className="absolute inset-0 transition-shadow"
@@ -9618,6 +9618,23 @@
 
                 setProfilesLastModified(cloudModified);
                 if (activeId) setActiveRosterId(activeId);
+
+                // Initialize sync ref with cloud state to prevent immediate sync-back
+                const freshProfilePayload = {
+                  background: profile.background,
+                  slide_backgrounds: profile.slide_backgrounds,
+                  my_backgrounds: profile.my_backgrounds,
+                  schedule: profile.schedule,
+                  schedule_overrides: profile.schedule_overrides,
+                  grid_enabled: profile.grid_enabled,
+                  clock_style: profile.clock_style,
+                  dock_order: profile.dock_order,
+                  active_roster_id: profile.active_roster_id,
+                  accent_color: profile.accent_color,
+                  spark_grade: profile.spark_grade,
+                  student_name: profile.student_name
+                };
+                lastSyncedRef.current.profile = JSON.stringify(freshProfilePayload);
               } else {
                 console.log("Local profile is newer. Keeping local version.");
               }
@@ -9679,6 +9696,12 @@
                 }
                 setSlides(slideArray);
                 setSlidesLastModified(maxCloudModified);
+
+                // Initialize sync refs with cloud states
+                slideArray.forEach((widgets, i) => {
+                  lastSyncedRef.current.slides[i] = JSON.stringify(widgets);
+                });
+                lastSyncedRef.current.slides_serialized = JSON.stringify(slideArray);
               } else {
                 console.log("Local slides are newer. Keeping local version.");
               }
@@ -10055,34 +10078,40 @@
               // gemini_api_key column failover no longer needed — key is not sent to cloud
 
               if (profileError) throw profileError;
-              lastSyncedRef.current.profile = profileStr;
+              setHasLocalChanges(false);
+              setTimeout(() => { savingRef.current = false; }, 1000);
+              addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
+            } catch (e) {
+              console.error("Sync Exception:", e);
+              const msg = e.message || "Unknown Sync Error";
+              setLastSyncError(msg);
+
+              if (msg.includes('payload too large') || e.code === '413') {
+                addDebugLog("Sync failed: Data too large. Try removing complex drawings or backgrounds.", 'error');
+              } else {
+                addDebugLog(`Sync failed: ${msg}`, 'error');
+              }
+            } finally {
+              setIsSyncing(false);
+              setTimeout(() => { savingRef.current = false; }, 1000);
             }
-            addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
-          } catch (e) {
-            console.error("Sync Exception:", e);
-            setLastSyncError(e.message || "Unknown Sync Error");
-          } finally {
-            setIsSyncing(false);
-            setHasLocalChanges(false);
-            setTimeout(() => { savingRef.current = false; }, 1000);
+          };
+
+          const timeSinceFirstChange = firstChangeTimeRef.current ? (Date.now() - firstChangeTimeRef.current) : 0;
+          let delay = 10000;
+
+          if (firstChangeTimeRef.current && timeSinceFirstChange >= 30000) {
+            syncToCloud();
+            return;
+          } else if (firstChangeTimeRef.current && timeSinceFirstChange + 10000 > 30000) {
+            delay = Math.max(0, 30000 - timeSinceFirstChange);
           }
-        };
 
-        const timeSinceFirstChange = firstChangeTimeRef.current ? (Date.now() - firstChangeTimeRef.current) : 0;
-        let delay = 10000;
-
-        if (firstChangeTimeRef.current && timeSinceFirstChange >= 30000) {
-          syncToCloud();
-          return;
-        } else if (firstChangeTimeRef.current && timeSinceFirstChange + 10000 > 30000) {
-          delay = Math.max(0, 30000 - timeSinceFirstChange);
-        }
-
-        const t = setTimeout(() => {
-          if (hasLocalChanges) syncToCloud();
-        }, delay);
-        return () => clearTimeout(t);
-      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
+          const t = setTimeout(() => {
+            if (hasLocalChanges) syncToCloud();
+          }, delay);
+          return () => clearTimeout(t);
+        }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
 
       // Supabase Data Loading
 
