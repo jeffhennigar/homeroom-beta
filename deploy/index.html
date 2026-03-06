@@ -772,6 +772,7 @@
       widgetId,
       hasShadow,
       fontScale,
+      fontSize,
       fontFamily,
       showFontColorMenu,
       setShowFontColorMenu,
@@ -783,7 +784,7 @@
 
       return createPortal(
         <div
-          className="fixed z-[10010] bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex items-center gap-1 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200"
+          className="fixed z-[10010] bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex items-center gap-1 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200 floating-toolbar-portal"
           style={{
             top: Math.max(10, pos.top - 55),
             left: Math.max(100, Math.min(window.innerWidth - 100, pos.left)),
@@ -819,22 +820,36 @@
             )}
           </div>
 
-          <div className="w-px h-5 bg-slate-200 mx-1" />
+
+          <div className="flex items-center gap-0.5 bg-slate-50 px-1 rounded-lg border border-slate-100 mx-1">
+            <button
+              onClick={() => {
+                const baseSize = fontSize || 12;
+                if (fontScale !== undefined) updateData(widgetId, { fontScale: Math.max(0.1, (Math.round(baseSize * fontScale) - 1) / baseSize) });
+                else updateData(widgetId, { fontSize: Math.max(8, baseSize - 1) });
+              }}
+              className="p-1 hover:text-indigo-600 transition-colors"
+              title="Decrease Font Size"
+            >
+              <Minus size={12} />
+            </button>
+            <div className="min-w-[24px] text-center text-[10px] font-bold text-slate-500 select-none">
+              {Math.round((fontSize || 12) * (fontScale || 1))}
+            </div>
+            <button
+              onClick={() => {
+                const baseSize = fontSize || 12;
+                if (fontScale !== undefined) updateData(widgetId, { fontScale: Math.min(10, (Math.round(baseSize * fontScale) + 1) / baseSize) });
+                else updateData(widgetId, { fontSize: Math.min(100, baseSize + 1) });
+              }}
+              className="p-1 hover:text-indigo-600 transition-colors"
+              title="Increase Font Size"
+            >
+              <Plus size={12} />
+            </button>
+          </div>
 
           <button onClick={() => updateData(widgetId, { hasShadow: !hasShadow })} className={`p-1.5 rounded transition-all ${hasShadow ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Glow Effect"><Sun size={16} /></button>
-
-          {updateData && fontScale !== undefined && (
-            <>
-              <button onClick={() => updateData(widgetId, { fontScale: Math.max(0.1, fontScale - 0.1) })} className="p-1.5 rounded hover:bg-slate-100 text-slate-500 transition-all" title="Smaller"><Minus size={16} /></button>
-              <button onClick={() => updateData(widgetId, { fontScale: Math.min(10, fontScale + 0.1) })} className="p-1.5 rounded hover:bg-slate-100 text-slate-500 transition-all" title="Larger"><Plus size={16} /></button>
-            </>
-          )}
-
-          {onMinimize && (
-            <button onClick={onMinimize} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-blue-500 transition-all" title="Minimize to Dock"><Minus size={16} /></button>
-          )}
-
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"><X size={16} /></button>
         </div>,
         document.body
       );
@@ -1791,6 +1806,11 @@
                   <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { snapToGrid: snapToGrid > 0 ? 0 : 20 }); }} className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors mr-2 ${snapToGrid > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
                     Snap: {snapToGrid > 0 ? 'On' : 'Off'}
                   </button>
+                  <div className="flex items-center bg-gray-100 rounded-lg overflow-hidden mr-2">
+                    <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { fontSize: Math.max(10, fontSize - 2) }); }} className="px-1.5 py-1 text-gray-500 hover:bg-gray-200 transition-colors text-sm font-bold" title="Decrease text size">−</button>
+                    <span className="px-1.5 py-1 text-[10px] font-bold text-gray-600 min-w-[24px] text-center border-x border-gray-200 bg-white">{fontSize}</span>
+                    <button onClick={(e) => { e.stopPropagation(); updateData(widget.id, { fontSize: Math.min(28, fontSize + 2) }); }} className="px-1.5 py-1 text-gray-500 hover:bg-gray-200 transition-colors text-sm font-bold" title="Increase text size">+</button>
+                  </div>
                   <div className="w-px h-6 bg-gray-200" />
                   <div className="flex bg-gray-100 rounded-lg p-0.5">
                     {["blue", "red", "green", "yellow", "purple", "orange"].map(c => (
@@ -1980,6 +2000,16 @@
       };
       const handleDragEnd = () => { setDraggedItemIndex(null); };
 
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (toolbarPos && editorRef.current && !editorRef.current.contains(e.target) && !e.target.closest('.floating-toolbar-portal')) {
+            setToolbarPos(null);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, [toolbarPos]);
+
       return (
         <div className={`h-full flex flex-col relative group rounded-2xl ${isGlassy && isGlassy !== 'solid' ? 'bg-transparent' : theme.bg} ${(!isGlassy || isGlassy === 'solid') && !chromeless ? 'border' : ''}`} style={{ boxShadow: (!isGlassy || isGlassy === 'solid') ? 'inset 0 0 20px rgba(0,0,0,0.05)' : 'none', fontFamily: 'Poppins, sans-serif' }} onClick={() => { setShowColorMenu(false); setShowFontColorMenu(false); setShowFontMenu(false); }}>
           {(isGlassy === 'solid' || !isGlassy) && (
@@ -2027,10 +2057,10 @@
                   formats={formats}
                   exec={exec}
                   onClose={() => setToolbarPos(null)}
-                  onMinimize={() => toggleMinimize(widget.id)}
                   updateData={updateData}
                   widgetId={widget.id}
                   hasShadow={data.hasShadow}
+                  fontSize={fontSize}
                   fontFamily={fontFamily}
                   showFontColorMenu={showFontColorMenu}
                   setShowFontColorMenu={setShowFontColorMenu}
@@ -2589,52 +2619,96 @@
         question = '',
         results = [],
         isActive = false,
+        isStarted = false,
         type = 'text', // 'text' or 'mc'
         options = ['A', 'B', 'C', 'D']
       } = widget.data;
 
       const [showResults, setShowResults] = useState(true);
+      const [showNames, setShowNames] = useState(true);
+      const [connectedCount, setConnectedCount] = useState(0);
+
+      const channelRef = useRef(null);
 
       useEffect(() => {
         if (!window.supabaseClient) return; // Guard for no key
         if (!isActive) return;
 
         const channel = window.supabaseClient.channel(`exit_ticket:${sessionId}`);
+        channelRef.current = channel;
+
+        const updateDebug = (msg) => {
+          const el = document.getElementById(`debug-${widget.id}`);
+          if (el) el.textContent = `[Debug] ${msg}`;
+        };
+
+        channel.on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const count = Object.keys(state).length;
+          setConnectedCount(count);
+          updateDebug(`Presence Sync: ${count} users`);
+        });
 
         channel.on(
           'broadcast',
           { event: 'answer' },
           (payload) => {
-            updateData(widget.id, {
-              results: [...(widget.data.results || []), payload.payload]
+            updateData(widget.id, (prevData) => ({
+              ...prevData,
+              results: [...(prevData.results || []), payload.payload]
+            }));
+            updateDebug(`Received Answer`);
+          }
+        ).subscribe((status) => {
+          updateDebug(`Socket: ${status}`);
+        });
+
+        // Broadcast current config periodically as a fallback for late joiners
+        const configTimer = setInterval(() => {
+          if (channelRef.current) {
+            channelRef.current.send({
+              type: 'broadcast',
+              event: 'config',
+              // Use fresh state via refs or just trust the closure for periodic fallback
+              payload: { type, question, options, isActive, isStarted }
             });
           }
-        ).subscribe();
-
-        // Broadcast current config periodically so new joiners get it
-        const configTimer = setInterval(() => {
-          channel.send({
-            type: 'broadcast',
-            event: 'config',
-            payload: { type, question, options, isActive }
-          });
-        }, 3000);
+        }, 1500);
 
         return () => {
           clearInterval(configTimer);
           window.supabaseClient.removeChannel(channel);
+          channelRef.current = null;
         };
-      }, [isActive, sessionId, widget.id, type, question, JSON.stringify(options)]);
+      }, [isActive, sessionId, widget.id]); // Removed type, question, options, isStarted from deps stringently to prevent reconnects
 
-      const toggleSession = () => {
+      // Broadcast immediately when config changes
+      useEffect(() => {
+        if (channelRef.current && isActive) {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'config',
+            payload: { type, question, options, isActive, isStarted }
+          });
+        }
+      }, [type, question, options, isActive, isStarted]);
+
+      const toggleSession = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
         if (!isActive) {
-          updateData(widget.id, { isActive: true, results: [], sessionId: Math.random().toString(36).substring(7) });
+          const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+          updateData(widget.id, { isActive: true, isStarted: false, results: [], sessionId: code });
         } else {
-          updateData(widget.id, { isActive: false });
+          updateData(widget.id, { isActive: false, isStarted: false });
         }
       };
 
-      const joinUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?mode=student&session=${sessionId}`;
+      const startSession = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        updateData(widget.id, { isStarted: true });
+      };
+
+      const joinUrl = `https://checkin.ourhomeroom.app?code=${sessionId}`;
 
       return (
         <div className="h-full flex flex-col bg-white relative overflow-hidden">
@@ -2667,87 +2741,92 @@
 
           <div className="flex-1 flex flex-col p-4 overflow-hidden">
             {!isActive ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mb-2">
-                  <Share2 size={32} />
+              <div className="flex-1 flex flex-col gap-3">
+                {/* Question setup */}
+                <div className="flex-1 flex flex-col">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Your Question</label>
+                  <textarea
+                    className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
+                    placeholder="Type your question here..."
+                    value={question}
+                    onChange={(e) => updateData(widget.id, { question: e.target.value })}
+                  />
                 </div>
-                <h3 className="font-bold text-slate-800">Ready to start?</h3>
-                <p className="text-xs text-slate-500 max-w-[200px]">Project a QR code for students to join and submit live answers.</p>
-
-                <button onClick={toggleSession} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-indigo-100">
-                  Start Session
+                {type === 'mc' && (
+                  <div className="bg-white border border-slate-200 rounded-xl p-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Options</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {options.map((opt, i) => (
+                        <div key={i} className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-slate-400 w-4">{String.fromCharCode(65 + i)}</span>
+                          <input
+                            className="flex-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs outline-none focus:border-indigo-500"
+                            value={opt}
+                            onChange={(e) => {
+                              const newOpts = [...options];
+                              newOpts[i] = e.target.value;
+                              updateData(widget.id, { options: newOpts });
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button onClick={toggleSession} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 text-sm flex items-center justify-center gap-2">
+                  🚀 Launch to Students
                 </button>
               </div>
             ) : (
-              <div className="h-full flex flex-col gap-4">
-                <div className="flex gap-4 h-56">
-                  <div className="w-48 flex flex-col gap-2 flex-shrink-0 animate-in fade-in slide-in-from-left-4 duration-500">
-                    <div className="bg-white border-2 border-slate-900 rounded-xl p-2 shadow-lg relative group cursor-pointer aspect-square" onClick={() => window.open(joinUrl, '_blank')}>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(joinUrl)}`} alt="QR" className="w-full h-full object-contain" />
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                        <span className="text-white text-xs font-bold flex items-center gap-1"><ExternalLink size={12} /> Open Student View</span>
+              <div className="h-full flex flex-col gap-3">
+                {/* Session info bar */}
+                <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-xl p-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <div className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Session Code</div>
+                      <div className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[9px] font-bold">
+                        {connectedCount} Student{connectedCount !== 1 ? 's' : ''} Connected
                       </div>
                     </div>
-                    {/* Link & Copy Button */}
-                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
-                      <div className="flex-1 text-[10px] font-mono text-slate-500 truncate px-1 select-all">{joinUrl}</div>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(joinUrl);
-                          const btn = document.activeElement;
-                          if (btn) {
-                            const originalContent = btn.innerHTML;
-                            btn.innerHTML = 'Copied!';
-                            setTimeout(() => { btn.innerHTML = originalContent; }, 2000);
-                          }
-                        }}
-                        className="px-2 py-1 bg-white border border-slate-200 text-slate-600 font-bold text-[9px] rounded-md hover:bg-white hover:text-indigo-600 transition-all shadow-sm"
-                      >
-                        <Copy size={10} className="inline mr-1" /> Copy
-                      </button>
+                    <div className="text-2xl font-black text-indigo-700 tracking-[4px] select-all">{sessionId}</div>
+                    <div className="text-[10px] text-indigo-400 font-medium">checkin.ourhomeroom.app</div>
+                  </div>
+                  <div className="w-20 h-20 bg-white border-2 border-indigo-300 rounded-lg p-1 cursor-pointer relative group" onClick={() => window.open(joinUrl, '_blank')}>
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(joinUrl)}`} alt="QR" className="w-full h-full object-contain" />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                      <ExternalLink size={12} className="text-white" />
                     </div>
                   </div>
-
-                  {/* Question Input */}
-                  <div className="flex-1 flex flex-col">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Question</label>
-                    <textarea
-                      className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
-                      placeholder="Type your question here to display..."
-                      value={question}
-                      onChange={(e) => updateData(widget.id, { question: e.target.value })}
-                    />
-                    {type === 'mc' && (
-                      <div className="mt-3 bg-white border border-slate-200 rounded-xl p-3 text-left shadow-sm">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Configure Options</label>
-                        <div className="grid grid-cols-1 gap-2">
-                          {options.map((opt, i) => (
-                            <div key={i} className="flex items-center gap-1">
-                              <span className="text-[10px] font-bold text-slate-400 w-4">{String.fromCharCode(65 + i)}</span>
-                              <input
-                                className="flex-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs outline-none focus:border-indigo-500"
-                                value={opt}
-                                onChange={(e) => {
-                                  const newOpts = [...options];
-                                  newOpts[i] = e.target.value;
-                                  updateData(widget.id, { options: newOpts });
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(sessionId);
+                    }}
+                    className="px-2 py-1.5 bg-white border border-indigo-200 text-indigo-600 font-bold text-[10px] rounded-lg hover:bg-indigo-50 transition-all"
+                  >
+                    <Copy size={12} className="inline mr-0.5" /> Code
+                  </button>
                 </div>
+
+                {/* Question display */}
+                {question && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Question</div>
+                    <div className="text-sm font-semibold text-slate-700">{question}</div>
+                  </div>
+                )}
 
                 {/* Results Area */}
                 <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden flex flex-col">
                   <div className="p-2 border-b border-slate-200 flex items-center justify-between bg-white/50">
                     <span className="text-xs font-bold text-slate-600 px-2">Responses ({results.length})</span>
-                    <button onClick={() => setShowResults(!showResults)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2">
-                      {showResults ? 'Hide Answers' : 'Show Answers'}
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowNames(!showNames)} className={`text-xs font-medium px-2 py-0.5 rounded transition-colors ${!showNames ? 'bg-indigo-100 text-indigo-700' : 'text-indigo-600 hover:bg-slate-100'}`}>
+                        {showNames ? 'Hide Names' : 'Show Names'}
+                      </button>
+                      <button onClick={() => setShowResults(!showResults)} className={`text-xs font-medium px-2 py-0.5 rounded transition-colors ${!showResults ? 'bg-indigo-100 text-indigo-700' : 'text-indigo-600 hover:bg-slate-100'}`}>
+                        {showResults ? 'Hide Answers' : 'Show Answers'}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
                     {results.length === 0 ? (
@@ -2758,7 +2837,9 @@
                       results.map((r, i) => (
                         <div key={i} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm animate-in slide-in-from-bottom-2 duration-300">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-xs text-indigo-900">{r.name}</span>
+                            <span className={`font-bold text-xs text-indigo-900 transition-all ${!showNames ? 'blur-sm select-none' : ''}`}>
+                              {showNames ? (r.name || 'Anonymous') : 'Student Name'}
+                            </span>
                             <span className="text-[9px] text-slate-400">{new Date(r.timestamp).toLocaleTimeString()}</span>
                           </div>
                           <div className={`text-sm text-slate-700 ${!showResults ? 'blur-sm select-none' : ''}`}>
@@ -2770,11 +2851,22 @@
                   </div>
                 </div>
 
-                <button onClick={toggleSession} className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-xs transition-all">
-                  End Session
-                </button>
+                {!isStarted ? (
+                  <button onClick={startSession} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 text-sm flex items-center justify-center gap-2">
+                    🎯 Start Session
+                  </button>
+                ) : (
+                  <button onClick={toggleSession} className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-xs transition-all">
+                    End Session
+                  </button>
+                )}
               </div>
             )}
+
+            {/* Debug Overlay */}
+            <div id={`debug-${widget.id}`} className="mt-2 text-[10px] font-mono text-slate-400 bg-slate-100 p-1 rounded">
+              [Debug] Waiting for socket...
+            </div>
           </div>
         </div >
       );
@@ -2783,16 +2875,24 @@
 
 
     const SparkWidget = ({ widget, updateData, extraProps }) => {
-      const { geminiApiKey, setGeminiApiKey } = extraProps;
+      const {
+        geminiApiKey,
+        setGeminiApiKey,
+        sparkGrade,
+        setSparkGrade,
+        studentName,
+        setStudentName
+      } = extraProps;
       const {
         topic = '',
         type = 'HOOK',
         result = '',
         isLoading = false,
         error = null,
-        grade = localStorage.getItem('homeroom_spark_grade') || 'Middle School',
         showConfig = false
       } = widget.data;
+
+      const grade = sparkGrade;
 
       const [tempKey, setTempKey] = useState(geminiApiKey || '');
 
@@ -2800,7 +2900,9 @@
         setTempKey(geminiApiKey || '');
       }, [geminiApiKey]);
 
-      const getApiKey = () => geminiApiKey;
+      const getApiKey = () => {
+        return geminiApiKey || window.GEMINI_API_KEY || window.GOOGLE_API_KEY;
+      };
 
       const saveKey = () => {
         setGeminiApiKey(tempKey);
@@ -2827,29 +2929,87 @@
 
         const prompt = prompts[type] || prompts.HOOK;
 
-        // Smart model fallback - tries multiple models for maximum compatibility
-        const MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+        // Optimized Model List (Flash-First for speed)
+        const MODELS = [
+          'gemini-3.1-flash',
+          'gemini-3.1-flash-lite',
+          'gemini-3-flash-preview',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash',
+          'gemini-3.1-pro',
+          'gemini-2.5-pro',
+          'gemini-2.5-flash',
+          'gemini-2.0-pro-exp-02-05'
+        ];
+        const VERSIONS = ['v1', 'v1beta', 'v1alpha'];
+
         let lastError = null;
         let data = null;
 
-        for (const modelId of MODELS) {
+        // 1. SUCCESS CACHE: Try the last known working model first for instant results
+        const cachedModel = localStorage.getItem('homeroom_spark_preferred_model');
+        const cachedVer = localStorage.getItem('homeroom_spark_preferred_version');
+
+        const tryEndpoint = async (mId, ver) => {
           try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
+            const fetchUrl = `https://generativelanguage.googleapis.com/${ver}/models/${mId}:generateContent?key=${apiKey}`;
+            const res = await fetch(fetchUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
             });
-            data = await res.json();
-            if (data.error) {
-              lastError = data.error.message;
-              console.warn('Spark: ' + modelId + ' failed, trying next...', data.error.message);
-              continue;
+
+            const d = await res.json();
+
+            // Critical error detection
+            if (res.status === 429 || (d.error && d.error.message?.toLowerCase().includes('quota'))) {
+              return { success: false, stop: true, error: "Google's AI is currently at its free limit. Please wait a minute." };
             }
-            lastError = null;
-            break;
+            if (res.status === 400 && d.error?.message?.toLowerCase().includes('api key')) {
+              return { success: false, stop: true, error: "Invalid API Key. Please check settings." };
+            }
+
+            // Skip logic
+            const errMsg = d.error?.message?.toLowerCase() || '';
+            if (res.status === 404 || res.status === 400 || errMsg.includes('not found') || errMsg.includes('not supported') || errMsg.includes('not available')) {
+              return { success: false, skip: true };
+            }
+
+            if (d.error) return { success: false, error: d.error.message };
+
+            return { success: true, data: d };
           } catch (err) {
-            lastError = err.message;
-            console.warn('Spark: ' + modelId + ' error, trying next...', err.message);
+            return { success: false, error: err.message };
+          }
+        };
+
+        if (cachedModel && cachedVer) {
+          const result = await tryEndpoint(cachedModel, cachedVer);
+          if (result.success) {
+            data = result.data;
+          }
+        }
+
+        if (!data) {
+          apiLoop: for (const modelId of MODELS) {
+            for (const version of VERSIONS) {
+              if (modelId === cachedModel && version === cachedVer) continue; // Already tried
+
+              const result = await tryEndpoint(modelId, version);
+              if (result.success) {
+                data = result.data;
+                // Save successful combination!
+                localStorage.setItem('homeroom_spark_preferred_model', modelId);
+                localStorage.setItem('homeroom_spark_preferred_version', version);
+                console.log(`Spark: SUCCESS with ${modelId} (${version}) - cached for next time`);
+                break apiLoop;
+              }
+              if (result.stop) {
+                lastError = result.error;
+                break apiLoop;
+              }
+              if (!result.skip) lastError = `[${modelId}] ${result.error}`;
+            }
           }
         }
 
@@ -2944,7 +3104,10 @@
                     <select
                       className="w-full p-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-yellow-400 outline-none bg-white"
                       value={grade}
-                      onChange={(e) => { updateData(widget.id, { grade: e.target.value }); localStorage.setItem('homeroom_spark_grade', e.target.value); }}
+                      onChange={(e) => {
+                        updateData(widget.id, { grade: e.target.value });
+                        setSparkGrade(e.target.value);
+                      }}
                     >
                       <option value="Pre-K">Pre-K</option>
                       <option value="Kindergarten">Kindergarten</option>
@@ -3672,7 +3835,7 @@
           </div>
         )}
 
-        <div className={`flex-1 relative flex flex-col custom-scrollbar ${chromeless && widgetType === 'OVERLAY_TEXT' ? 'overflow-visible' : `overflow-hidden ${chromeless ? 'rounded-2xl' : 'rounded-b-2xl'}`}`} style={contentStyle}>{children}</div>
+        <div className={`flex-1 relative flex flex-col min-h-0 custom-scrollbar ${chromeless && widgetType === 'OVERLAY_TEXT' ? 'overflow-visible' : `overflow-hidden ${chromeless ? 'rounded-2xl' : 'rounded-b-2xl'}`}`} style={contentStyle}>{children}</div>
       </div>
       );
     };
@@ -3725,6 +3888,16 @@
           }
         }
       }, [content, isFocused]);
+
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (toolbarPos && editorRef.current && !editorRef.current.contains(e.target) && !e.target.closest('.floating-toolbar-portal')) {
+            setToolbarPos(null);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, [toolbarPos]);
 
       return (
         <div className='w-full h-full relative group flex flex-col items-center justify-center p-2' onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); setShowFontColorMenu(false); setShowFontMenu(false); }} onClick={() => setIsHovered(true)}>
@@ -3797,11 +3970,11 @@
             formats={formats}
             exec={exec}
             onClose={() => setToolbarPos(null)}
-            onMinimize={() => toggleMinimize(widget.id)}
             updateData={updateData}
             widgetId={widget.id}
             hasShadow={hasShadow}
             fontScale={fontScale}
+            fontSize={widget.data.fontSize}
             fontFamily={fontFamily}
             showFontColorMenu={showFontColorMenu}
             setShowFontColorMenu={setShowFontColorMenu}
@@ -5912,6 +6085,18 @@
                 {allRosters?.map(r => <option key={r.id} value={r.id}>{r.name || 'Unnamed Class'}</option>)}
               </select>
 
+              <select
+                className="text-[10px] font-bold border rounded bg-white px-1 py-0.5"
+                value={fontSize <= 12 ? 'S' : fontSize >= 22 ? 'L' : 'M'}
+                onChange={(e) => {
+                  const sizes = { S: 12, M: 16, L: 22 };
+                  updateData(widget.id, { fontSize: sizes[e.target.value] });
+                }}
+              >
+                <option value="S">Text: S</option>
+                <option value="M">Text: M</option>
+                <option value="L">Text: L</option>
+              </select>
               <div className="bg-white border border-gray-200 px-2 py-0.5 rounded-md shadow-sm">
                 <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Present: </span>
                 <span className="text-xs font-bold text-blue-600">{count}</span>
@@ -6442,9 +6627,9 @@
       }, [widget.data.initialImage, widget.data.pastedImage]);
 
       return (
-        <div className="h-full bg-white flex flex-col relative no-drag">
+        <div className="h-full bg-white flex flex-col min-h-0 relative no-drag">
           {/* Toolbar */}
-          <div className="bg-gray-50 p-2 border-b flex items-center gap-1 shrink-0 z-20 flex-wrap">
+          <div className="bg-gray-50 p-2 border-b flex items-center gap-1 shrink-0 z-20 flex-nowrap overflow-x-auto custom-scrollbar">
             {/* Color */}
             <div className="relative">
               <button onClick={() => setShowColorPicker(!showColorPicker)} className="w-7 h-7 rounded-full border-2 border-white shadow-md" style={{ backgroundColor: color }} />
@@ -6491,7 +6676,7 @@
           )}
 
           {/* Canvas + Overlays */}
-          <div className="flex-1 relative overflow-hidden bg-white" onMouseDown={(e) => tool === 'select' && setSelectedItem(null)}>
+          <div className="flex-1 relative overflow-hidden bg-white min-h-0" onMouseDown={(e) => tool === 'select' && setSelectedItem(null)}>
             {/* Drawing Layer */}
             <div
               className="absolute inset-0 transition-shadow"
@@ -6887,7 +7072,19 @@
               </div>
             </div>
 
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+              <select
+                className="text-[10px] font-bold border rounded bg-white px-1 py-0.5 text-slate-600"
+                value={fontSize <= 11 ? 'S' : fontSize >= 18 ? 'L' : 'M'}
+                onChange={(e) => {
+                  const sizes = { S: 11, M: 14, L: 18 };
+                  updateData(widget.id, { fontSize: sizes[e.target.value] });
+                }}
+              >
+                <option value="S">Text: S</option>
+                <option value="M">Text: M</option>
+                <option value="L">Text: L</option>
+              </select>
               {hasOverride && (
                 <button
                   onClick={revertToday}
@@ -9045,7 +9242,8 @@
           .from('rosters')
           .upsert({
             ...rosterPayload,
-            user_id: userId
+            user_id: userId,
+            last_modified: rosterPayload.last_modified || Date.now()
           })
           .select()
           .single();
@@ -9071,7 +9269,15 @@
       const [profileLastModified, setProfileLastModified] = useState(null);
       const savingRef = useRef(false);
       const cloudLoaded = useRef(false);
-      const lastSyncedRef = useRef({ profile: null, slides: {}, rosters: {} });
+      const lastSyncedRef = useRef({
+        profile: null,
+        slides: {},
+        rosters: {},
+        profile_background: null,
+        slides_serialized: null,
+        rosters_serialized: null,
+        schedule_serialized: null
+      });
 
       // Diagnostics State
       const [debugLog, setDebugLog] = useState([]);
@@ -9203,7 +9409,20 @@
       const [authLoading, setAuthLoading] = useState(true);
       const [cloudSyncEnabled, setCloudSyncEnabled] = useState(() => { try { return JSON.parse(localStorage.getItem('homeroom_cloud_sync_enabled')) ?? true; } catch { return true; } });
       const [hasCheckedCloud, setHasCheckedCloud] = useState(false);
+      const [hasLocalChanges, setHasLocalChanges] = useState(false);
       const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('homeroom_gemini_api_key') || '');
+      const [sparkGrade, setSparkGrade] = useState(() => localStorage.getItem('homeroom_spark_grade') || 'Middle School');
+      const [studentName, setStudentName] = useState(() => localStorage.getItem('homeroom_student_name') || '');
+
+      const [profilesLastModified, setProfilesLastModified] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_profiles_last_modified') || '0'); } catch { return 0; }
+      });
+      const [slidesLastModified, setSlidesLastModified] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_slides_last_modified') || '0'); } catch { return 0; }
+      });
+      const [rostersLastModified, setRostersLastModified] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_rosters_last_modified') || '0'); } catch { return 0; }
+      });
 
       // --- DERIVED STATE ---
       const currentBg = slideBackgrounds[currentSlideIndex] || background;
@@ -9255,7 +9474,7 @@
 
         const channel = supabase.channel(`realtime:${user.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'slides', filter: `user_id=eq.${user.id}` }, (payload) => {
-            if (isSyncing) return;
+            if (isSyncing || hasLocalChanges) return;
             const updatedSlide = payload.new;
             if (updatedSlide && updatedSlide.slide_index !== undefined) {
               // Ignore if this is just an echo of our own change
@@ -9359,38 +9578,66 @@
             let activeId = profile?.active_roster_id;
 
             if (profile) {
-              if (profile.dock_order) {
-                const order = profile.dock_order;
-                if (Array.isArray(order)) {
-                  const allDefaults = [...DOCK_MAIN_DEFAULTS, ...DOCK_DRAWER_DEFAULTS];
-                  setDockOrder({
-                    main: DOCK_MAIN_DEFAULTS.filter(id => order.includes(id)),
-                    drawer: [...DOCK_DRAWER_DEFAULTS.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
-                  });
-                } else {
-                  setDockOrder({
-                    main: order?.main || [],
-                    drawer: order?.drawer || []
-                  });
+              const cloudModified = profile.last_modified || 0;
+              const localModified = profilesLastModified;
+
+              if (cloudModified >= localModified) {
+                console.log("Cloud profile is newer or equal. Updating local state.");
+                if (profile.dock_order) {
+                  const order = profile.dock_order;
+                  if (Array.isArray(order)) {
+                    const allDefaults = [...DOCK_MAIN_DEFAULTS, ...DOCK_DRAWER_DEFAULTS];
+                    setDockOrder({
+                      main: DOCK_MAIN_DEFAULTS.filter(id => order.includes(id)),
+                      drawer: [...DOCK_DRAWER_DEFAULTS.filter(id => order.includes(id)), ...order.filter(id => !allDefaults.includes(id)), ...allDefaults.filter(id => !order.includes(id))]
+                    });
+                  } else {
+                    setDockOrder({
+                      main: order?.main || [],
+                      drawer: order?.drawer || []
+                    });
+                  }
                 }
-              }
-              if (profile.background) setBackground(profile.background);
-              if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
-              if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
+                if (profile.background) setBackground(profile.background);
+                if (profile.slide_backgrounds) setSlideBackgrounds(profile.slide_backgrounds);
+                if (profile.my_backgrounds) setCustomBackgrounds(profile.my_backgrounds);
 
-              // Complete Schedule Sync
-              if (profile.schedule) {
-                const { _settings, ...template } = profile.schedule;
-                setScheduleTemplate(template);
-                if (_settings) setScheduleSettings(_settings);
-                else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
-              }
-              if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
+                // Complete Schedule Sync
+                if (profile.schedule) {
+                  const { _settings, ...template } = profile.schedule;
+                  setScheduleTemplate(template);
+                  if (_settings) setScheduleSettings(_settings);
+                  else if (profile.schedule_settings) setScheduleSettings(profile.schedule_settings);
+                }
+                if (profile.schedule_overrides) setScheduleOverrides(profile.schedule_overrides);
 
-              if (profile.clock_style) setClockStyle(profile.clock_style);
-              if (profile.accent_color) setAccentColor(profile.accent_color);
-              // gemini_api_key is no longer synced to cloud for security — kept in localStorage only
-              if (activeId) setActiveRosterId(activeId);
+                if (profile.clock_style) setClockStyle(profile.clock_style);
+                if (profile.accent_color) setAccentColor(profile.accent_color);
+                if (profile.spark_grade) setSparkGrade(profile.spark_grade);
+                if (profile.student_name) setStudentName(profile.student_name);
+
+                setProfilesLastModified(cloudModified);
+                if (activeId) setActiveRosterId(activeId);
+
+                // Initialize sync ref with cloud state to prevent immediate sync-back
+                const freshProfilePayload = {
+                  background: profile.background,
+                  slide_backgrounds: profile.slide_backgrounds,
+                  my_backgrounds: profile.my_backgrounds,
+                  schedule: profile.schedule,
+                  schedule_overrides: profile.schedule_overrides,
+                  grid_enabled: profile.grid_enabled,
+                  clock_style: profile.clock_style,
+                  dock_order: profile.dock_order,
+                  active_roster_id: profile.active_roster_id,
+                  accent_color: profile.accent_color,
+                  spark_grade: profile.spark_grade,
+                  student_name: profile.student_name
+                };
+                lastSyncedRef.current.profile = JSON.stringify(freshProfilePayload);
+              } else {
+                console.log("Local profile is newer. Keeping local version.");
+              }
             }
 
             const [cloudRosters, cloudSlides] = await Promise.all([
@@ -9400,43 +9647,64 @@
             let mergedRosters = allRosters;
 
             if (cloudRosters && Array.isArray(cloudRosters)) {
-              const uniqueMap = new Map();
-              cloudRosters.forEach(r => uniqueMap.set(r.id, r));
+              const maxCloudModified = Math.max(...cloudRosters.map(r => r.last_modified || 0));
 
-              allRosters.forEach(r => {
-                const alreadyExistsInCloud = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
-                if (!alreadyExistsInCloud) {
-                  const isUUID = r.id && r.id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(r.id));
-                  const sanitizedRoster = isUUID ? { ...r, id: 'default' } : r;
-                  if (!uniqueMap.has(sanitizedRoster.id) || sanitizedRoster.id === 'default') {
-                    uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
+              if (maxCloudModified >= rostersLastModified) {
+                console.log("Cloud rosters are newer or equal. Updating local state.");
+                const uniqueMap = new Map();
+                cloudRosters.forEach(r => uniqueMap.set(r.id, r));
+
+                allRosters.forEach(r => {
+                  const alreadyExistsInCloud = cloudRosters.some(cr => cr.id === r.id || cr.name === r.name);
+                  if (!alreadyExistsInCloud) {
+                    const isUUID = r.id && r.id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(r.id));
+                    const sanitizedRoster = isUUID ? { ...r, id: 'default' } : r;
+                    if (!uniqueMap.has(sanitizedRoster.id) || sanitizedRoster.id === 'default') {
+                      uniqueMap.set(sanitizedRoster.id === 'default' ? `temp-${Date.now()}-${Math.random()}` : sanitizedRoster.id, sanitizedRoster);
+                    }
                   }
-                }
-              });
+                });
 
-              mergedRosters = Array.from(uniqueMap.values()).map(r => {
-                if (typeof r.id === 'string' && r.id.startsWith('temp-')) return { ...r, id: 'default' };
-                return r;
-              });
-              setAllRosters(mergedRosters);
-              mergedRosters.forEach(r => {
-                lastSyncedRef.current.rosters[r.id] = JSON.stringify(r);
-              });
+                mergedRosters = Array.from(uniqueMap.values()).map(r => {
+                  if (typeof r.id === 'string' && r.id.startsWith('temp-')) return { ...r, id: 'default' };
+                  return r;
+                });
+                setAllRosters(mergedRosters);
+                setRostersLastModified(maxCloudModified);
+                mergedRosters.forEach(r => {
+                  lastSyncedRef.current.rosters[r.id] = JSON.stringify(r);
+                });
+              } else {
+                console.log("Local rosters are newer. Keeping local version.");
+              }
             }
 
             // Map cloud slides to the state
             if (cloudSlides && cloudSlides.length > 0) {
-              const slideArray = [[]];
-              cloudSlides.forEach(s => {
-                if (s.slide_index !== undefined) {
-                  slideArray[s.slide_index] = s.widgets || [];
+              const maxCloudModified = Math.max(...cloudSlides.map(s => s.last_modified || 0));
+              if (maxCloudModified >= slidesLastModified) {
+                console.log("Cloud slides are newer or equal. Updating local state.");
+                const slideArray = [[]];
+                cloudSlides.forEach(s => {
+                  if (s.slide_index !== undefined) {
+                    slideArray[s.slide_index] = s.widgets || [];
+                  }
+                });
+                // Ensure we don't have holes in the array
+                for (let i = 0; i < slideArray.length; i++) {
+                  if (!slideArray[i]) slideArray[i] = [];
                 }
-              });
-              // Ensure we don't have holes in the array
-              for (let i = 0; i < slideArray.length; i++) {
-                if (!slideArray[i]) slideArray[i] = [];
+                setSlides(slideArray);
+                setSlidesLastModified(maxCloudModified);
+
+                // Initialize sync refs with cloud states
+                slideArray.forEach((widgets, i) => {
+                  lastSyncedRef.current.slides[i] = JSON.stringify(widgets);
+                });
+                lastSyncedRef.current.slides_serialized = JSON.stringify(slideArray);
+              } else {
+                console.log("Local slides are newer. Keeping local version.");
               }
-              setSlides(slideArray);
             }
 
             // Set Active Roster from the Merged Data
@@ -9623,8 +9891,15 @@
         // Persist logic handled by useEffect
       };
 
-      const updateWidgetLayout = useCallback((id, newPos, newSize) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, position: newPos, size: newSize } : w)); }, [currentSlideIndex]);
-      const updateWidgetData = useCallback((id, updates) => { setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...updates } } : w)); }, [currentSlideIndex]);
+      const updateWidgetLayout = useCallback((id, newPos, newSize) => {
+        setHasLocalChanges(true);
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, position: newPos, size: newSize } : w));
+      }, [currentSlideIndex]);
+
+      const updateWidgetData = useCallback((id, updates) => {
+        setHasLocalChanges(true);
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, ...updates } } : w));
+      }, [currentSlideIndex]);
 
       const addToHistory = () => {
         setHistory(prev => [...prev.slice(-19), slides]);
@@ -9660,7 +9935,17 @@
       // LocalStorage Save allRosters
       useEffect(() => {
         const t = setTimeout(() => {
-          try { localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters)); } catch (e) { console.error(e); }
+          try {
+            localStorage.setItem('homeroom_all_rosters', JSON.stringify(allRosters));
+            if (!isSyncing && !savingRef.current) {
+              const str = JSON.stringify(allRosters);
+              if (lastSyncedRef.current.rosters_serialized !== str) {
+                lastSyncedRef.current.rosters_serialized = str;
+                setRostersLastModified(Date.now());
+                setHasLocalChanges(true);
+              }
+            }
+          } catch (e) { console.error(e); }
         }, 2000);
         return () => clearTimeout(t);
       }, [allRosters]);
@@ -9675,6 +9960,12 @@
         }, 1000);
         return () => clearTimeout(t);
       }, [slides, roster]);
+
+      // LocalStorage Save Spark Settings
+      useEffect(() => {
+        localStorage.setItem('homeroom_spark_grade', sparkGrade);
+        localStorage.setItem('homeroom_student_name', studentName);
+      }, [sparkGrade, studentName]);
 
       const firstChangeTimeRef = useRef(null);
 
@@ -9702,7 +9993,9 @@
           schedule_overrides: scheduleOverrides, grid_enabled: isGridEnabled, clock_style: clockStyle,
           dock_order: Array.isArray(dockOrder) ? dockOrder : [...(dockOrder.main || []), ...(dockOrder.drawer || [])],
           active_roster_id: (activeRosterId && activeRosterId !== 'default') ? activeRosterId : null,
-          accent_color: accentColor
+          accent_color: accentColor,
+          spark_grade: sparkGrade,
+          student_name: studentName
           // gemini_api_key intentionally NOT synced to cloud for security
         };
         const profileStr = JSON.stringify(profilePayload);
@@ -9717,7 +10010,7 @@
         }
 
         const syncToCloud = async () => {
-          if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current || !hasChanges) return;
+          if (!user || isSyncing || !hasCheckedCloud || !cloudSyncEnabled || savingRef.current || !hasLocalChanges) return;
           setIsSyncing(true);
           savingRef.current = true;
           firstChangeTimeRef.current = null;
@@ -9729,8 +10022,9 @@
               const widgetsStr = JSON.stringify(slides[idx]);
               if (lastSyncedRef.current.slides[idx] === widgetsStr) continue;
 
+              const now = Date.now();
               const { error: slideError } = await supabase.from('slides').upsert(
-                { user_id: user.id, slide_index: idx, widgets: slides[idx] },
+                { user_id: user.id, slide_index: idx, widgets: slides[idx], last_modified: now },
                 { onConflict: 'user_id,slide_index' }
               );
               if (slideError) throw slideError;
@@ -9771,20 +10065,34 @@
             }
 
             // 3. Sync Profile
-            if (lastSyncedRef.current.profile !== profileStr || slideSyncCount > 0 || rostersChanged) {
-              const last_modified = Date.now();
-              setProfileLastModified(last_modified);
-              let { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified });
+            if (lastSyncedRef.current.profile === profileStr && slideSyncCount === 0 && !rostersChanged) {
+              // Nothing changed, skip profile upsert
+            } else {
+              const now = Date.now();
+              setProfilesLastModified(now);
+              if (slideSyncCount > 0) setSlidesLastModified(now);
+              if (rostersChanged) setRostersLastModified(now);
+
+              let { error: profileError } = await supabase.from('profiles').upsert({ ...profilePayload, id: user.id, last_modified: now });
 
               // gemini_api_key column failover no longer needed — key is not sent to cloud
 
               if (profileError) throw profileError;
               lastSyncedRef.current.profile = profileStr;
-              addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
             }
+            setHasLocalChanges(false);
+            setTimeout(() => { savingRef.current = false; }, 1000);
+            addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
           } catch (e) {
             console.error("Sync Exception:", e);
-            setLastSyncError(e.message || "Unknown Sync Error");
+            const msg = e.message || "Unknown Sync Error";
+            setLastSyncError(msg);
+
+            if (msg.includes('payload too large') || e.code === '413') {
+              addDebugLog("Sync failed: Data too large. Try removing complex drawings or backgrounds.", 'error');
+            } else {
+              addDebugLog(`Sync failed: ${msg}`, 'error');
+            }
           } finally {
             setIsSyncing(false);
             setTimeout(() => { savingRef.current = false; }, 1000);
@@ -9802,7 +10110,7 @@
         }
 
         const t = setTimeout(() => {
-          if (hasChanges) syncToCloud();
+          if (hasLocalChanges) syncToCloud();
         }, delay);
         return () => clearTimeout(t);
       }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
@@ -9899,11 +10207,26 @@
         }
       }, [user]);
 
-      useEffect(() => { localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(background)); }, [background]);
+      useEffect(() => {
+        localStorage.setItem(BG_STORAGE_KEY, JSON.stringify(background));
+        if (!isSyncing && !savingRef.current) {
+          const str = JSON.stringify(background);
+          if (lastSyncedRef.current.profile_background !== str) {
+            lastSyncedRef.current.profile_background = str;
+            setProfilesLastModified(Date.now());
+            setHasLocalChanges(true);
+          }
+        }
+      }, [background]);
       useEffect(() => { localStorage.setItem('homeroom_clock_style', clockStyle); }, [clockStyle]);
       useEffect(() => { localStorage.setItem('homeroom_show_clock_date', showClockDate); }, [showClockDate]);
       useEffect(() => { localStorage.setItem('homeroom_clock_glassy', isClockGlassy); }, [isClockGlassy]);
       useEffect(() => { localStorage.setItem('homeroom_grid_enabled', JSON.stringify(isGridEnabled)); }, [isGridEnabled]);
+
+      // Persistence Timestamps
+      useEffect(() => { localStorage.setItem('homeroom_profiles_last_modified', JSON.stringify(profilesLastModified)); }, [profilesLastModified]);
+      useEffect(() => { localStorage.setItem('homeroom_slides_last_modified', JSON.stringify(slidesLastModified)); }, [slidesLastModified]);
+      useEffect(() => { localStorage.setItem('homeroom_rosters_last_modified', JSON.stringify(rostersLastModified)); }, [rostersLastModified]);
 
       // Cross-tab sync for global settings
       useEffect(() => {
@@ -9939,7 +10262,17 @@
         localStorage.setItem('homeroom_accent_color', accentColor);
       }, [accentColor]);
       useEffect(() => { localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify(slideBackgrounds)); }, [slideBackgrounds]);
-      useEffect(() => { localStorage.setItem('homeroom_slides', JSON.stringify(slides)); }, [slides]);
+      useEffect(() => {
+        localStorage.setItem('homeroom_slides', JSON.stringify(slides));
+        if (!isSyncing && !savingRef.current) {
+          const str = JSON.stringify(slides);
+          if (lastSyncedRef.current.slides_serialized !== str) {
+            lastSyncedRef.current.slides_serialized = str;
+            setSlidesLastModified(Date.now());
+            setHasLocalChanges(true);
+          }
+        }
+      }, [slides]);
       useEffect(() => { localStorage.setItem('homeroom_current_slide', currentSlideIndex.toString()); }, [currentSlideIndex]);
       useEffect(() => { localStorage.setItem('homeroom_my_backgrounds', JSON.stringify(customBackgrounds)); }, [customBackgrounds]);
       useEffect(() => { localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled)); }, [backupEnabled]);
@@ -9954,6 +10287,14 @@
 
       useEffect(() => {
         saveScheduleTemplate(scheduleTemplate);
+        if (!isSyncing && !savingRef.current) {
+          const str = JSON.stringify(scheduleTemplate);
+          if (lastSyncedRef.current.schedule_serialized !== str) {
+            lastSyncedRef.current.schedule_serialized = str;
+            setProfilesLastModified(Date.now());
+            setHasLocalChanges(true);
+          }
+        }
       }, [scheduleTemplate]);
       useEffect(() => {
         saveScheduleOverrides(scheduleOverrides);
@@ -10612,7 +10953,11 @@
             setGeminiApiKey: (key) => {
               setGeminiApiKey(key);
               localStorage.setItem('homeroom_gemini_api_key', key);
-            }
+            },
+            sparkGrade,
+            setSparkGrade,
+            studentName,
+            setStudentName
           }
         };
 
@@ -10694,11 +11039,13 @@
             <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"></div>
 
             <div className="flex flex-col items-center z-10 p-12 glass-tile rounded-[3rem] border-white/5 max-w-sm w-full">
-              <div className="relative w-16 h-16 mb-8 group">
-                <div className="absolute -inset-1 bg-blue-500 rounded-full blur opacity-20 animate-pulse"></div>
-                <div className="relative w-full h-full flex items-center justify-center rounded-2xl bg-slate-900 border border-white/10 shadow-inner">
-                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
+              <div className="relative w-72 h-18 mb-12 group flex items-center justify-center">
+                <div className="absolute -inset-10 bg-blue-500 rounded-full blur-[80px] opacity-25 animate-pulse"></div>
+                <img
+                  src="https://free.ourhomeroom.app/homeroom-logo.png"
+                  className="relative w-full h-full object-contain brightness-0 invert opacity-95 drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]"
+                  alt="HomeRoom"
+                />
               </div>
 
               <h3 className="text-white text-xl font-bold mb-2 tracking-tight">One Moment</h3>
