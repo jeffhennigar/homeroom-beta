@@ -2929,74 +2929,86 @@
 
         const prompt = prompts[type] || prompts.HOOK;
 
-        // Robust Model Fallback Logic
-        const VERSIONS = ['v1', 'v1beta', 'v1alpha'];
+        // Optimized Model List (Flash-First for speed)
         const MODELS = [
-          'gemini-3.1-pro',
           'gemini-3.1-flash',
           'gemini-3.1-flash-lite',
           'gemini-3-flash-preview',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash',
+          'gemini-3.1-pro',
           'gemini-2.5-pro',
           'gemini-2.5-flash',
-          'gemini-2.0-pro-exp-02-05',
-          'gemini-2.0-flash',
-          'gemini-1.5-flash'
+          'gemini-2.0-pro-exp-02-05'
         ];
+        const VERSIONS = ['v1', 'v1beta', 'v1alpha'];
+
         let lastError = null;
         let data = null;
 
-        apiLoop: for (const modelId of MODELS) {
-          for (const version of VERSIONS) {
-            try {
-              const fetchUrl = `https://generativelanguage.googleapis.com/${version}/models/${modelId}:generateContent?key=${apiKey}`;
-              const res = await fetch(fetchUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
-              });
+        // 1. SUCCESS CACHE: Try the last known working model first for instant results
+        const cachedModel = localStorage.getItem('homeroom_spark_preferred_model');
+        const cachedVer = localStorage.getItem('homeroom_spark_preferred_version');
 
-              data = await res.json();
+        const tryEndpoint = async (mId, ver) => {
+          try {
+            const fetchUrl = `https://generativelanguage.googleapis.com/${ver}/models/${mId}:generateContent?key=${apiKey}`;
+            const res = await fetch(fetchUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 1.8 } })
+            });
 
-              // 1. Handle Rate Limiting (Stop immediately)
-              if (res.status === 429 || (data.error && data.error.message?.toLowerCase().includes('quota'))) {
-                lastError = "Google's AI is currently at its free limit for your account. Please wait about a minute and try again.";
-                console.warn(`Spark: ${modelId} (${version}) rate limited (429)`);
+            const d = await res.json();
+
+            // Critical error detection
+            if (res.status === 429 || (d.error && d.error.message?.toLowerCase().includes('quota'))) {
+              return { success: false, stop: true, error: "Google's AI is currently at its free limit. Please wait a minute." };
+            }
+            if (res.status === 400 && d.error?.message?.toLowerCase().includes('api key')) {
+              return { success: false, stop: true, error: "Invalid API Key. Please check settings." };
+            }
+
+            // Skip logic
+            const errMsg = d.error?.message?.toLowerCase() || '';
+            if (res.status === 404 || res.status === 400 || errMsg.includes('not found') || errMsg.includes('not supported') || errMsg.includes('not available')) {
+              return { success: false, skip: true };
+            }
+
+            if (d.error) return { success: false, error: d.error.message };
+
+            return { success: true, data: d };
+          } catch (err) {
+            return { success: false, error: err.message };
+          }
+        };
+
+        if (cachedModel && cachedVer) {
+          const result = await tryEndpoint(cachedModel, cachedVer);
+          if (result.success) {
+            data = result.data;
+          }
+        }
+
+        if (!data) {
+          apiLoop: for (const modelId of MODELS) {
+            for (const version of VERSIONS) {
+              if (modelId === cachedModel && version === cachedVer) continue; // Already tried
+
+              const result = await tryEndpoint(modelId, version);
+              if (result.success) {
+                data = result.data;
+                // Save successful combination!
+                localStorage.setItem('homeroom_spark_preferred_model', modelId);
+                localStorage.setItem('homeroom_spark_preferred_version', version);
+                console.log(`Spark: SUCCESS with ${modelId} (${version}) - cached for next time`);
                 break apiLoop;
               }
-
-              // 2. Handle Invalid API Key (Stop immediately)
-              if (res.status === 400 && data.error?.message?.toLowerCase().includes('api key')) {
-                lastError = "Invalid API Key. Please check your Gemini API key in settings.";
-                console.error("Spark: Invalid API Key detected");
+              if (result.stop) {
+                lastError = result.error;
                 break apiLoop;
               }
-
-              // 3. Handle Model Not Found or Invalid Version (Continue to next version/model)
-              const errorMessage = data.error?.message?.toLowerCase() || '';
-              if (
-                res.status === 404 ||
-                res.status === 400 ||
-                errorMessage.includes('not found') ||
-                errorMessage.includes('not supported') ||
-                errorMessage.includes('not available')
-              ) {
-                console.log(`Spark: ${modelId} not found/supported on ${version}, trying next...`);
-                continue;
-              }
-
-              // 4. Handle Generic Errors
-              if (data.error) {
-                lastError = `[${modelId}] ${data.error.message}`;
-                console.warn(`Spark: ${modelId} (${version}) unknown error:`, data.error.message);
-                continue;
-              }
-
-              lastError = null;
-              console.log(`Spark: SUCCESS with ${modelId} (${version})`);
-              break apiLoop;
-            } catch (err) {
-              lastError = err.message;
-              console.warn(`Spark: ${modelId} (${version}) fetch error:`, err.message);
+              if (!result.skip) lastError = `[${modelId}] ${result.error}`;
             }
           }
         }
