@@ -10078,40 +10078,42 @@
               // gemini_api_key column failover no longer needed — key is not sent to cloud
 
               if (profileError) throw profileError;
-              setHasLocalChanges(false);
-              setTimeout(() => { savingRef.current = false; }, 1000);
-              addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
-            } catch (e) {
-              console.error("Sync Exception:", e);
-              const msg = e.message || "Unknown Sync Error";
-              setLastSyncError(msg);
-
-              if (msg.includes('payload too large') || e.code === '413') {
-                addDebugLog("Sync failed: Data too large. Try removing complex drawings or backgrounds.", 'error');
-              } else {
-                addDebugLog(`Sync failed: ${msg}`, 'error');
-              }
-            } finally {
-              setIsSyncing(false);
-              setTimeout(() => { savingRef.current = false; }, 1000);
+              lastSyncedRef.current.profile = profileStr;
             }
-          };
+            setHasLocalChanges(false);
+            setTimeout(() => { savingRef.current = false; }, 1000);
+            addDebugLog(slideSyncCount > 0 || rostersChanged ? "Cloud sync successful" : "Profile settings synced", 'success');
+          } catch (e) {
+            console.error("Sync Exception:", e);
+            const msg = e.message || "Unknown Sync Error";
+            setLastSyncError(msg);
 
-          const timeSinceFirstChange = firstChangeTimeRef.current ? (Date.now() - firstChangeTimeRef.current) : 0;
-          let delay = 10000;
-
-          if (firstChangeTimeRef.current && timeSinceFirstChange >= 30000) {
-            syncToCloud();
-            return;
-          } else if (firstChangeTimeRef.current && timeSinceFirstChange + 10000 > 30000) {
-            delay = Math.max(0, 30000 - timeSinceFirstChange);
+            if (msg.includes('payload too large') || e.code === '413') {
+              addDebugLog("Sync failed: Data too large. Try removing complex drawings or backgrounds.", 'error');
+            } else {
+              addDebugLog(`Sync failed: ${msg}`, 'error');
+            }
+          } finally {
+            setIsSyncing(false);
+            setTimeout(() => { savingRef.current = false; }, 1000);
           }
+        };
 
-          const t = setTimeout(() => {
-            if (hasLocalChanges) syncToCloud();
-          }, delay);
-          return () => clearTimeout(t);
-        }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
+        const timeSinceFirstChange = firstChangeTimeRef.current ? (Date.now() - firstChangeTimeRef.current) : 0;
+        let delay = 10000;
+
+        if (firstChangeTimeRef.current && timeSinceFirstChange >= 30000) {
+          syncToCloud();
+          return;
+        } else if (firstChangeTimeRef.current && timeSinceFirstChange + 10000 > 30000) {
+          delay = Math.max(0, 30000 - timeSinceFirstChange);
+        }
+
+        const t = setTimeout(() => {
+          if (hasLocalChanges) syncToCloud();
+        }, delay);
+        return () => clearTimeout(t);
+      }, [user, slides, currentSlideIndex, roster, allRosters, activeRosterId, isSyncing, hasCheckedCloud, background, slideBackgrounds, customBackgrounds, scheduleTemplate, scheduleOverrides, isGridEnabled, clockStyle, accentColor, dockOrder, cloudSyncEnabled]);
 
       // Supabase Data Loading
 
