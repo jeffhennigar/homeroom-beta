@@ -317,6 +317,24 @@
       animation: slide-manager-grow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
+    @keyframes slide-manager-shrink {
+      0% {
+        opacity: 1;
+        transform: scale(1) translate(0, 0);
+        filter: blur(0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(0.3) translate(50px, 50px);
+        filter: blur(10px);
+      }
+    }
+
+    .animate-slide-manager-close {
+      animation: slide-manager-shrink 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
     /* Premium sync: elastic-pop for widget launch */
     @keyframes elastic-pop {
       0% {
@@ -9216,14 +9234,17 @@
         return data;
       },
 
-      async saveSlide(userId, slideIndex, widgets) {
+      async saveSlide(userId, slideIndex, widgets, lastModified) {
+        const payload = {
+          user_id: userId,
+          slide_index: slideIndex,
+          widgets
+        };
+        if (lastModified) payload.last_modified = lastModified;
+
         const { error } = await supabase
           .from('slides')
-          .upsert({
-            user_id: userId,
-            slide_index: slideIndex,
-            widgets
-          }, { onConflict: 'user_id,slide_index' });
+          .upsert(payload, { onConflict: 'user_id,slide_index' });
         if (error) throw error;
       },
 
@@ -9312,7 +9333,7 @@
             const WidgetComp = WIDGET_COMPONENTS[w.type];
             if (!WidgetComp) return null;
             return (
-              <div key={w.id} className="absolute overflow-hidden rounded-xl border-2 border-slate-200 bg-white" style={{ left: w.position.x, top: w.position.y, width: w.size.width, height: w.size.height, zIndex: w.zIndex }}>
+              <div key={w.id} className="absolute overflow-hidden rounded-2xl border-2 border-slate-200 bg-white" style={{ left: w.position.x, top: w.position.y, width: w.size.width, height: w.size.height, zIndex: w.zIndex }}>
                 <WidgetComp
                   widget={w}
                   updateData={() => { }}
@@ -9332,7 +9353,7 @@
       );
     };
 
-    const SlideManager = ({ slides, currentSlideIndex, onSelectSlide, onAddSlide, onReorderSlides, onClose, slideBackgrounds, background }) => {
+    const SlideManager = ({ slides, currentSlideIndex, onSelectSlide, onAddSlide, onReorderSlides, onClose, slideBackgrounds, background, isClosing }) => {
       const [draggedIndex, setDraggedIndex] = useState(null);
 
       const handleDragStart = (e, index) => {
@@ -9352,7 +9373,7 @@
       };
 
       return (
-        <div className="fixed bottom-24 right-8 w-[450px] h-[550px] bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col z-[10005] overflow-hidden animate-slide-manager origin-bottom-right">
+        <div className={`fixed bottom-24 right-8 w-[400px] h-[500px] bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col z-[10005] overflow-hidden ${isClosing ? 'animate-slide-manager-close' : 'animate-slide-manager'} origin-bottom-right`}>
           <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
             <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
               <Layout size={20} className="text-indigo-600" />
@@ -9363,8 +9384,8 @@
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/30">
-            <div className="grid grid-cols-3 gap-6">
+          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-slate-50/30">
+            <div className="grid grid-cols-3 gap-4">
               {slides.map((slideWidgets, index) => {
                 const isActive = index === currentSlideIndex;
                 const slideBg = slideBackgrounds[index] || background;
@@ -9380,7 +9401,7 @@
                     onClick={() => { onSelectSlide(index); onClose(); }}
                     className={`relative group cursor-pointer transition-all duration-300 ${draggedIndex === index ? 'opacity-0' : 'opacity-100'}`}
                   >
-                    <div className={`aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300 shadow-sm group-hover:shadow-xl group-hover:-translate-y-1 ${isActive ? 'border-indigo-600 ring-4 ring-indigo-100' : 'border-white group-hover:border-indigo-200'}`}>
+                    <div className={`aspect-video rounded-2xl overflow-hidden border-2 transition-all duration-300 shadow-sm group-hover:shadow-xl group-hover:-translate-y-1 ${isActive ? 'border-indigo-600 ring-4 ring-indigo-100' : 'border-white group-hover:border-indigo-200'}`}>
                       <div className="absolute inset-0 pointer-events-none">
                         {isDefaultBg ? <OriginalBackground /> : (
                           <div className="w-full h-full" style={{
@@ -9402,12 +9423,12 @@
               })}
               <button
                 onClick={onAddSlide}
-                className="aspect-video rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 hover:border-indigo-400 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-all group"
+                className="aspect-video rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 hover:border-indigo-400 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-all group"
               >
                 <div className="p-2 rounded-full bg-slate-100 group-hover:bg-indigo-100 transition-colors">
-                  <Plus size={20} />
+                  <Plus size={18} />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest">Add Slide</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest">Add Slide</span>
               </button>
             </div>
           </div>
@@ -9533,6 +9554,19 @@
       const [isClockGlassy, setIsClockGlassy] = useState(() => localStorage.getItem('homeroom_clock_glassy') || 'clear');
       const [is24Hour, setIs24Hour] = useState(() => localStorage.getItem('homeroom_is_24hour') === 'true');
       const [showSlideManager, setShowSlideManager] = useState(false);
+      const [isSlideManagerClosing, setIsSlideManagerClosing] = useState(false);
+
+      const handleToggleSlideManager = () => {
+        if (showSlideManager) {
+          setIsSlideManagerClosing(true);
+          setTimeout(() => {
+            setShowSlideManager(false);
+            setIsSlideManagerClosing(false);
+          }, 400);
+        } else {
+          setShowSlideManager(true);
+        }
+      };
 
       const [dockOrder, setDockOrder] = useState(() => getDockOrder());
 
@@ -11518,7 +11552,7 @@
               )}
               <div className="w-px h-4 bg-gray-300 mx-1" />
               <button
-                onClick={() => setShowSlideManager(!showSlideManager)}
+                onClick={handleToggleSlideManager}
                 className={`p-1.5 hover:bg-indigo-50 rounded-full transition-all duration-200 active:scale-95 group ${showSlideManager ? 'bg-indigo-100 text-indigo-600' : (currentBg?.textColor || 'text-gray-400')}`}
                 title="Slide Manager"
               >
@@ -11534,9 +11568,10 @@
               onSelectSlide={setCurrentSlideIndex}
               onAddSlide={handleAddSlide}
               onReorderSlides={handleReorderSlides}
-              onClose={() => setShowSlideManager(false)}
+              onClose={handleToggleSlideManager}
               slideBackgrounds={slideBackgrounds}
               background={background}
+              isClosing={isSlideManagerClosing}
             />
           )}
 
