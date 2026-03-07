@@ -19,6 +19,7 @@ import ScheduleWidget from './components/widgets/ScheduleWidget';
 import QRCodeWidget from './components/widgets/QRCodeWidget';
 import EmbedWidget from './components/widgets/EmbedWidget';
 import CalculatorWidget from './components/widgets/CalculatorWidget';
+import GamesWidget from './components/widgets/GamesWidget';
 import CountdownWidget from './components/widgets/CountdownWidget';
 import SoundboardWidget from './components/widgets/SoundboardWidget';
 import PolypadWidget from './components/widgets/PolypadWidget';
@@ -74,12 +75,13 @@ const DOCK_LABELS = {
     COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
     SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
     POLYPAD: { label: 'Polypad', icon: <Ruler /> },
-    CALENDAR: { label: 'Calendar', icon: <Calendar /> }
+    CALENDAR: { label: 'Calendar', icon: <Calendar /> },
+    GAMES: { label: 'Games', icon: <Gamepad2 /> }
 };
 
 const DEFAULT_NAMES = ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5"];
 
-const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD'];
+const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD', 'GAMES'];
 
 const BACKGROUNDS = [
     { id: 'default', name: 'Original', type: 'preset', preview: 'bg-gradient-to-br from-blue-200 to-orange-200', style: {}, textColor: 'text-slate-800' },
@@ -1126,6 +1128,7 @@ const App = () => {
                             case 'YOUTUBE': // Legacy support
                             case 'EMBED': return <EmbedWidget {...props} />;
                             case 'CALCULATOR': return <CalculatorWidget {...props} />;
+                            case 'GAMES': return <GamesWidget {...props} />;
                             case 'COUNTDOWN': return <CountdownWidget {...props} />;
                             case 'POLYPAD': return <PolypadWidget {...props} />;
                             case 'CALENDAR': return <CalendarWidget {...props} textColor={extraProps.textColor} />;
