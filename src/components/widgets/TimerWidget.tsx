@@ -61,7 +61,7 @@ const TimerWidget = ({ widget, updateData }) => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning, timeLeft, widget.id, updateData]);
 
-  const calculateTimeFromMouseEvent = (e) => {
+  const calculateTimeFromPointerEvent = (e) => {
     if (!timerRef.current) return;
     const rect = timerRef.current.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
@@ -79,30 +79,33 @@ const TimerWidget = ({ widget, updateData }) => {
     return newSeconds;
   };
 
-  const handleMouseDown = (e) => {
+  const handlePointerDown = (e) => {
     if (isRunning) return;
     e.stopPropagation();
-    e.preventDefault();
     isDraggingRef.current = true;
 
-    const newTime = calculateTimeFromMouseEvent(e);
+    const target = e.currentTarget as HTMLElement;
+    if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
+
+    const newTime = calculateTimeFromPointerEvent(e);
     if (newTime !== undefined) updateData(widget.id, { timeLeft: newTime });
 
     const handleGlobalMove = (ev) => {
       if (!isDraggingRef.current) return;
-      ev.preventDefault();
-      const t = calculateTimeFromMouseEvent(ev);
+      const t = calculateTimeFromPointerEvent(ev);
       if (t !== undefined) updateData(widget.id, { timeLeft: t });
     };
 
     const handleGlobalUp = () => {
       isDraggingRef.current = false;
-      window.removeEventListener('mousemove', handleGlobalMove);
-      window.removeEventListener('mouseup', handleGlobalUp);
+      window.removeEventListener('pointermove', handleGlobalMove);
+      window.removeEventListener('pointerup', handleGlobalUp);
+      window.removeEventListener('pointercancel', handleGlobalUp);
     };
 
-    window.addEventListener('mousemove', handleGlobalMove);
-    window.addEventListener('mouseup', handleGlobalUp);
+    window.addEventListener('pointermove', handleGlobalMove);
+    window.addEventListener('pointerup', handleGlobalUp);
+    window.addEventListener('pointercancel', handleGlobalUp);
   };
 
   const toggleTimer = () => updateData(widget.id, { isRunning: !isRunning });
@@ -146,7 +149,7 @@ const TimerWidget = ({ widget, updateData }) => {
       <div className="flex-1 w-full flex items-center justify-center p-2 min-h-0">
         {mode === 'visual' ? (
           <div className="relative w-full h-full max-h-[90%] aspect-square flex items-center justify-center">
-            <svg ref={timerRef} className="transform -rotate-90 w-full h-full overflow-visible" viewBox="0 0 100 100" onMouseDown={handleMouseDown} style={{ cursor: isRunning ? 'default' : 'grab' }}>
+            <svg ref={timerRef} className="transform -rotate-90 w-full h-full overflow-visible" viewBox="0 0 100 100" onPointerDown={handlePointerDown} style={{ cursor: isRunning ? 'default' : 'grab' }}>
               {/* Ticks */}
               {Array.from({ length: 60 }).map((_, i) => {
                 const isMajor = i % 5 === 0;

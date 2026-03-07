@@ -66,7 +66,7 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
         onUpdateRoster(updated);
     };
 
-    const handleMouseDown = (e, deskId) => {
+    const handlePointerDown = (e, deskId) => {
         if (!isEditing) return;
         e.stopPropagation();
 
@@ -81,6 +81,9 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
         setSelectedDeskIds(newSelection);
         setDraggedDesk(deskId);
 
+        const target = e.currentTarget as HTMLElement;
+        if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
+
         // Capture initial state for drag
         dragStartMouse.current = { x: e.clientX, y: e.clientY };
         const initialPos = {};
@@ -88,18 +91,29 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
         initialDeskPositions.current = initialPos;
     };
 
-    const handleBgMouseDown = (e) => {
+    const handleBgPointerDown = (e) => {
         if (!isEditing) { setSelectedDeskIds([]); return; }
         if (e.target !== containerRef.current) return;
         setSelectedDeskIds([]);
         const rect = containerRef.current.getBoundingClientRect();
         setIsSelecting(true);
-        setSelectionBox({ startX: e.nativeEvent.offsetX, startY: e.nativeEvent.offsetY, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY, w: 0, h: 0 });
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+        setSelectionBox({ startX: offsetX, startY: offsetY, x: offsetX, y: offsetY, w: 0, h: 0 });
+
+        const target = e.currentTarget as HTMLElement;
+        if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
     };
 
-    const handleRotateMouseDown = (e, deskId) => { if (!isEditing) return; e.stopPropagation(); setRotatingDesk(deskId); };
+    const handleRotatePointerDown = (e, deskId) => {
+        if (!isEditing) return;
+        e.stopPropagation();
+        setRotatingDesk(deskId);
+        const target = e.currentTarget as HTMLElement;
+        if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
+    };
 
-    const handleGlobalMouseMove = (e) => {
+    const handleGlobalPointerMove = (e) => {
         if (isSelecting && selectionBox) {
             const rect = containerRef.current.getBoundingClientRect();
             const currentX = e.clientX - rect.left;
@@ -111,7 +125,6 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
             setSelectionBox(prev => ({ ...prev, x, y, w, h }));
         }
         else if (draggedDesk && isEditing) {
-            e.stopPropagation(); e.preventDefault();
             const totalDx = e.clientX - dragStartMouse.current.x;
             const totalDy = e.clientY - dragStartMouse.current.y;
 
@@ -147,7 +160,6 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
             });
         }
         else if (rotatingDesk && isEditing) {
-            e.preventDefault();
             const desk = desks.find(d => d.id === rotatingDesk);
             const scale = fontSize / 16;
             const deskW = (desk ? (desk.type === 'teacher' ? 154 : 110) : 110) * scale;
@@ -162,7 +174,7 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
         }
     };
 
-    const handleGlobalMouseUp = () => {
+    const handleGlobalPointerUp = () => {
         if (isSelecting && selectionBox) {
             // Commit selection
             const { x, y, w, h } = selectionBox;
@@ -186,11 +198,13 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
 
     useEffect(() => {
         if (isEditing) {
-            window.addEventListener("mousemove", handleGlobalMouseMove);
-            window.addEventListener("mouseup", handleGlobalMouseUp);
+            window.addEventListener("pointermove", handleGlobalPointerMove);
+            window.addEventListener("pointerup", handleGlobalPointerUp);
+            window.addEventListener("pointercancel", handleGlobalPointerUp);
             return () => {
-                window.removeEventListener("mousemove", handleGlobalMouseMove);
-                window.removeEventListener("mouseup", handleGlobalMouseUp);
+                window.removeEventListener("pointermove", handleGlobalPointerMove);
+                window.removeEventListener("pointerup", handleGlobalPointerUp);
+                window.removeEventListener("pointercancel", handleGlobalPointerUp);
             };
         }
     }, [isEditing, draggedDesk, rotatingDesk, isSelecting, selectionBox, desks, snapToGrid]);
@@ -280,7 +294,7 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
                         </select>
                     </div>
                 )}
-                <div ref={containerRef} className={`flex-1 relative overflow-hidden ${isEditing ? "bg-slate-100" : "bg-slate-50"}`} style={{ backgroundImage: isEditing ? "radial-gradient(#cbd5e1 1px, transparent 1px)" : "none", backgroundSize: `${Math.max(20, snapToGrid || 20)}px ${Math.max(20, snapToGrid || 20)}px` }} onMouseDown={handleBgMouseDown}>
+                <div ref={containerRef} className={`flex-1 relative overflow-hidden ${isEditing ? "bg-slate-100" : "bg-slate-50"}`} style={{ backgroundImage: isEditing ? "radial-gradient(#cbd5e1 1px, transparent 1px)" : "none", backgroundSize: `${Math.max(20, snapToGrid || 20)}px ${Math.max(20, snapToGrid || 20)}px` }} onPointerDown={handleBgPointerDown}>
                     {desks.map(desk => {
                         const isAbsent = desk.student && effectiveRoster.find(s => s.name === desk.student && !s.active);
                         const scale = fontSize / 16;
@@ -289,12 +303,12 @@ const SeatPickerWidget = ({ widget, updateData, roster, onUpdateRoster, allRoste
                         const styleClass = desk.type === "teacher" ? `bg-slate-800 border-slate-600 text-white shadow-lg rounded-md` : `${DESK_COLORS[desk.color || "blue"]} rounded-lg`;
                         const isSelected = selectedDeskIds.includes(desk.id);
                         return (
-                            <div key={desk.id} onContextMenu={(e) => toggleAbsence(desk.student, e)} className={`absolute shadow-sm border-2 flex items-center justify-center transition-shadow ${isEditing ? "cursor-move hover:shadow-md" : "cursor-pointer"} ${styleClass} ${isAbsent ? "opacity-60" : ""} ${isSelected ? "ring-2 ring-blue-500 ring-offset-2 z-10" : ""}`} style={{ left: desk.x, top: desk.y, width: deskW, height: deskH, transform: `rotate(${desk.rotation || 0}deg)`, fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px' }} onMouseDown={(e) => handleMouseDown(e, desk.id)} >
+                            <div key={desk.id} onContextMenu={(e) => toggleAbsence(desk.student, e)} className={`absolute shadow-sm border-2 flex items-center justify-center transition-shadow ${isEditing ? "cursor-move hover:shadow-md" : "cursor-pointer"} ${styleClass} ${isAbsent ? "opacity-60" : ""} ${isSelected ? "ring-2 ring-blue-500 ring-offset-2 z-10" : ""}`} style={{ left: desk.x, top: desk.y, width: deskW, height: deskH, transform: `rotate(${desk.rotation || 0}deg)`, fontSize: (desk.type === 'teacher' ? 14 : fontSize) + 'px' }} onPointerDown={(e) => handlePointerDown(e, desk.id)} >
                                 {isAbsent && <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full z-30 shadow-sm">OUT</div>}
                                 {isEditing && (
                                     <>
                                         <button onClick={(e) => { e.stopPropagation(); removeDesk(desk.id); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600 w-5 h-5 flex items-center justify-center z-20"><X size={12} strokeWidth={3} /></button>
-                                        <div onMouseDown={(e) => handleRotateMouseDown(e, desk.id)} className="absolute -top-3 -left-3 bg-blue-500 text-white rounded-full p-1 shadow-sm hover:bg-blue-600 w-6 h-6 flex items-center justify-center z-20 cursor-grab active:cursor-grabbing"><RotateCw size={14} strokeWidth={2.5} /></div>
+                                        <div onPointerDown={(e) => handleRotatePointerDown(e, desk.id)} className="absolute -top-3 -left-3 bg-blue-500 text-white rounded-full p-1 shadow-sm hover:bg-blue-600 w-6 h-6 flex items-center justify-center z-20 cursor-grab active:cursor-grabbing"><RotateCw size={14} strokeWidth={2.5} /></div>
                                     </>
                                 )}
                                 {desk.type === "teacher" ? <div className="flex flex-col items-center opacity-80"><Briefcase size={16} className="mb-0.5" /><span className="text-[8px] uppercase font-bold tracking-widest">Teacher</span></div> : (desk.student ? <span className={`font-bold text-center px-0.5 truncate w-full ${isAbsent ? 'text-slate-400 line-through' : 'text-slate-800'}`} style={{ fontSize: 'inherit' }}>{desk.student}</span> : <span className={`italic text-[10px] ${desk.color === "yellow" ? "text-yellow-700/50" : "text-slate-300"}`}>Empty</span>)}

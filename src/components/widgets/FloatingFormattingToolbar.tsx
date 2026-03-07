@@ -52,7 +52,7 @@ const FloatingFormattingToolbar: React.FC<FloatingFormattingToolbarProps> = ({
                 left: Math.max(100, Math.min(window.innerWidth - 100, pos.left)),
                 pointerEvents: 'auto'
             }}
-            onMouseDown={e => e.preventDefault()}
+            onPointerDown={e => e.preventDefault()}
         >
             <button onClick={() => exec('bold')} className={`p-2 rounded-lg transition-colors ${formats.bold ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-slate-100 text-slate-500'}`}>
                 <Bold size={16} />

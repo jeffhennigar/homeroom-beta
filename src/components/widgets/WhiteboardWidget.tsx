@@ -1,16 +1,26 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { MousePointer2, Edit3, Eraser, Undo2, Redo2, Type, Smile, ImageIcon, Trash2, Download, RotateCcw, RotateCw } from 'lucide-react';
+import { MousePointer2, Edit3, Eraser, Undo2, Redo2, Type, Smile, ImageIcon, Trash2, Download, RotateCcw, RotateCw, Grid as GridIcon, Layout, Square, Circle, Triangle, Shapes, ArrowRight } from 'lucide-react';
 
 const DRAW_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📝', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌'];
 
 const WhiteboardWidget = ({ widget, updateData }) => {
-    const { tool = 'pen', color = '#000000', size = 5, lines = [], textItems = [], emojiItems = [], imageItems = [], drawOffset = { x: 0, y: 0 } } = widget.data;
+    const { tool = 'pen', color = '#000000', size = 5, lines = [], textItems = [], emojiItems = [], imageItems = [], shapeItems = [], drawOffset = { x: 0, y: 0 }, bgType = 'none' } = widget.data;
     const canvasRef = useRef(null);
     const isDrawing = useRef(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const fileInputRef = useRef(null);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [showBgPicker, setShowBgPicker] = useState(false);
+    const [showShapePicker, setShowShapePicker] = useState(false);
+
+    const BG_TEMPLATES = [
+        { id: 'none', label: 'None', icon: 'None' },
+        { id: 'grid', label: 'Grid', style: { backgroundImage: 'linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)', backgroundSize: '30px 30px' } },
+        { id: 'dots', label: 'Dots', style: { backgroundImage: 'radial-gradient(#e2e8f0 1.5px, transparent 1.5px)', backgroundSize: '30px 30px' } },
+        { id: 'lines', label: 'Lines', style: { backgroundImage: 'linear-gradient(#f1f5f9 1.5px, transparent 1.5px)', backgroundSize: '100% 30px' } },
+        { id: 'dark-grid', label: 'Blueprint', style: { backgroundColor: '#1e293b', backgroundImage: 'linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' } }
+    ];
 
     // History
     const [history, setHistory] = useState([]);
@@ -42,7 +52,7 @@ const WhiteboardWidget = ({ widget, updateData }) => {
     // Drawing Logic
     const lastPointRef = useRef(null);
 
-    const handleCanvasMouseDown = (e) => {
+    const handleCanvasPointerDown = (e) => {
         if (tool !== 'pen' && tool !== 'eraser') return;
         addToHistory();
         const rect = canvasRef.current.getBoundingClientRect();
@@ -50,17 +60,31 @@ const WhiteboardWidget = ({ widget, updateData }) => {
         const y = (e.clientY - rect.top) / rect.height;
         isDrawing.current = true;
 
+        // Use pressure if available, default to 1
+        const pressure = (e as React.PointerEvent).pressure || 0.5;
+        const currentSize = tool === 'eraser' ? size * 2 : size * (0.5 + pressure);
+
         // Reset last point for speed calc
-        lastPointRef.current = { x, y, time: Date.now(), w: size };
+        lastPointRef.current = { x, y, time: Date.now(), w: currentSize };
 
         // Start a new line path
-        updateData(widget.id, { lines: [...lines, { points: [{ x, y, w: size }], color: tool === 'eraser' ? '#ffffff' : color, size, tool }] });
+        const newLine = {
+            points: [{ x, y, w: currentSize }],
+            color: tool === 'eraser' ? '#ffffff' : color,
+            size: currentSize,
+            tool
+        };
+        updateData(widget.id, { lines: [...lines, newLine] });
 
-        window.addEventListener('mousemove', moveDrawing);
-        window.addEventListener('mouseup', stopDrawing);
+        const target = e.currentTarget as HTMLElement;
+        if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
+
+        window.addEventListener('pointermove', movePointerDrawing);
+        window.addEventListener('pointerup', stopPointerDrawing);
+        window.addEventListener('pointercancel', stopPointerDrawing);
     };
 
-    const moveDrawing = (e) => {
+    const movePointerDrawing = (e) => {
         if (!isDrawing.current) return;
         if (tool !== 'pen' && tool !== 'eraser') return;
         const rect = canvasRef.current.getBoundingClientRect();
@@ -68,22 +92,30 @@ const WhiteboardWidget = ({ widget, updateData }) => {
         const y = (e.clientY - rect.top) / rect.height;
         const now = Date.now();
 
-        lastPointRef.current = { x, y, time: now, w: size };
+        const pressure = (e as any).pressure || 0.5;
+        const currentSize = tool === 'eraser' ? size * 2 : size * (0.5 + pressure);
+
+        lastPointRef.current = { x, y, time: now, w: currentSize };
 
         // Append point to last line
         const newLines = [...lines];
         if (newLines.length > 0) {
             const lastLine = { ...newLines[newLines.length - 1] };
-            lastLine.points = [...lastLine.points, { x, y, w: size }];
+            lastLine.points = [...lastLine.points, { x, y, w: currentSize }];
+            // Update line size to average or keep it per-point? 
+            // The renderer currently uses l.size. Let's update points to have individual widths if possible.
+            // But the renderer uses ctx.lineWidth = l.size. To support varying width, we'd need a more complex renderer.
+            // For now, let's just stick to a fixed size per line but improved event handling.
             newLines[newLines.length - 1] = lastLine;
             updateData(widget.id, { lines: newLines });
         }
     };
 
-    const stopDrawing = () => {
+    const stopPointerDrawing = () => {
         isDrawing.current = false;
-        window.removeEventListener('mousemove', moveDrawing);
-        window.removeEventListener('mouseup', stopDrawing);
+        window.removeEventListener('pointermove', movePointerDrawing);
+        window.removeEventListener('pointerup', stopPointerDrawing);
+        window.removeEventListener('pointercancel', stopPointerDrawing);
     };
 
     // Keep lines in a ref so resize observer can access latest without re-subscribing
@@ -151,7 +183,7 @@ const WhiteboardWidget = ({ widget, updateData }) => {
     const draggingId = useRef(null);
     const dragMode = useRef('move'); // move, rotate, scale
 
-    const handleItemMouseDown = (e, type, id, mode = 'move') => {
+    const handleItemPointerDown = (e, type, id, mode = 'move') => {
         e.stopPropagation();
         addToHistory();
         setSelectedItem({ type, id });
@@ -159,10 +191,14 @@ const WhiteboardWidget = ({ widget, updateData }) => {
         draggingId.current = id;
         dragMode.current = mode;
 
+        const target = e.currentTarget as HTMLElement;
+        if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
+
         let item;
         if (type === 'text') item = textItems.find(i => i.id === id);
         if (type === 'emoji') item = emojiItems.find(i => i.id === id);
         if (type === 'image') item = imageItems.find(i => i.id === id);
+        if (type === 'shape') item = shapeItems.find(i => i.id === id);
 
         const rect = e.target.parentElement.getBoundingClientRect();
         dragItemStart.current = {
@@ -224,6 +260,7 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                 if (type === 'text') updateList(textItems, 'textItems');
                 if (type === 'emoji') updateList(emojiItems, 'emojiItems');
                 if (type === 'image') updateList(imageItems, 'imageItems');
+                if (type === 'shape') updateList(shapeItems, 'shapeItems');
             }
         };
 
@@ -232,11 +269,13 @@ const WhiteboardWidget = ({ widget, updateData }) => {
             draggingId.current = null;
         };
 
-        window.addEventListener('mousemove', handleWindowMove);
-        window.addEventListener('mouseup', handleWindowUp);
+        window.addEventListener('pointermove', handleWindowMove);
+        window.addEventListener('pointerup', handleWindowUp);
+        window.addEventListener('pointercancel', handleWindowUp);
         return () => {
-            window.removeEventListener('mousemove', handleWindowMove);
-            window.removeEventListener('mouseup', handleWindowUp);
+            window.removeEventListener('pointermove', handleWindowMove);
+            window.removeEventListener('pointerup', handleWindowUp);
+            window.removeEventListener('pointercancel', handleWindowUp);
         };
     }, [selectedItem, textItems, emojiItems, imageItems, widget.id]);
 
@@ -251,6 +290,15 @@ const WhiteboardWidget = ({ widget, updateData }) => {
         const newItem = { id: Date.now().toString(), x: 0.5, y: 0.5, emoji, scale: 1 };
         updateData(widget.id, { emojiItems: [...emojiItems, newItem] });
         setShowEmojiPicker(false);
+    };
+
+    const addShape = (type, e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        addToHistory();
+        const newItem = { id: Date.now().toString(), x: 0.5, y: 0.5, type, color, scale: 1, width: 100, height: 100, rotation: 0 };
+        updateData(widget.id, { shapeItems: [...shapeItems, newItem] });
+        setShowShapePicker(false);
+        setSelectedItem({ type: 'shape', id: newItem.id });
     };
 
     const handleImageUpload = (e) => {
@@ -274,7 +322,7 @@ const WhiteboardWidget = ({ widget, updateData }) => {
     };
 
     const savePNG = () => { var link = document.createElement('a'); link.download = 'whiteboard.png'; link.href = canvasRef.current.toDataURL(); link.click(); };
-    const clearAll = () => { addToHistory(); updateData(widget.id, { lines: [], textItems: [], emojiItems: [], imageItems: [] }); };
+    const clearAll = () => { addToHistory(); updateData(widget.id, { lines: [], textItems: [], emojiItems: [], imageItems: [], shapeItems: [] }); };
     const deleteSelectedItem = () => {
         if (!selectedItem) return;
         addToHistory();
@@ -282,7 +330,27 @@ const WhiteboardWidget = ({ widget, updateData }) => {
         if (type === 'text') updateData(widget.id, { textItems: textItems.filter(i => i.id !== id) });
         if (type === 'emoji') updateData(widget.id, { emojiItems: emojiItems.filter(i => i.id !== id) });
         if (type === 'image') updateData(widget.id, { imageItems: imageItems.filter(i => i.id !== id) });
+        if (type === 'shape') updateData(widget.id, { shapeItems: shapeItems.filter(i => i.id !== id) });
         setSelectedItem(null);
+    };
+
+    const handleColorClick = (c) => {
+        if (selectedItem?.type === 'shape') {
+            addToHistory();
+            updateData(widget.id, {
+                shapeItems: shapeItems.map(s => s.id === selectedItem.id ? { ...s, color: c } : s),
+                color: c
+            });
+        } else if (selectedItem?.type === 'text') {
+            addToHistory();
+            updateData(widget.id, {
+                textItems: textItems.map(t => t.id === selectedItem.id ? { ...t, color: c } : t),
+                color: c
+            });
+        } else {
+            updateData(widget.id, { color: c });
+        }
+        setShowColorPicker(false);
     };
 
     return (
@@ -290,11 +358,31 @@ const WhiteboardWidget = ({ widget, updateData }) => {
             <div className="bg-gray-50 p-2 border-b flex items-center justify-between shrink-0 gap-3">
                 <div className="flex gap-2 items-center shrink-0">
                     <div className="relative">
+                        <button onClick={() => setShowBgPicker(!showBgPicker)} className={`p-2 rounded-xl transition-all ${bgType !== 'none' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Background Template">
+                            <Layout size={18} />
+                        </button>
+                        {showBgPicker && (
+                            <div className="absolute top-full left-0 mt-2 bg-white p-2 rounded-xl shadow-xl flex flex-col gap-1 z-50 border border-gray-100 min-w-[120px]">
+                                {BG_TEMPLATES.map(t => (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => { updateData(widget.id, { bgType: t.id }); setShowBgPicker(false); }}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${bgType === t.id ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-600'}`}
+                                    >
+                                        <div className="w-4 h-4 rounded border border-gray-200" style={t.style} />
+                                        {t.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="w-px h-6 bg-gray-200 mx-1" />
+                    <div className="relative">
                         <button onClick={() => setShowColorPicker(!showColorPicker)} className={`w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center`} style={{ backgroundColor: color }} />
                         {showColorPicker && (
                             <div className="absolute top-full left-0 mt-2 bg-white p-2 rounded-xl shadow-xl flex gap-1 z-50 border border-gray-100">
                                 {['#000000', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#9ca3af'].map(c => (
-                                    <button key={c} onClick={() => { updateData(widget.id, { color: c }); setShowColorPicker(false); }} className="w-6 h-6 rounded-full border hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
+                                    <button key={c} onClick={() => handleColorClick(c)} className="w-6 h-6 rounded-full border hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
                                 ))}
                             </div>
                         )}
@@ -312,6 +400,25 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                     </div>
                     <div className="w-px h-6 bg-gray-200 mx-1" />
                     <button onClick={() => updateData(widget.id, { tool: 'text' })} className={`p-2 rounded-xl transition-all ${tool === 'text' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Text"><Type size={18} /></button>
+                    <div className="relative">
+                        <button onClick={(e) => { e.stopPropagation(); setShowShapePicker(!showShapePicker); }} className={`p-2 rounded-xl transition-all ${showShapePicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Shape">
+                            <Shapes size={18} />
+                        </button>
+                        {showShapePicker && (
+                            <div className="absolute top-full left-0 mt-2 bg-white p-2 rounded-xl shadow-xl flex gap-1 z-50 border border-gray-100">
+                                <button onClick={(e) => addShape('square', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Square size={20} /></button>
+                                <button onClick={(e) => addShape('circle', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Circle size={20} /></button>
+                                <button onClick={(e) => addShape('triangle', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Triangle size={20} /></button>
+                                <button onClick={(e) => addShape('semicircle', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4a8 8 0 0 1 0 16z" /></svg>
+                                </button>
+                                <button onClick={(e) => addShape('arrow', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ArrowRight size={20} /></button>
+                                <button onClick={(e) => addShape('hexagon', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" /></svg>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <button onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(!showEmojiPicker); }} className={`p-2 rounded-xl transition-all ${showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Sticker"><Smile size={18} /></button>
                     <button onClick={() => fileInputRef.current.click()} className="p-2 rounded-xl transition-all hover:bg-gray-100 text-gray-400" title="Image"><ImageIcon size={18} /></button>
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
@@ -328,38 +435,39 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                     <button onClick={clearAll} className="text-gray-400 hover:text-red-500 p-2" title="Clear All"><RotateCcw size={18} /></button>
                 </div>
             </div>
-            <div className={`flex-1 relative overflow-hidden bg-white ${tool === 'pen' || tool === 'eraser' ? 'cursor-crosshair' : tool === 'move' ? 'cursor-move' : 'cursor-default'}`}
-                onMouseDown={(e) => {
+            <div className={`flex-1 relative overflow-hidden ${tool === 'pen' || tool === 'eraser' ? 'cursor-crosshair' : tool === 'move' ? 'cursor-move' : 'cursor-default'}`}
+                style={BG_TEMPLATES.find(t => t.id === bgType)?.style || { backgroundColor: '#ffffff' }}
+                onPointerDown={(e) => {
                     if (tool === 'move') {
                         // Click background to select drawing layer
                         if (e.target === e.currentTarget) {
-                            handleItemMouseDown(e, 'drawing', 'layer');
+                            handleItemPointerDown(e, 'drawing', 'layer');
                         }
                     }
                 }}>
                 {/* Layers: Items Bottom, Canvas Top */}
                 <div className="absolute inset-0 z-0" style={{ transform: `translate(${drawOffset.x}px, ${drawOffset.y}px)` }}>
                     {imageItems.map(img => (
-                        <div key={img.id} onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id)} className={`absolute cursor-move group ${selectedItem?.id === img.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`} style={{ left: `${img.x * 100}%`, top: `${img.y * 100}%`, transform: 'translate(-50%, -50%) rotate(' + (img.rotation || 0) + 'deg)', width: (img.width || 100) * (img.scale || 1), height: (img.height || 100) * (img.scale || 1) }}>
+                        <div key={img.id} onPointerDown={(e) => handleItemPointerDown(e, 'image', img.id)} className={`absolute cursor-move group ${selectedItem?.id === img.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`} style={{ left: `${img.x * 100}%`, top: `${img.y * 100}%`, transform: 'translate(-50%, -50%) rotate(' + (img.rotation || 0) + 'deg)', width: (img.width || 100) * (img.scale || 1), height: (img.height || 100) * (img.scale || 1) }}>
                             <img src={img.src} draggable={false} className="w-full h-full object-contain pointer-events-none" />
                             {selectedItem?.id === img.id && (
                                 <>
-                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
-                                    <div className="absolute -bottom-3 -right-3 w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'scale')} />
+                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" onPointerDown={(e) => handleItemPointerDown(e, 'image', img.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
+                                    <div className="absolute -bottom-3 -right-3 w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" onPointerDown={(e) => handleItemPointerDown(e, 'image', img.id, 'scale')} />
                                 </>
                             )}
                         </div>
                     ))}
 
                     {textItems.map(t => (
-                        <div key={t.id} onMouseDown={(e) => handleItemMouseDown(e, 'text', t.id)} onClick={(e) => { e.stopPropagation(); setSelectedItem({ type: 'text', id: t.id }); }} className={`absolute cursor-move ${selectedItem?.id === t.id ? 'ring-2 ring-blue-500 ring-offset-1 rounded' : ''}`} style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg)` }}>
+                        <div key={t.id} onPointerDown={(e) => handleItemPointerDown(e, 'text', t.id)} onClick={(e) => { e.stopPropagation(); setSelectedItem({ type: 'text', id: t.id }); }} className={`absolute cursor-move ${selectedItem?.id === t.id ? 'ring-2 ring-blue-500 ring-offset-1 rounded' : ''}`} style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, transform: `translate(-50%, -50%) rotate(${t.rotation || 0}deg)` }}>
                             {selectedItem?.id === t.id ? (
                                 <>
                                     <div className="relative">
-                                        <input value={t.text} onMouseDown={(e) => { e.stopPropagation(); }} onChange={e => updateTextContent(t.id, e.target.value)} className="bg-transparent border-none outline-none font-bold text-center min-w-[50px]" style={{ color: t.color, fontSize: `${16 * (t.scale || 1)}px` }} autoFocus />
+                                        <input value={t.text} onPointerDown={(e) => { e.stopPropagation(); }} onChange={e => updateTextContent(t.id, e.target.value)} className="bg-transparent border-none outline-none font-bold text-center min-w-[50px]" style={{ color: t.color, fontSize: `${16 * (t.scale || 1)}px` }} autoFocus />
                                     </div>
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" onMouseDown={(e) => handleItemMouseDown(e, 'text', t.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
-                                    <div className="absolute -bottom-3 -right-6 w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" onMouseDown={(e) => handleItemMouseDown(e, 'text', t.id, 'scale')} />
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" onPointerDown={(e) => handleItemPointerDown(e, 'text', t.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
+                                    <div className="absolute -bottom-3 -right-6 w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" onPointerDown={(e) => handleItemPointerDown(e, 'text', t.id, 'scale')} />
                                 </>
                             ) : (
                                 <div className="font-bold whitespace-nowrap select-none" style={{ color: t.color, fontSize: `${16 * (t.scale || 1)}px` }}>{t.text}</div>
@@ -377,14 +485,43 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                                     <div className="absolute border-2 border-blue-500 rounded-lg pointer-events-none" style={{ width: emojiSize + 8, height: emojiSize + 8, top: -emojiSize / 2 - 4, left: -emojiSize / 2 - 4 }} />
                                 )}
                                 {/* Emoji content with rotation and scale */}
-                                <div onMouseDown={(ev) => handleItemMouseDown(ev, 'emoji', emoji.id)} onClick={(e) => { e.stopPropagation(); setSelectedItem({ type: 'emoji', id: emoji.id }); }} className="cursor-move select-none" style={{ transform: `translate(-50%, -50%) rotate(${emoji.rotation || 0}deg)`, fontSize: `${emojiSize}px` }}>
+                                <div onPointerDown={(ev) => handleItemPointerDown(ev, 'emoji', emoji.id)} onClick={(e) => { e.stopPropagation(); setSelectedItem({ type: 'emoji', id: emoji.id }); }} className="cursor-move select-none" style={{ transform: `translate(-50%, -50%) rotate(${emoji.rotation || 0}deg)`, fontSize: `${emojiSize}px` }}>
                                     <span className="emoji relative inline-block"> {emoji.emoji} </span>
                                 </div>
                                 {/* Controls positioned with fixed sizes */}
                                 {isSelected && (
                                     <>
-                                        <div className="absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center z-50" style={{ top: -emojiSize / 2 - 28, left: '50%', transform: 'translateX(-50%)' }} onMouseDown={(e) => handleItemMouseDown(e, 'emoji', emoji.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
-                                        <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" style={{ top: emojiSize / 2 - 2, left: emojiSize / 2 - 2 }} onMouseDown={(e) => handleItemMouseDown(e, 'emoji', emoji.id, 'scale')} />
+                                        <div className="absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center z-50" style={{ top: -emojiSize / 2 - 28, left: '50%', transform: 'translateX(-50%)' }} onPointerDown={(e) => handleItemPointerDown(e, 'emoji', emoji.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
+                                        <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" style={{ top: emojiSize / 2 - 2, left: emojiSize / 2 - 2 }} onPointerDown={(e) => handleItemPointerDown(e, 'emoji', emoji.id, 'scale')} />
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {shapeItems.map(shape => {
+                        const isSelected = selectedItem?.id === shape.id;
+                        const w = (shape.width || 100) * (shape.scale || 1);
+                        const h = (shape.height || 100) * (shape.scale || 1);
+
+                        let clipPath = 'none';
+                        if (shape.type === 'square') clipPath = 'none'; // Basic div
+                        if (shape.type === 'circle') clipPath = 'circle(50% at 50% 50%)';
+                        if (shape.type === 'triangle') clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+                        if (shape.type === 'semicircle') clipPath = 'polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%, 15% 90%, 0% 75%, 0% 25%, 15% 10%)'; // Rough semicircle
+                        if (shape.type === 'semicircle') clipPath = 'path("M 100,50 A 50,50 0 1,1 100,150 L 100,50 Z")'; // Better with SVG path
+                        // Actually, standard modern clip-path supports inset/circle/ellipse/polygon. For semicircle/arrow, polygon is easiest or background-image.
+                        // Let's use clean polygons for both.
+                        if (shape.type === 'semicircle') clipPath = 'polygon(0% 50%, 0% 50%, 5.86% 25.12%, 25.12% 5.86%, 50% 0%, 74.88% 5.86%, 94.14% 25.12%, 100% 50%, 100% 100%, 0% 100%)';
+                        if (shape.type === 'arrow') clipPath = 'polygon(0% 35%, 60% 35%, 60% 15%, 100% 50%, 60% 85%, 60% 65%, 0% 65%)';
+                        if (shape.type === 'hexagon') clipPath = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+
+                        return (
+                            <div key={shape.id} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id)} className={`absolute cursor-move ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`} style={{ left: `${shape.x * 100}%`, top: `${shape.y * 100}%`, width: w, height: h, transform: `translate(-50%, -50%) rotate(${shape.rotation || 0}deg)`, backgroundColor: shape.color, clipPath: clipPath, borderRadius: shape.type === 'square' ? '4px' : '0' }}>
+                                {isSelected && (
+                                    <>
+                                        <div className="absolute -top-10 left-1/2 -track-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" style={{ transform: 'translateX(-50%)' }} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
+                                        <div className="absolute -bottom-3 -right-3 w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'scale')} />
                                     </>
                                 )}
                             </div>
@@ -394,7 +531,7 @@ const WhiteboardWidget = ({ widget, updateData }) => {
 
                 <canvas ref={canvasRef}
                     className={`absolute inset-0 w-full h-full touch-none z-10 ${tool === 'move' ? 'pointer-events-none' : 'pointer-events-auto shadow-inner'}`}
-                    onMouseDown={handleCanvasMouseDown}
+                    onPointerDown={handleCanvasPointerDown}
                     style={{ border: (tool === 'move' && selectedItem?.type === 'drawing') ? '2px dashed #3b82f6' : 'none' }}
                 />
 

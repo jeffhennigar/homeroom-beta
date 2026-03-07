@@ -126,8 +126,8 @@ const SimpleTextWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
                 onBlur={handleBlur}
                 onFocus={handleFocus}
                 onKeyUp={updateFormats}
-                onMouseUp={updateFormats}
-                onMouseDown={(e) => {
+                onPointerUp={updateFormats}
+                onPointerDown={(e) => {
                     if (e.target === editorRef.current || (e.target as HTMLElement).parentElement === editorRef.current) {
                         e.stopPropagation();
                     }

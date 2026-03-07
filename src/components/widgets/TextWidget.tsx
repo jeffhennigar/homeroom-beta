@@ -142,8 +142,8 @@ const TextWidget = ({ widget, updateData }) => {
                             suppressContentEditableWarning
                             onInput={(e) => updateData(widget.id, { content: e.currentTarget.innerHTML })}
                             onKeyUp={updateFormats}
-                            onMouseUp={updateFormats}
-                            onMouseDown={(e) => {
+                            onPointerUp={updateFormats}
+                            onPointerDown={(e) => {
                                 e.stopPropagation();
                                 setToolbarPos(null);
                             }}
@@ -177,7 +177,7 @@ const TextWidget = ({ widget, updateData }) => {
                                     style={{ fontSize: (fontSize * 1.1) + 'px' }}
                                     value={widget.data.listTitle || ""}
                                     placeholder="Add a title..."
-                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     onChange={(e) => updateData(widget.id, { listTitle: e.target.value })}
                                 />
                                 {items.map((item, idx) => (
@@ -188,7 +188,7 @@ const TextWidget = ({ widget, updateData }) => {
                                         </button>
                                         <input
                                             value={item.text}
-                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onPointerDown={(e) => e.stopPropagation()}
                                             onChange={(e) => updateItemText(item.id, e.target.value)}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {

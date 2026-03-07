@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown, ChevronUp
+    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown, ChevronUp, LayoutGrid
 } from 'lucide-react';
 
 // Components
@@ -24,6 +24,7 @@ import SoundboardWidget from './components/widgets/SoundboardWidget';
 import PolypadWidget from './components/widgets/PolypadWidget';
 import CalendarWidget from './components/widgets/CalendarWidget';
 import SettingsModal from './components/settings/SettingsModal';
+import SlideManager from './components/slides/SlideManager';
 import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
 import { supabase } from './services/supabaseClient';
 import { syncManager } from './services/SyncManager';
@@ -240,6 +241,8 @@ const App = () => {
     });
 
     const [widgets, setWidgets] = useState([]);
+    const [allSlides, setAllSlides] = useState<any[]>([]); // Array of widget arrays
+    const widgetsSlideIndexRef = useRef(0);
     const [closingWidgetId, setClosingWidgetId] = useState(null);
     const [zIndices, setZIndices] = useState({});
     const [maxZ, setMaxZ] = useState(10);
@@ -268,6 +271,7 @@ const App = () => {
 
     // Diagnostics State
     const [debugLog, setDebugLog] = useState<{ id: string, msg: string, time: string, type: 'info' | 'error' | 'success' }[]>([]);
+    const [showSlideManager, setShowSlideManager] = useState(false);
     const [channelStatus, setChannelStatus] = useState<Record<string, 'connected' | 'disconnected' | 'error'>>({
         slides: 'disconnected',
         profile: 'disconnected',
@@ -594,9 +598,27 @@ const App = () => {
                 lastSyncedRef.current.profile = JSON.stringify(profilePayload);
 
                 if (slides && Array.isArray(slides)) {
+                    // Populate allSlides state
+                    const sortedSlides = [...slides].sort((a, b) => a.slide_index - b.slide_index);
+                    const slidesArray = sortedSlides.map(s => s.widgets || []);
+                    setAllSlides(slidesArray);
+
                     slides.forEach((s: any) => {
                         if (s.slide_index !== undefined) {
                             lastSyncedRef.current.slides[s.slide_index] = JSON.stringify(s.widgets || []);
+
+                            // Reconcile current slide widgets immediately
+                            if (s.slide_index === currentSlideIndex) {
+                                const cloudTime = s.last_modified || 0;
+                                const localTime = getLocalTime(`homeroom_mirror_slide_${user.id}_${currentSlideIndex}`);
+
+                                // If cloud is newer OR we have no widgets locally, trust cloud
+                                if (cloudTime >= localTime || widgets.length === 0) {
+                                    if (Array.isArray(s.widgets)) {
+                                        setWidgets(s.widgets);
+                                    }
+                                }
+                            }
                         }
                     });
                 }
@@ -747,38 +769,47 @@ const App = () => {
 
     // Persist Effects (with timestamps for local-first sync)
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_background', JSON.stringify({ ...background, last_modified: Date.now() }));
     }, [background]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_dock_order', JSON.stringify({ items: dockOrder, last_modified: Date.now() }));
     }, [dockOrder]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_all_rosters', JSON.stringify({ rosters: allRosters, last_modified: Date.now() }));
     }, [allRosters]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_slide_backgrounds', JSON.stringify({ backgrounds: slideBackgrounds, last_modified: Date.now() }));
     }, [slideBackgrounds]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_schedule_template', JSON.stringify({ template: scheduleTemplate, last_modified: Date.now() }));
     }, [scheduleTemplate]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_schedule_overrides', JSON.stringify({ overrides: scheduleOverrides, last_modified: Date.now() }));
     }, [scheduleOverrides]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_schedule_settings', JSON.stringify({ settings: scheduleSettings, last_modified: Date.now() }));
     }, [scheduleSettings]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_accent_color', accentColor);
     }, [accentColor]);
 
     useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_grid', String(showGrid));
     }, [showGrid]);
 
@@ -793,6 +824,80 @@ const App = () => {
     useEffect(() => {
         setAllRosters(prev => prev.map(r => r.id === activeRosterId ? { ...r, roster } : r));
     }, [roster]);
+
+    // Load Slide Widgets when Index Changes
+    useEffect(() => {
+        if (!cloudLoaded.current) return;
+        const currentSlide = allSlides[currentSlideIndex] || [];
+        setWidgets(currentSlide);
+        widgetsSlideIndexRef.current = currentSlideIndex;
+    }, [currentSlideIndex]);
+
+    // Sync current slide widgets back to allSlides
+    useEffect(() => {
+        // Only sync if widgets are for the current index
+        if (widgetsSlideIndexRef.current !== currentSlideIndex) return;
+
+        setAllSlides(prev => {
+            const next = [...prev];
+            if (next[currentSlideIndex] !== widgets) {
+                next[currentSlideIndex] = widgets;
+                return next;
+            }
+            return prev;
+        });
+    }, [widgets, currentSlideIndex]);
+
+    const handleAddSlide = async () => {
+        if (allSlides.length >= SLIDE_LIMIT) {
+            alert(`Pro Plan Limit: Max of ${SLIDE_LIMIT} slides.`);
+            return;
+        }
+        const newIndex = allSlides.length;
+        const newAllSlides = [...allSlides, []];
+        setAllSlides(newAllSlides);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) syncManager.saveSlide(user.id, newIndex, []);
+
+        setCurrentSlideIndex(newIndex);
+        setShowSlideManager(false);
+    };
+
+    const handleReorderSlides = async (from: number, to: number) => {
+        const newSlides = [...allSlides];
+        const [moved] = newSlides.splice(from, 1);
+        newSlides.splice(to, 0, moved);
+        setAllSlides(newSlides);
+
+        // Reorder backgrounds
+        const finalBgs: any = {};
+        const bgArray = Array.from({ length: allSlides.length }).map((_, i) => slideBackgrounds[i]);
+        const [movedBgItem] = bgArray.splice(from, 1);
+        bgArray.splice(to, 0, movedBgItem);
+        bgArray.forEach((bg, i) => { if (bg) finalBgs[i] = bg; });
+        setSlideBackgrounds(finalBgs);
+
+        // Persist all affected slides to cloud
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const start = Math.min(from, to);
+            const end = Math.max(from, to);
+            for (let i = start; i <= end; i++) {
+                syncManager.saveSlide(user.id, i, newSlides[i]);
+            }
+            syncManager.updateProfile(user.id, { slide_backgrounds: finalBgs });
+        }
+
+        // Update current index if it was moved
+        if (currentSlideIndex === from) {
+            setCurrentSlideIndex(to);
+        } else if (from < currentSlideIndex && to >= currentSlideIndex) {
+            setCurrentSlideIndex(prev => prev - 1);
+        } else if (from > currentSlideIndex && to <= currentSlideIndex) {
+            setCurrentSlideIndex(prev => prev + 1);
+        }
+    };
 
     const addWidget = (type) => {
         if (isDockMinimized) return;
@@ -911,6 +1016,8 @@ const App = () => {
         setMaxZ(prev => {
             const nextZ = prev + 1;
             setZIndices(prevIndices => ({ ...prevIndices, [id]: nextZ }));
+            // Also store in widget data for persistence and previews
+            setWidgets(ws => ws.map(w => w.id === id ? { ...w, zIndex: nextZ } : w));
             return nextZ;
         });
     };
@@ -1090,8 +1197,15 @@ const App = () => {
                     >
                         <ChevronLeft size={18} />
                     </button>
-                    <div className="px-3 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
+                    <div className="px-3 py-1 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center gap-2">
                         <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">Dashboard {currentSlideIndex + 1}</span>
+                        <button
+                            onClick={() => setShowSlideManager(!showSlideManager)}
+                            className={`p-1 hover:bg-indigo-100 rounded-md transition-all ${showSlideManager ? 'text-indigo-600 bg-indigo-100' : 'text-indigo-400'}`}
+                            data-slide-manager-trigger="true"
+                        >
+                            <LayoutGrid size={14} />
+                        </button>
                     </div>
                     <button
                         onClick={() => {
@@ -1106,6 +1220,22 @@ const App = () => {
                         <ChevronRight size={18} />
                     </button>
                 </div>
+
+                {/* Slide Manager Window */}
+                <SlideManager
+                    isOpen={showSlideManager}
+                    onClose={() => setShowSlideManager(false)}
+                    slides={allSlides}
+                    currentSlideIndex={currentSlideIndex}
+                    onSelectSlide={(idx) => {
+                        setCurrentSlideIndex(idx);
+                        setShowSlideManager(false);
+                    }}
+                    onAddSlide={handleAddSlide}
+                    onReorderSlides={handleReorderSlides}
+                    backgrounds={slideBackgrounds}
+                    globalBackground={background}
+                />
 
                 {/* Lock Toggle */}
                 <button
@@ -1124,7 +1254,7 @@ const App = () => {
                 <div className={`transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-12 opacity-0 scale-50 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
                     <div
                         className="backdrop-blur-2xl shadow-2xl rounded-2xl flex items-center p-2 gap-1 transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/50 relative"
-                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                     >
                         <div className="absolute inset-0 bg-white/10 rounded-2xl overflow-hidden -z-10 border border-white/20">
                             <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white/5 pointer-events-none" />

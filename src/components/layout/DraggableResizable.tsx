@@ -27,7 +27,7 @@ const DraggableResizable = ({
         initialW: 0, initialH: 0
     });
 
-    const handleMouseDown = (e) => {
+    const handlePointerDown = (e) => {
         if (locked) return;
         // If we clicked an interactive element, don't initiate drag
         if (e.target.closest('button, input, textarea, select, .no-drag')) return;
@@ -42,11 +42,13 @@ const DraggableResizable = ({
             initialX: position.x,
             initialY: position.y
         };
+
+        const target = e.currentTarget as HTMLElement;
+        if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
     };
 
-    const handleResizeDown = (e) => {
+    const handleResizePointerDown = (e) => {
         e.stopPropagation();
-        e.preventDefault();
         onFocus();
         setIsResizing(true);
         dragRef.current = {
@@ -55,13 +57,13 @@ const DraggableResizable = ({
             initialW: size.width,
             initialH: size.height
         };
+        const target = e.currentTarget as HTMLElement;
+        if (target.setPointerCapture) target.setPointerCapture(e.pointerId);
     };
 
     useEffect(() => {
         const handleCheckParam = (e) => {
             if (!isDragging && !isResizing) return;
-
-            e.preventDefault();
 
             if (isDragging) {
                 const dx = e.clientX - dragRef.current.startX;
@@ -70,8 +72,6 @@ const DraggableResizable = ({
                 const newX = dragRef.current.initialX + dx;
                 const newY = dragRef.current.initialY + dy;
 
-                // We can update local DOM for speed, or just call onUpdate
-                // Calling onUpdate might track history/state in parent
                 onUpdate(id, { x: newX, y: newY });
             }
 
@@ -92,13 +92,15 @@ const DraggableResizable = ({
         };
 
         if (isDragging || isResizing) {
-            window.addEventListener('mousemove', handleCheckParam);
-            window.addEventListener('mouseup', handleUp);
+            window.addEventListener('pointermove', handleCheckParam);
+            window.addEventListener('pointerup', handleUp);
+            window.addEventListener('pointercancel', handleUp);
         }
 
         return () => {
-            window.removeEventListener('mousemove', handleCheckParam);
-            window.removeEventListener('mouseup', handleUp);
+            window.removeEventListener('pointermove', handleCheckParam);
+            window.removeEventListener('pointerup', handleUp);
+            window.removeEventListener('pointercancel', handleUp);
         };
     }, [isDragging, isResizing, id, minWidth, minHeight, onUpdate]);
 
@@ -115,7 +117,7 @@ const DraggableResizable = ({
     return (
         <div
             ref={nodeRef}
-            onMouseDown={onFocus}
+            onPointerDown={onFocus}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             data-widget-id={id}
@@ -144,7 +146,7 @@ const DraggableResizable = ({
                     className={`h-10 flex items-center justify-between px-3 shrink-0 select-none border-b border-slate-100 group
           ${locked ? 'cursor-default bg-slate-50' : 'cursor-grab active:cursor-grabbing bg-white'}
         `}
-                    onMouseDown={handleMouseDown}
+                    onPointerDown={handlePointerDown}
                 >
                     {/* Left/Center: Icon and Title */}
                     <div className="flex items-center gap-2 text-slate-700 overflow-hidden pointer-events-none">
@@ -250,7 +252,7 @@ const DraggableResizable = ({
                         className={`absolute bottom-0 right-0 w-8 h-8 cursor-nwse-resize z-20 flex items-end justify-end p-1 transition-opacity
                             ${chromeless ? (isSelected ? 'opacity-100' : 'opacity-0 hover:opacity-100') : 'opacity-0 hover:opacity-100 bg-gradient-to-tl from-gray-100 to-transparent'}
                         `}
-                        onMouseDown={handleResizeDown}
+                        onPointerDown={handleResizePointerDown}
                     >
                         <Maximize2 size={16} className={`${chromeless ? 'text-blue-400' : 'text-gray-400'} transform rotate-90`} />
                     </div>
