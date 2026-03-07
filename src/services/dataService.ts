@@ -39,17 +39,23 @@ export const dataService = {
         return data;
     },
 
-    async saveSlide(userId: string, slideIndex: number, widgets: Widget[]) {
+    async saveSlide(userId: string, slideIndex: number, widgets: Widget[], lastModified?: number) {
         if (slideIndex < 0 || slideIndex >= 25) {
             throw new Error('Maximum of 25 dashboards allowed');
         }
+        const payload: any = {
+            user_id: userId,
+            slide_index: slideIndex,
+            widgets
+        };
+
+        if (lastModified) {
+            payload.last_modified = lastModified;
+        }
+
         const { error } = await supabase
             .from('slides')
-            .upsert({
-                user_id: userId,
-                slide_index: slideIndex,
-                widgets
-            }, { onConflict: 'user_id,slide_index' });
+            .upsert(payload, { onConflict: 'user_id,slide_index' });
         if (error) throw error;
     },
 

@@ -312,7 +312,7 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                     img.src = ev.target.result as string;
                     img.onload = () => {
                         const aspect = img.width / img.height;
-                        const newItem = { id: Date.now().toString(), x: 0.5, y: 0.5, src: ev.target.result, scale: 1, width: 200, height: 200 / aspect };
+                        const newItem = { id: Date.now().toString(), x: 0.5, y: 0.5, src: ev.target.result as string, scale: 1, width: 200, height: 200 / aspect };
                         updateData(widget.id, { imageItems: [...imageItems, newItem] });
                     };
                 }
@@ -520,7 +520,7 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                             <div key={shape.id} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id)} className={`absolute cursor-move ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`} style={{ left: `${shape.x * 100}%`, top: `${shape.y * 100}%`, width: w, height: h, transform: `translate(-50%, -50%) rotate(${shape.rotation || 0}deg)`, backgroundColor: shape.color, clipPath: clipPath, borderRadius: shape.type === 'square' ? '4px' : '0' }}>
                                 {isSelected && (
                                     <>
-                                        <div className="absolute -top-10 left-1/2 -track-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" style={{ transform: 'translateX(-50%)' }} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
+                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" style={{ transform: 'translateX(-50%)' }} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
                                         <div className="absolute -bottom-3 -right-3 w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'scale')} />
                                     </>
                                 )}

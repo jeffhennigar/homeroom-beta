@@ -194,7 +194,8 @@ class SyncManagerService {
                 }
                 else if (task.type === 'slide') {
                     const compressedWidgets = this.compressPayload(task.payload.widgets);
-                    await dataService.saveSlide(task.payload.userId, task.payload.slideIndex, compressedWidgets as any);
+                    const lastModified = task.payload.last_modified;
+                    await dataService.saveSlide(task.payload.userId, task.payload.slideIndex, compressedWidgets as any, lastModified);
                 }
                 else if (task.type === 'roster') {
                     // If the ID was a optimistic temporary UI one, we strip it so supabase makes a UUID. 
