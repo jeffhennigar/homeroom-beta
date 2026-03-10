@@ -9389,7 +9389,7 @@
       const isGameOver = widget.data.wordleStatus === 'won' || guesses.length >= 6;
 
       const resetGame = () => {
-        const words = WORD_BANKS[wordLength] || WORD_BANKS[5];
+        const words = window.WORD_BANKS[wordLength] || window.WORD_BANKS[5];
         const newTarget = words[Math.floor(Math.random() * words.length)];
         updateData(widget.id, {
           wordleTarget: newTarget,
@@ -9405,8 +9405,8 @@
           if (input.length === wordLength) {
             const uppercaseInput = input.toUpperCase();
             let isValidWord = false;
-            for (const len in WORD_BANKS) {
-              if (WORD_BANKS[len].includes(uppercaseInput)) {
+            for (const len in window.WORD_BANKS) {
+              if (window.WORD_BANKS[len].includes(uppercaseInput)) {
                 isValidWord = true;
                 break;
               }
@@ -9575,8 +9575,8 @@
         const word = selection.map(idx => grid[idx]).join('');
 
         let isValidWord = false;
-        for (const len in WORD_BANKS) {
-          if (WORD_BANKS[len].includes(word)) {
+        for (const len in window.WORD_BANKS) {
+          if (window.WORD_BANKS[len].includes(word)) {
             isValidWord = true;
             break;
           }
@@ -9681,7 +9681,7 @@
       };
 
       const resetGame = () => {
-        const words = WORD_BANKS[wordLength] || WORD_BANKS[5];
+        const words = window.WORD_BANKS[wordLength] || window.WORD_BANKS[5];
         const newTarget = words[Math.floor(Math.random() * words.length)];
         updateData(widget.id, {
           scrambleTarget: newTarget,
@@ -9739,7 +9739,7 @@
 
       const checkWord = () => {
         const word = current.join('');
-        const bank = WORD_BANKS[wordLength] || [];
+        const bank = window.WORD_BANKS[wordLength] || [];
         if (word === target || bank.includes(word)) {
           updateData(widget.id, { scrambleSolved: true });
         } else {

@@ -1,4 +1,4 @@
-window.WORD_BANKS = {
+﻿window.WORD_BANKS = {
   "3": [
     "THE",
     "AND",
