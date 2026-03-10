@@ -112,7 +112,8 @@ const WIDGET_SIZES = {
     COUNTDOWN: { width: 280, height: 280 },
     SOUNDBOARD: { width: 440, height: 500 },
     POLYPAD: { width: 800, height: 600 },
-    CALENDAR: { width: 340, height: 290 }
+    CALENDAR: { width: 340, height: 290 },
+    GAMES: { width: 450, height: 550 }
 };
 
 const THEME_COLORS: Record<string, any> = {
@@ -237,7 +238,7 @@ const App = () => {
         } catch {
             return {
                 main: ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT'],
-                drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD']
+                drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD', 'CALENDAR', 'GAMES']
             };
         }
     });

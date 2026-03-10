@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { MousePointer2, Edit3, Eraser, Undo2, Redo2, Type, Smile, ImageIcon, Trash2, Download, RotateCcw, RotateCw, Grid as GridIcon, Layout, Square, Circle, Triangle, Shapes, ArrowRight } from 'lucide-react';
+import { MousePointer2, Edit3, Eraser, Undo2, Redo2, Type, Smile, ImageIcon, Trash2, Download, RotateCcw, RotateCw, Grid as GridIcon, Layout, Square, Circle, Triangle, Shapes, ArrowRight, Hexagon } from 'lucide-react';
 
 const DRAW_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📝', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌'];
 
@@ -13,6 +13,23 @@ const WhiteboardWidget = ({ widget, updateData }) => {
     const [selectedItem, setSelectedItem] = useState(null);
     const [showBgPicker, setShowBgPicker] = useState(false);
     const [showShapePicker, setShowShapePicker] = useState(false);
+
+    const Shape = ({ type, color, scale = 1, rotation = 0 }) => {
+        const styles: React.CSSProperties = {
+            transform: `scale(${scale}) rotate(${rotation}deg)`,
+            transformOrigin: 'center',
+            color: color,
+            fill: 'currentColor'
+        };
+
+        if (type === 'square') return <div style={{ ...styles, width: '60px', height: '60px', backgroundColor: color }} />;
+        if (type === 'circle') return <div style={{ ...styles, width: '60px', height: '60px', backgroundColor: color, borderRadius: '999px' }} />;
+        if (type === 'triangle') return <Triangle size={60} style={styles} />;
+        if (type === 'hexagon') return <Hexagon size={60} style={styles} />;
+        if (type === 'arrow') return <ArrowRight size={60} style={styles} />;
+        if (type === 'semicircle') return <div style={{ ...styles, width: '60px', height: '30px', backgroundColor: color, borderRadius: '60px 60px 0 0' }} />;
+        return null;
+    };
 
     const BG_TEMPLATES = [
         { id: 'none', label: 'None', icon: 'None' },
@@ -361,31 +378,10 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                         <button onClick={() => setShowBgPicker(!showBgPicker)} className={`p-2 rounded-xl transition-all ${bgType !== 'none' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Background Template">
                             <Layout size={18} />
                         </button>
-                        {showBgPicker && (
-                            <div className="absolute top-full left-0 mt-2 bg-white p-2 rounded-xl shadow-xl flex flex-col gap-1 z-50 border border-gray-100 min-w-[120px]">
-                                {BG_TEMPLATES.map(t => (
-                                    <button
-                                        key={t.id}
-                                        onClick={() => { updateData(widget.id, { bgType: t.id }); setShowBgPicker(false); }}
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${bgType === t.id ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-600'}`}
-                                    >
-                                        <div className="w-4 h-4 rounded border border-gray-200" style={t.style} />
-                                        {t.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                     </div>
                     <div className="w-px h-6 bg-gray-200 mx-1" />
                     <div className="relative">
                         <button onClick={() => setShowColorPicker(!showColorPicker)} className={`w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center`} style={{ backgroundColor: color }} />
-                        {showColorPicker && (
-                            <div className="absolute top-full left-0 mt-2 bg-white p-2 rounded-xl shadow-xl flex gap-1 z-50 border border-gray-100">
-                                {['#000000', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#9ca3af'].map(c => (
-                                    <button key={c} onClick={() => handleColorClick(c)} className="w-6 h-6 rounded-full border hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
-                                ))}
-                            </div>
-                        )}
                     </div>
                     <div className="w-px h-6 bg-gray-200 mx-1" />
                     <button onClick={() => updateData(widget.id, { tool: 'move' })} className={`p-2 rounded-xl transition-all ${tool === 'move' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Select/Move"><MousePointer2 size={18} /></button>
@@ -404,20 +400,6 @@ const WhiteboardWidget = ({ widget, updateData }) => {
                         <button onClick={(e) => { e.stopPropagation(); setShowShapePicker(!showShapePicker); }} className={`p-2 rounded-xl transition-all ${showShapePicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Shape">
                             <Shapes size={18} />
                         </button>
-                        {showShapePicker && (
-                            <div className="absolute top-full left-0 mt-2 bg-white p-2 rounded-xl shadow-xl flex gap-1 z-50 border border-gray-100">
-                                <button onClick={(e) => addShape('square', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Square size={20} /></button>
-                                <button onClick={(e) => addShape('circle', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Circle size={20} /></button>
-                                <button onClick={(e) => addShape('triangle', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Triangle size={20} /></button>
-                                <button onClick={(e) => addShape('semicircle', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center justify-center">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4a8 8 0 0 1 0 16z" /></svg>
-                                </button>
-                                <button onClick={(e) => addShape('arrow', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><ArrowRight size={20} /></button>
-                                <button onClick={(e) => addShape('hexagon', e)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 flex items-center justify-center">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" /></svg>
-                                </button>
-                            </div>
-                        )}
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(!showEmojiPicker); }} className={`p-2 rounded-xl transition-all ${showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`} title="Sticker"><Smile size={18} /></button>
                     <button onClick={() => fileInputRef.current.click()} className="p-2 rounded-xl transition-all hover:bg-gray-100 text-gray-400" title="Image"><ImageIcon size={18} /></button>
@@ -501,33 +483,81 @@ const WhiteboardWidget = ({ widget, updateData }) => {
 
                     {shapeItems.map(shape => {
                         const isSelected = selectedItem?.id === shape.id;
-                        const w = (shape.width || 100) * (shape.scale || 1);
-                        const h = (shape.height || 100) * (shape.scale || 1);
-
-                        let clipPath = 'none';
-                        if (shape.type === 'square') clipPath = 'none'; // Basic div
-                        if (shape.type === 'circle') clipPath = 'circle(50% at 50% 50%)';
-                        if (shape.type === 'triangle') clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
-                        if (shape.type === 'semicircle') clipPath = 'polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%, 15% 90%, 0% 75%, 0% 25%, 15% 10%)'; // Rough semicircle
-                        if (shape.type === 'semicircle') clipPath = 'path("M 100,50 A 50,50 0 1,1 100,150 L 100,50 Z")'; // Better with SVG path
-                        // Actually, standard modern clip-path supports inset/circle/ellipse/polygon. For semicircle/arrow, polygon is easiest or background-image.
-                        // Let's use clean polygons for both.
-                        if (shape.type === 'semicircle') clipPath = 'polygon(0% 50%, 0% 50%, 5.86% 25.12%, 25.12% 5.86%, 50% 0%, 74.88% 5.86%, 94.14% 25.12%, 100% 50%, 100% 100%, 0% 100%)';
-                        if (shape.type === 'arrow') clipPath = 'polygon(0% 35%, 60% 35%, 60% 15%, 100% 50%, 60% 85%, 60% 65%, 0% 65%)';
-                        if (shape.type === 'hexagon') clipPath = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+                        const scale = shape.scale || 1;
+                        const boxSize = 60 * scale;
 
                         return (
-                            <div key={shape.id} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id)} className={`absolute cursor-move ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`} style={{ left: `${shape.x * 100}%`, top: `${shape.y * 100}%`, width: w, height: h, transform: `translate(-50%, -50%) rotate(${shape.rotation || 0}deg)`, backgroundColor: shape.color, clipPath: clipPath, borderRadius: shape.type === 'square' ? '4px' : '0' }}>
+                            <div key={shape.id} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id)} className="absolute cursor-move" style={{ left: `${shape.x * 100}%`, top: `${shape.y * 100}%` }}>
+                                {isSelected && (
+                                    <div className="absolute border-2 border-blue-500 rounded pointer-events-none"
+                                        style={{
+                                            width: boxSize + 10,
+                                            height: boxSize + 10,
+                                            top: -boxSize / 2 - 5,
+                                            left: -boxSize / 2 - 5,
+                                            transform: `rotate(${shape.rotation || 0}deg)`
+                                        }} />
+                                )}
+                                <div style={{ transform: 'translate(-50%, -50%)' }}>
+                                    <Shape type={shape.type} color={shape.color} scale={scale} rotation={shape.rotation || 0} />
+                                </div>
                                 {isSelected && (
                                     <>
-                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" style={{ transform: 'translateX(-50%)' }} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
-                                        <div className="absolute -bottom-3 -right-3 w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'scale')} />
+                                        <div className="absolute w-6 h-6 bg-white border border-blue-500 rounded-full shadow cursor-grab flex items-center justify-center p-1 z-50" style={{ top: -boxSize / 2 - 25, left: '50%', transform: 'translateX(-50%)' }} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'rotate')}><RotateCw size={12} className="text-blue-600" /></div>
+                                        <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow cursor-nwse-resize z-50" style={{ top: boxSize / 2 - 2, left: boxSize / 2 - 2 }} onPointerDown={(e) => handleItemPointerDown(e, 'shape', shape.id, 'scale')} />
                                     </>
                                 )}
                             </div>
                         );
                     })}
                 </div>
+
+                {/* Floating Popups */}
+                {showBgPicker && (
+                    <div className="absolute top-16 left-4 z-[100] bg-white p-2 rounded-xl shadow-2xl flex flex-col gap-1 border border-gray-100 min-w-[140px] animate-in zoom-in-95 duration-200">
+                        {BG_TEMPLATES.map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => { updateData(widget.id, { bgType: t.id }); setShowBgPicker(false); }}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${bgType === t.id ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50 text-gray-600'}`}
+                            >
+                                <div className="w-5 h-5 rounded border border-gray-200 shrink-0" style={t.style} />
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {showColorPicker && (
+                    <div className="absolute top-16 left-12 z-[100] bg-white p-2 rounded-xl shadow-2xl flex gap-1 border border-gray-100 animate-in zoom-in-95 duration-200">
+                        {['#000000', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#9ca3af', '#ffffff'].map(c => (
+                            <button key={c} onClick={() => handleColorClick(c)} className="w-6 h-6 rounded-full border hover:scale-125 transition-transform" style={{ backgroundColor: c, borderColor: c === '#ffffff' ? '#ddd' : 'transparent' }} />
+                        ))}
+                    </div>
+                )}
+
+                {showShapePicker && (
+                    <div className="absolute top-16 left-48 z-[100] bg-white p-2 rounded-xl shadow-2xl grid grid-cols-3 gap-2 border border-gray-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        {[
+                            { id: 'square', icon: <Square size={20} /> },
+                            { id: 'circle', icon: <Circle size={20} /> },
+                            { id: 'triangle', icon: <Triangle size={20} /> },
+                            { id: 'hexagon', icon: <Hexagon size={20} /> },
+                            { id: 'arrow', icon: <ArrowRight size={20} /> },
+                            { id: 'semicircle', icon: <div className="w-5 h-2.5 bg-gray-400 rounded-t-full" /> }
+                        ].map(s => (
+                            <button key={s.id} onClick={(e) => addShape(s.id, e)} className="p-3 hover:bg-gray-50 rounded-lg text-gray-500 flex items-center justify-center transition-colors">
+                                {s.icon}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {showEmojiPicker && (
+                    <div className="absolute top-16 left-56 z-[100] bg-white rounded-xl shadow-2xl border border-gray-200 p-3 w-72 max-h-64 overflow-y-auto custom-scrollbar animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="grid grid-cols-6 gap-2"> {DRAW_EMOJIS.map((em, i) => <button key={i} onClick={(e) => addEmoji(em, e)} className="text-2xl p-2 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center">{em}</button>)} </div>
+                    </div>
+                )}
 
                 <canvas ref={canvasRef}
                     className={`absolute inset-0 w-full h-full touch-none z-10 ${tool === 'move' ? 'pointer-events-none' : 'pointer-events-auto shadow-inner'}`}
