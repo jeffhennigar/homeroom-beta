@@ -706,4 +706,6 @@ const DrawingWidget = ({ widget, updateData }) => {
   );
 };
 
-export default DrawingWidget;
+
+window.DrawingWidget = DrawingWidget;
+
