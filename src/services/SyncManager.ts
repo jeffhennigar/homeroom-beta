@@ -19,7 +19,7 @@ export interface SyncManagerState {
     compressedBytesSaved: number;
 }
 
-const QUIET_PERIOD_MS = 10000; // 10 seconds of no activity
+const QUIET_PERIOD_MS = 3000; // 3 seconds of no activity
 const MAX_IDLE_PERIOD_MS = 30000; // 30 seconds forced flush
 
 class SyncManagerService {

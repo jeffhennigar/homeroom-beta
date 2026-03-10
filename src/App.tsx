@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown, ChevronUp, LayoutGrid
+    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown, ChevronUp, LayoutGrid, Gamepad2
 } from 'lucide-react';
 
 // Components
@@ -243,7 +243,17 @@ const App = () => {
     });
 
     const [widgets, setWidgets] = useState([]);
-    const [allSlides, setAllSlides] = useState<any[]>([]); // Array of widget arrays
+    const [allSlides, setAllSlides] = useState<any[]>(() => {
+        try {
+            const raw = localStorage.getItem('homeroom_all_slides');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+                if (parsed && typeof parsed === 'object' && 'slides' in parsed) return parsed.slides;
+            }
+        } catch (e) { }
+        return [[]];
+    }); // Array of widget arrays
     const widgetsSlideIndexRef = useRef(0);
     const [closingWidgetId, setClosingWidgetId] = useState(null);
     const [zIndices, setZIndices] = useState({});
@@ -371,7 +381,8 @@ const App = () => {
         if (isCheckingPro || !user || !cloudSyncEnabled || !cloudLoaded.current) return;
 
         const syncToCloud = async () => {
-            if (savingRef.current || !cloudLoaded.current) return;
+            if (!cloudLoaded.current || !user || !cloudSyncEnabled) return;
+            // Removed savingRef restriction from start to ensure all state changes eventually queue
             try {
                 setIsSyncing(true);
                 savingRef.current = true;
@@ -462,7 +473,7 @@ const App = () => {
                 setLastSyncError(e.message || "Cloud sync failed");
             } finally {
                 setIsSyncing(false);
-                setTimeout(() => { savingRef.current = false; }, 1000);
+                setTimeout(() => { savingRef.current = false; }, 500); // Shorter lock
             }
         };
 
@@ -802,6 +813,11 @@ const App = () => {
 
     useEffect(() => {
         if (!cloudLoaded.current) return;
+        localStorage.setItem('homeroom_all_slides', JSON.stringify({ slides: allSlides, last_modified: Date.now() }));
+    }, [allSlides]);
+
+    useEffect(() => {
+        if (!cloudLoaded.current) return;
         localStorage.setItem('homeroom_schedule_settings', JSON.stringify({ settings: scheduleSettings, last_modified: Date.now() }));
     }, [scheduleSettings]);
 
@@ -859,8 +875,11 @@ const App = () => {
         const newAllSlides = [...allSlides, []];
         setAllSlides(newAllSlides);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) syncManager.saveSlide(user.id, newIndex, []);
+        // Immediate sync call for the new slide container
+        if (user) {
+            syncManager.saveSlide(user.id, newIndex, []);
+            addDebugLog(`Created new slide ${newIndex + 1}`, 'info');
+        }
 
         setCurrentSlideIndex(newIndex);
         setShowSlideManager(false);
