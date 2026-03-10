@@ -38,7 +38,7 @@ const GroupMakerWidget: React.FC<GroupMakerWidgetProps> = ({ widget, updateData,
       for (let entry of entries) {
         const width = entry.contentRect.width;
         // Adjusted: wider minimum column width to prevent squishing
-        const newCols = Math.max(1, Math.min(8, Math.floor(width / 150)));
+        const newCols = Math.max(1, Math.min(8, Math.floor(width / 110)));
         setColumns(newCols);
       }
     });

@@ -1027,7 +1027,7 @@ const App = () => {
     };
 
     const updateWidgetData = (id, newData) => {
-        setWidgets(widgets.map(w => w.id === id ? { ...w, data: { ...w.data, ...newData } } : w));
+        setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: typeof newData === 'function' ? newData(w.data) : { ...w.data, ...newData } } : w));
     };
 
     const updateWidgetLayout = (id, layout) => {
