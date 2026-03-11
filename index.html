@@ -6230,6 +6230,21 @@
       const [lib, setLib] = useState(window.EMOJI_LIBRARY || DEFAULT_EMOJIS);
 
       useEffect(() => {
+        // Sync with global emoji library if it loads later
+        if (window.EMOJI_LIBRARY) {
+          setLib(window.EMOJI_LIBRARY);
+        } else {
+          const interval = setInterval(() => {
+            if (window.EMOJI_LIBRARY) {
+              setLib(window.EMOJI_LIBRARY);
+              clearInterval(interval);
+            }
+          }, 1000);
+          return () => clearInterval(interval);
+        }
+      }, []);
+
+      useEffect(() => {
         // Fetch saved sets if logged in
         if (user) {
           loadActivitySets();
@@ -6980,7 +6995,12 @@
 
 
 
-    const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}'];
+    const SCHEDULE_EMOJIS = [
+      '\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}',
+      '\u{1F3A4}', '\u{1F3C0}', '\u{1F3CF}', '\u{1F3D0}', '\u{1F3D1}', '\u{1F3D2}', '\u{1F3D3}', '\u{1F3E6}', '\u{1F3EB}', '\u{1F3F3}', '\u{1F3F4}', '\u{1F3F8}', '\u{1F3F9}', '\u{1F3FA}', '\u{1F42C}',
+      '\u{1F44D}', '\u{1F44E}', '\u{1F4A1}', '\u{1F4AF}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4D8}', '\u{1F4E2}', '\u{1F50D}', '\u{1F511}', '\u{1F512}', '\u{1F513}', '\u{1F550}', '\u{1F551}', '\u{1F552}',
+      '\u{1F553}', '\u{1F554}', '\u{1F555}', '\u{1F556}', '\u{23F0}', '\u{23F3}', '\u{26BD}', '\u{26F3}', '\u{2705}', '\u{274C}', '\u{1F600}', '\u{1F60E}', '\u{1F914}', '\u{1F929}', '\u{1F389}'
+    ];
 
     const SimpleTimePicker = ({ time, onChange, onClose }) => (
       <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-2 animate-in fade-in zoom-in-95 duration-200">
@@ -9384,12 +9404,14 @@
             if (input.length === wordLength) {
               const uppercaseInput = input.toUpperCase();
               let isValidWord = false;
+              console.log('LexiGuess: Validating', uppercaseInput, 'against bank of size', Object.keys(bank).length);
               for (const len in bank) {
-                if (bank[len].includes(uppercaseInput)) {
+                if (Array.isArray(bank[len]) && bank[len].includes(uppercaseInput)) {
                   isValidWord = true;
                   break;
                 }
               }
+              console.log('LexiGuess: isValidWord =', isValidWord);
 
             if (!isValidWord) {
               setShake(true);
@@ -9945,7 +9967,7 @@
       const [previewLine, setPreviewLine] = useState(null);
       const resizeTimeout = useRef(null);
 
-      const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎'];
+      const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎', '🎨', '🖌️', '🖍️', '📝', '📏', '📐', '🧠', '💡', '🧪', '🔬', '🔭', '🌍', '☀️', '🌙', '⭐', '🌈', '🌊', '🔥', '💨', '🌱', '🌳', '🍂', '🍄', '🐾', '🦋', '🐝', '🐞', '🐠', '🐦', '🦉'];
 
       const BG_TEMPLATES = [
         { id: 'none', label: 'None', icon: 'None' },
@@ -11124,7 +11146,8 @@
 
       // Global Redirection Logic (MUST BE AT TOP LEVEL)
       useEffect(() => {
-        if (!user && !authLoading) {
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!user && !authLoading && !isLocal) {
           const timer = setTimeout(() => {
             window.location.href = 'https://ourhomeroom.app';
           }, 2000);
@@ -12749,7 +12772,8 @@
         );
       }
 
-      if (!user) {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!user && !isLocal) {
         return (
           <div className="w-screen h-screen bg-premium-flow relative overflow-hidden flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"></div>
