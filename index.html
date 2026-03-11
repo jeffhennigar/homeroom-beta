@@ -9150,8 +9150,7 @@
         ctx.scale(dpr, dpr);
 
         if (bgType === 'none' || !BG_TEMPLATES.find(t => t.id === bgType)?.style?.backgroundColor) {
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, rect.width, rect.height);
+          ctx.clearRect(0, 0, rect.width, rect.height);
         }
 
         if (canvasData) {
@@ -9193,8 +9192,7 @@
             const img = new Image();
             img.onload = () => {
               ctxRef.current.scale(dpr, dpr);
-              ctxRef.current.fillStyle = '#ffffff';
-              ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+              ctxRef.current.clearRect(0, 0, rect.width, rect.height);
               ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
             };
             img.src = imageData;
@@ -9213,8 +9211,7 @@
         img.onload = () => {
           const rect = canvasRef.current.parentElement.getBoundingClientRect();
           const dpr = window.devicePixelRatio || 1;
-          ctxRef.current.fillStyle = '#ffffff';
-          ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+          ctxRef.current.clearRect(0, 0, rect.width, rect.height);
           ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
         };
         img.src = history[newIndex];
@@ -9228,8 +9225,7 @@
         img.onload = () => {
           const rect = canvasRef.current.parentElement.getBoundingClientRect();
           const dpr = window.devicePixelRatio || 1;
-          ctxRef.current.fillStyle = '#ffffff';
-          ctxRef.current.fillRect(0, 0, rect.width, rect.height);
+          ctxRef.current.clearRect(0, 0, rect.width, rect.height);
           ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
         };
         img.src = history[newIndex];
@@ -9258,10 +9254,17 @@
         currentWidth.current = brushSize;
 
         const ctx = ctxRef.current;
-        ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
-        ctx.lineWidth = brushSize;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        ctx.lineWidth = brushSize;
+
+        if (tool === 'eraser') {
+          ctx.globalCompositeOperation = 'destination-out';
+        } else {
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = color;
+        }
+
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
         ctx.lineTo(pos.x + 0.1, pos.y + 0.1);
@@ -9292,7 +9295,9 @@
         const prevWidth = currentWidth.current || brushSize;
         currentWidth.current = prevWidth * 0.7 + targetWidth * 0.3;
 
-        ctx.fillStyle = tool === 'eraser' ? '#ffffff' : color;
+        if (tool !== 'eraser') {
+          ctx.fillStyle = color;
+        }
         const steps = Math.max(1, Math.ceil(distance / 2));
         for (let i = 0; i <= steps; i++) {
           const t = i / steps;
@@ -9366,8 +9371,7 @@
       const clearCanvas = () => {
         if (!window.confirm('Clear the entire canvas?')) return;
         const ctx = ctxRef.current;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         updateData(widget.id, { textItems: [], emojiItems: [], shapeItems: [], imageItems: [] });
         setSelectedItem(null);
         saveToHistory();
@@ -9560,7 +9564,7 @@
           )}
 
           <div
-            className="flex-1 relative overflow-hidden bg-white min-h-0"
+            className={`flex-1 relative overflow-hidden min-h-0 ${bgType === 'none' ? 'bg-white' : ''}`}
             style={BG_TEMPLATES.find(t => t.id === bgType)?.style || {}}
             onMouseDown={() => tool === 'select' && setSelectedItem(null)}
           >
