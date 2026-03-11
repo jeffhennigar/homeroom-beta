@@ -9074,13 +9074,9 @@
       const isGameOver = widget.data.wordleStatus === 'won' || guesses.length >= 6;
 
       const resetGame = (isNewWord = true) => {
+        const bank = window.WORD_BANKS || { "3": ["CAT"], "4": ["DOGS"], "5": ["APPLE"], "6": ["ORANGE"] };
         if (isNewWord) {
-          const bank = window.WORD_BANKS || {};
-          const words = bank[wordLength] || bank[5] || [];
-          if (words.length === 0) {
-            console.warn('Word bank not loaded yet');
-            return;
-          }
+          const words = bank[wordLength] || bank[5] || ["APPLE"];
           const newTarget = words[Math.floor(Math.random() * words.length)];
           updateData(widget.id, {
             wordleTarget: newTarget,
@@ -9094,6 +9090,7 @@
           });
         }
         setInput('');
+        setMessage(null);
       };
 
       const handleKey = (key) => {
@@ -9103,29 +9100,24 @@
             resetGame(true);
             return;
           }
-          if (input.length === wordLength) {
-            const uppercaseInput = input.toUpperCase();
-            let isValidWord = false;
-            const bank = window.WORD_BANKS || {};
-            
-            // Check if bank is loaded
-            if (Object.keys(bank).length === 0) {
-              setShake(true);
-              setTimeout(() => setShake(false), 500);
-              console.warn("Word bank not available");
-              return;
-            }
-
-            for (const len in bank) {
-              if (bank[len].includes(uppercaseInput)) {
-                isValidWord = true;
-                break;
+            if (input.length === wordLength) {
+              const uppercaseInput = input.toUpperCase();
+              let isValidWord = false;
+              const bank = window.WORD_BANKS || { "3": ["CAT"], "4": ["DOGS"], "5": ["APPLE"], "6": ["ORANGE"] };
+              for (const len in bank) {
+                if (bank[len].includes(uppercaseInput)) {
+                  isValidWord = true;
+                  break;
+                }
               }
-            }
 
             if (!isValidWord) {
               setShake(true);
-              setTimeout(() => setShake(false), 500);
+              setMessage('Not in word bank');
+              setTimeout(() => {
+                setShake(false);
+                setMessage(null);
+              }, 1500);
               return;
             }
 
@@ -9157,8 +9149,8 @@
       };
 
       return (
-        <div className="p-4 h-full flex flex-col items-center justify-center gap-4 bg-slate-100/50">
-          <div className="flex gap-2 mb-2">
+        <div className="p-3 h-full flex flex-col items-center justify-center gap-3 bg-slate-100/50 overflow-y-auto custom-scrollbar">
+          <div className="flex gap-2">
             <button
               onClick={() => resetGame(false)}
               className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 border-b-2 border-slate-200 transition-all active:translate-y-px active:border-b-0"
@@ -9174,7 +9166,7 @@
               <RefreshCw size={12} /> New Word
             </button>
           </div>
-          <div className={`grid gap-2 mb-4 ${shake ? 'animate-shake' : ''}`}>
+          <div className={`grid gap-1.5 mb-2 relative ${shake ? 'animate-shake' : ''}`}>
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex gap-2">
                 {[...Array(wordLength)].map((_, j) => {
@@ -9189,6 +9181,11 @@
                 })}
               </div>
             ))}
+            {message && (
+              <div className="absolute inset-x-0 -bottom-8 flex justify-center z-10 animate-in fade-in zoom-in slide-in-from-top-2">
+                <span className="bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wider">{message}</span>
+              </div>
+            )}
           </div>
 
           <div className="w-full max-w-[280px] flex gap-2">
@@ -9300,7 +9297,7 @@
         const word = selection.map(idx => grid[idx]).join('');
 
         let isValidWord = false;
-        const bank = window.WORD_BANKS || {};
+        const bank = window.WORD_BANKS || { "3": ["CAT"], "4": ["DOGS"], "5": ["APPLE"], "6": ["ORANGE"] };
         for (const len in bank) {
           if (bank[len].includes(word)) {
             isValidWord = true;
@@ -9423,12 +9420,8 @@
       };
 
       const resetGame = (isNewWord = true) => {
-        const bank = window.WORD_BANKS || {};
-        const words = bank[wordLength] || bank[5] || [];
-        if (words.length === 0) {
-          console.warn('Word bank not loaded yet');
-          return;
-        }
+        const bank = window.WORD_BANKS || { "3": ["CAT"], "4": ["DOGS"], "5": ["APPLE"], "6": ["ORANGE"] };
+        const words = bank[wordLength] || bank[5] || ["APPLE"];
 
         if (isNewWord) {
           const newTarget = words[Math.floor(Math.random() * words.length)];
@@ -9497,8 +9490,7 @@
 
       const checkWord = () => {
         const word = current.join('');
-        const fullBank = window.WORD_BANKS || {};
-        const bank = fullBank[wordLength] || [];
+        const bank = (window.WORD_BANKS && window.WORD_BANKS[wordLength]) || ["APPLE"];
         if (word === target || bank.includes(word)) {
           updateData(widget.id, { scrambleSolved: true });
         } else {
