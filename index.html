@@ -9068,6 +9068,7 @@
       const { useState, useEffect } = React;
       const [input, setInput] = useState('');
       const [shake, setShake] = useState(false);
+      const [message, setMessage] = useState(null);
       const wordLength = widget.data.wordleSize || 5;
       const guesses = widget.data.wordleGuesses || [];
       const target = widget.data.wordleTarget || 'APPLE';
