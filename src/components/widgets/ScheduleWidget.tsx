@@ -2,7 +2,12 @@ import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from
 import { Calendar, Settings, Plus, X, Copy, Trash2 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const SCHEDULE_EMOJIS = ['\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}'];
+const SCHEDULE_EMOJIS = [
+    '\u{1F4DA}', '\u{1F3A8}', '\u{1F3C3}', '\u{1F3B5}', '\u{1F4BB}', '\u{1F96A}', '\u{1F4DD}', '\u{1F52C}', '\u{1F5E3}', '\u{1F6D1}', '\u{1F68C}', '\u{1F3E0}', '\u{1F4C5}', '\u{2B50}', '\u{1F514}',
+    '\u{1F3A4}', '\u{1F3C0}', '\u{1F3CF}', '\u{1F3D0}', '\u{1F3D1}', '\u{1F3D2}', '\u{1F3D3}', '\u{1F3E6}', '\u{1F3EB}', '\u{1F3F3}', '\u{1F3F4}', '\u{1F3F8}', '\u{1F3F9}', '\u{1F3FA}', '\u{1F42C}',
+    '\u{1F44D}', '\u{1F44E}', '\u{1F4A1}', '\u{1F4AF}', '\u{1F4CC}', '\u{1F4D6}', '\u{1F4D8}', '\u{1F4E2}', '\u{1F50D}', '\u{1F511}', '\u{1F512}', '\u{1F513}', '\u{1F550}', '\u{1F551}', '\u{1F552}',
+    '\u{1F553}', '\u{1F554}', '\u{1F555}', '\u{1F556}', '\u{23F0}', '\u{23F3}', '\u{26BD}', '\u{26F3}', '\u{2705}', '\u{274C}', '\u{1F600}', '\u{1F60E}', '\u{1F914}', '\u{1F929}', '\u{1F389}'
+];
 
 // Baseline width for scaling calculations
 const BASELINE_WIDTH = 400;
