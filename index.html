@@ -8,7 +8,7 @@
   <script defer src="https://cloud.umami.is/script.js" data-website-id="18de2e8a-75be-4d11-bc8d-18784a804ed4"></script>
   <link rel="icon" type="image/svg+xml" href="./favicon-CuRdcC1_.svg" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="js/constants/word-banks.js"></script>
+  <script src="js/constants/word-banks-utf8.js"></script>
   <script src="js/constants/emojis.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -6208,17 +6208,26 @@
       const [searchResults, setSearchResults] = useState([]);
       const [isSearching, setIsSearching] = useState(false);
       const [emojiCategory, setEmojiCategory] = useState("Animals");
-      const PIXABAY_KEY = '49221539-74312678da47f3ad5b565a58d'; // Placeholder for user to fill
+      const [pixabayError, setPixabayError] = useState(null);
+      const PIXABAY_KEY = '49221539-74312678da47f3ad5b565a58d';
 
       const searchPixabay = async () => {
         if (!searchQuery.trim()) return;
         setIsSearching(true);
+        setPixabayError(null);
         try {
           const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(searchQuery)}&image_type=illustration&safesearch=true&per_page=20`);
+          if (!res.ok) throw new Error(`Search failed: ${res.status}`);
           const data = await res.json();
-          setSearchResults(data.hits || []);
+          if (data.hits) {
+            setSearchResults(data.hits);
+            if (data.hits.length === 0) setPixabayError("No clipart found for '" + searchQuery + "'.");
+          } else {
+            setPixabayError("Unexpected response from Pixabay.");
+          }
         } catch (e) {
           console.error("Pixabay search failed:", e);
+          setPixabayError("Search error. Check your API key or connection.");
         } finally {
           setIsSearching(false);
         }
@@ -6333,8 +6342,14 @@
       };
 
       if (mode === 'setup') {
-        const emojiList = window.EMOJI_LIBRARY ? window.EMOJI_LIBRARY[emojiCategory] : [];
-        const emojiCategories = window.EMOJI_LIBRARY ? Object.keys(window.EMOJI_LIBRARY) : [];
+        const DEFAULT_EMOJIS = {
+          "Animals": ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼"],
+          "Food": ["🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇"],
+          "Nature": ["🌵", "🎄", "🌲", "🌳", "🌴", "🪵", "🌱", "🌿"]
+        };
+        const lib = window.EMOJI_LIBRARY || DEFAULT_EMOJIS;
+        const emojiList = lib[emojiCategory] || lib[Object.keys(lib)[0]] || [];
+        const emojiCategories = Object.keys(lib);
 
         return (
           <div className="flex flex-col h-full bg-slate-50 p-4 overflow-hidden">
@@ -6430,6 +6445,8 @@
                       <div className="h-48 bg-white rounded-2xl border border-slate-200 overflow-y-auto p-2 custom-scrollbar grid grid-cols-3 gap-2">
                         {isSearching ? (
                           <div className="col-span-3 flex items-center justify-center h-full text-slate-300 italic text-xs animate-pulse">Searching...</div>
+                        ) : pixabayError ? (
+                          <div className="col-span-3 flex items-center justify-center h-full text-red-300 italic text-[10px] text-center px-4">{pixabayError}</div>
                         ) : searchResults.length > 0 ? (
                           searchResults.map(img => (
                             <button 
