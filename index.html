@@ -7191,9 +7191,9 @@
 
                 {/* Rotating Mode: Cycle Picker */}
                 {scheduleMode === 'rotating' && (
-                  <span onClick={(e) => { e.stopPropagation(); setShowCyclePicker(!showCyclePicker); }} className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider hover:bg-indigo-50 px-1 rounded cursor-pointer relative top-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    (Set Day)
-                  </span>
+                  <button onClick={(e) => { e.stopPropagation(); setShowCyclePicker(!showCyclePicker); }} className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider hover:bg-indigo-50 px-1 rounded cursor-pointer relative top-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Set Day
+                  </button>
                 )}
                 {/* Weekly Mode: Date Only */}
                 {scheduleMode === 'weekly' && (
@@ -7282,10 +7282,10 @@
                     <div draggable onDragStart={() => handleDragStart(index)} className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing text-slate-300 hover:text-indigo-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><GripVertical size={Math.max(12, fontSize * 0.6)} /></div>
                     {isCurrent && <div className="absolute -left-1 top-[15%] bottom-[15%] w-1.5 bg-indigo-500 rounded-r-full" />}
 
-                    <div className="flex flex-col items-center shrink-0 relative justify-center border-r border-slate-100 ml-4"
-                      style={{ width: columnWidth + 'px', paddingRight: (padding * 0.8) + 'px' }}>
+                    <div className="flex flex-col items-start shrink-0 relative justify-start border-r border-slate-100 ml-4"
+                      style={{ width: (columnWidth * 1.4) + 'px', paddingRight: (padding * 0.4) + 'px' }}>
                       <button onClick={(e) => { e.stopPropagation(); setTimePickerState(timePickerState.index === index ? { index: null, triggerRef: null } : { index, triggerRef: { current: e.currentTarget } }); }}
-                        className={`w-full font-bold px-1.5 py-0.5 rounded transition-colors ${isCurrent ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 bg-slate-50 group-hover:bg-slate-100'}`}
+                        className={`w-full font-bold px-1 py-0.5 rounded transition-colors text-left ${isCurrent ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 bg-slate-50 group-hover:bg-slate-100'}`}
                         style={{ fontSize: timeSize + 'px' }}>
                         {(() => { const [h, m] = (item.time || '09:00').split(':'); const hours = parseInt(h); const displayH = hours % 12 || 12; return `${displayH}:${m}`; })()}
                         <span className="ml-0.5 opacity-60" style={{ fontSize: (timeSize * 0.8) + 'px' }}>{parseInt((item.time || '09:00').split(':')[0]) >= 12 ? 'PM' : 'AM'}</span>
@@ -9330,7 +9330,7 @@
                 onClick={() => updateData(widget.id, { activeGame: 'wordle' })}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeGame === 'wordle' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                <Type size={14} /> LexiGuess
+                <Type size={14} /> Word Wizard
               </button>
               <button
                 onClick={() => updateData(widget.id, { activeGame: 'boggle' })}
@@ -9354,7 +9354,7 @@
           </div>
 
           <div className="flex-1 min-h-0 relative">
-            {activeGame === 'wordle' && <LexiGuess widget={widget} updateData={updateData} />}
+            {activeGame === 'wordle' && <WordWizard widget={widget} updateData={updateData} />}
             {activeGame === 'boggle' && <GridGlide widget={widget} updateData={updateData} />}
             {activeGame === 'scramble' && <ScrambleSwap widget={widget} updateData={updateData} />}
           </div>
@@ -9362,7 +9362,7 @@
       );
     };
 
-    const LexiGuess = ({ widget, updateData }) => {
+    const WordWizard = ({ widget, updateData }) => {
       const { useState, useEffect } = React;
       const [input, setInput] = useState('');
       const [shake, setShake] = useState(false);
@@ -9371,16 +9371,21 @@
       const [bank, setBank] = useState(window.WORD_BANKS || DEFAULT_BANK);
 
       useEffect(() => {
-        // Poll for dictionary if not loaded yet
-        if (!window.WORD_BANKS) {
-          const interval = setInterval(() => {
-            if (window.WORD_BANKS) {
-              setBank(window.WORD_BANKS);
-              clearInterval(interval);
-            }
-          }, 1000);
-          return () => clearInterval(interval);
-        }
+        const fetchBank = async () => {
+          if (window.__WORD_BANK_CACHE) {
+            setBank(window.__WORD_BANK_CACHE);
+            return;
+          }
+          try {
+            const response = await fetch('js/constants/word-banks.json');
+            const data = await response.json();
+            window.__WORD_BANK_CACHE = data;
+            setBank(data);
+          } catch (e) {
+            console.error('Failed to load word bank:', e);
+          }
+        };
+        fetchBank();
       }, []);
 
       const wordLength = widget.data.wordleSize || 5;
@@ -9417,14 +9422,14 @@
             if (input.length === wordLength) {
               const uppercaseInput = input.toUpperCase();
               let isValidWord = false;
-              console.log('LexiGuess: Validating', uppercaseInput, 'against bank of size', Object.keys(bank).length);
+              console.log('WordWizard: Validating', uppercaseInput, 'against bank of size', Object.keys(bank).length);
               for (const len in bank) {
                 if (Array.isArray(bank[len]) && bank[len].includes(uppercaseInput)) {
                   isValidWord = true;
                   break;
                 }
               }
-              console.log('LexiGuess: isValidWord =', isValidWord);
+              console.log('WordWizard: isValidWord =', isValidWord);
 
             if (!isValidWord) {
               setShake(true);
@@ -9578,16 +9583,21 @@
       const [bank, setBank] = useState(window.WORD_BANKS || DEFAULT_BANK);
 
       useEffect(() => {
-        // Poll for dictionary if not loaded yet
-        if (!window.WORD_BANKS) {
-          const interval = setInterval(() => {
-            if (window.WORD_BANKS) {
-              setBank(window.WORD_BANKS);
-              clearInterval(interval);
-            }
-          }, 1000);
-          return () => clearInterval(interval);
-        }
+        const fetchBank = async () => {
+          if (window.__WORD_BANK_CACHE) {
+            setBank(window.__WORD_BANK_CACHE);
+            return;
+          }
+          try {
+            const response = await fetch('js/constants/word-banks.json');
+            const data = await response.json();
+            window.__WORD_BANK_CACHE = data;
+            setBank(data);
+          } catch (e) {
+            console.error('Failed to load word bank:', e);
+          }
+        };
+        fetchBank();
       }, []);
 
       const generateGrid = () => {
@@ -9734,19 +9744,24 @@
       const hintedIndices = widget.data.scrambleHints || [];
       const [selectedIndex, setSelectedIndex] = useState(null);
       const [shake, setShake] = useState(false);
-      const [bank, setBank] = useState(window.WORD_BANKS || { "3": ["CAT"], "4": ["DOGS"], "5": ["APPLE"], "6": ["ORANGE"] });
+      const [bank, setBank] = useState({ "3": ["CAT"], "4": ["DOGS"], "5": ["APPLE"], "6": ["ORANGE"] });
 
       useEffect(() => {
-        // Poll for dictionary if not loaded yet
-        if (!window.WORD_BANKS) {
-          const interval = setInterval(() => {
-            if (window.WORD_BANKS) {
-              setBank(window.WORD_BANKS);
-              clearInterval(interval);
-            }
-          }, 1000);
-          return () => clearInterval(interval);
-        }
+        const fetchBank = async () => {
+          if (window.__WORD_BANK_CACHE) {
+            setBank(window.__WORD_BANK_CACHE);
+            return;
+          }
+          try {
+            const response = await fetch('js/constants/word-banks.json');
+            const data = await response.json();
+            window.__WORD_BANK_CACHE = data;
+            setBank(data);
+          } catch (e) {
+            console.error('Failed to load word bank:', e);
+          }
+        };
+        fetchBank();
       }, []);
 
       const scrambleWord = (word) => {

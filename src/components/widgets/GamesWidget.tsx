@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Type, Grid, RefreshCw, Settings, X, Lightbulb } from 'lucide-react';
 import { WORD_BANKS } from '../../constants/wordBanks';
 
-export const LexiGuess = ({ widget, updateData }: any) => {
+export const WordWizard = ({ widget, updateData }: any) => {
     const [input, setInput] = useState('');
     const [shake, setShake] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -450,7 +450,7 @@ const GamesWidget = ({ widget, updateData }: any) => {
                         onClick={() => updateData(widget.id, { activeGame: 'wordle' })}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeGame === 'wordle' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <Type size={14} /> LexiGuess
+                        <Type size={14} /> Word Wizard
                     </button>
                     <button
                         onClick={() => updateData(widget.id, { activeGame: 'boggle' })}
@@ -474,7 +474,7 @@ const GamesWidget = ({ widget, updateData }: any) => {
             </div>
 
             <div className="flex-1 min-h-0 relative">
-                {activeGame === 'wordle' && <LexiGuess widget={widget} updateData={updateData} />}
+                {activeGame === 'wordle' && <WordWizard widget={widget} updateData={updateData} />}
                 {activeGame === 'boggle' && <GridGlide widget={widget} updateData={updateData} />}
                 {activeGame === 'scramble' && <ScrambleSwap widget={widget} updateData={updateData} />}
             </div>
