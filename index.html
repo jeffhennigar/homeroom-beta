@@ -9089,6 +9089,18 @@
       return null;
     };
 
+    const Line = ({ color, length, rotation }) => {
+      return (
+        <div style={{
+          width: `${length}px`,
+          height: '2px',
+          backgroundColor: color,
+          transform: `rotate(${rotation}deg)`,
+          transformOrigin: 'left center'
+        }} />
+      );
+    };
+
     const DrawingWidget = ({ widget, updateData }) => {
       const { useState, useEffect, useRef } = React;
       const {
@@ -9099,6 +9111,7 @@
         emojiItems = [],
         imageItems = [],
         shapeItems = [],
+        lineItems = [],
         drawOffset = { x: 0, y: 0 },
         bgType = 'none',
         canvasData
@@ -9116,6 +9129,7 @@
       const [selectedItem, setSelectedItem] = useState(null);
       const [history, setHistory] = useState([]);
       const [historyIndex, setHistoryIndex] = useState(-1);
+      const [previewLine, setPreviewLine] = useState(null);
       const resizeTimeout = useRef(null);
 
       const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎'];
@@ -9244,31 +9258,36 @@
       const currentWidth = useRef(null);
 
       const startDrawing = (e) => {
-        if (tool !== 'pen' && tool !== 'eraser') return;
+        if (tool !== 'pen' && tool !== 'eraser' && tool !== 'line') return;
         isDrawing.current = true;
         const pos = getPos(e);
         lastPoint.current = pos;
         lastTime.current = pos.time;
-        points.current = [pos];
-        smoothedVelocity.current = 0;
-        currentWidth.current = brushSize;
 
-        const ctx = ctxRef.current;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = brushSize;
-
-        if (tool === 'eraser') {
-          ctx.globalCompositeOperation = 'destination-out';
+        if (tool === 'line') {
+          setPreviewLine({ x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y });
         } else {
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.strokeStyle = color;
-        }
+          points.current = [pos];
+          smoothedVelocity.current = 0;
+          currentWidth.current = brushSize;
 
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(pos.x + 0.1, pos.y + 0.1);
-        ctx.stroke();
+          const ctx = ctxRef.current;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.lineWidth = brushSize;
+
+          if (tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+          } else {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = color;
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+          ctx.lineTo(pos.x + 0.1, pos.y + 0.1);
+          ctx.stroke();
+        }
 
         window.addEventListener('mousemove', draw);
         window.addEventListener('mouseup', stopDrawing);
@@ -9280,8 +9299,13 @@
         if (!isDrawing.current || !lastPoint.current) return;
         if (e.type === 'touchmove') e.preventDefault();
         const pos = getPos(e);
-        const ctx = ctxRef.current;
 
+        if (tool === 'line') {
+          setPreviewLine(prev => ({ ...prev, x2: pos.x, y2: pos.y }));
+          return;
+        }
+
+        const ctx = ctxRef.current;
         const dx = pos.x - lastPoint.current.x;
         const dy = pos.y - lastPoint.current.y;
         const dt = Math.max(pos.time - lastTime.current, 1);
@@ -9317,8 +9341,21 @@
       const stopDrawing = () => {
         if (isDrawing.current) {
           isDrawing.current = false;
-          ctxRef.current.closePath();
-          saveToHistory();
+          if (tool === 'line' && previewLine) {
+            const dx = previewLine.x2 - previewLine.x1;
+            const dy = previewLine.y2 - previewLine.y1;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            if (length > 2) {
+              const rotation = Math.atan2(dy, dx) * (180 / Math.PI);
+              const newLine = { id: Date.now().toString(), x: previewLine.x1, y: previewLine.y1, length, rotation, color };
+              updateData(widget.id, { lineItems: [...lineItems, newLine], tool: 'select' });
+              setSelectedItem({ type: 'line', id: newLine.id });
+            }
+            setPreviewLine(null);
+          } else if (ctxRef.current) {
+            ctxRef.current.closePath();
+            saveToHistory();
+          }
         }
         window.removeEventListener('mousemove', draw);
         window.removeEventListener('mouseup', stopDrawing);
@@ -9357,6 +9394,8 @@
           updateData(widget.id, { imageItems: imageItems.filter(img => img.id !== selectedItem.id) });
         } else if (selectedItem.type === 'shape') {
           updateData(widget.id, { shapeItems: shapeItems.filter(s => s.id !== selectedItem.id) });
+        } else if (selectedItem.type === 'line') {
+          updateData(widget.id, { lineItems: lineItems.filter(l => l.id !== selectedItem.id) });
         }
         setSelectedItem(null);
       };
@@ -9396,6 +9435,7 @@
         else if (type === 'emoji') item = emojiItems.find(i => i.id === id);
         else if (type === 'image') item = imageItems.find(i => i.id === id);
         else if (type === 'shape') item = shapeItems.find(i => i.id === id);
+        else if (type === 'line') item = lineItems.find(i => i.id === id);
         else if (type === 'drawing') item = { x: drawOffset.x, y: drawOffset.y, scale: 1, rotation: 0 };
 
         if (!item) return;
@@ -9416,7 +9456,7 @@
               updateData(widget.id, { drawOffset: { x: startItemX + dx, y: startItemY + dy } });
             } else {
               const listKey = type + 'Items';
-              const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : shapeItems));
+              const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : (type === 'shape' ? shapeItems : lineItems)));
               updateData(widget.id, { [listKey]: list.map(i => i.id === id ? { ...i, x: startItemX + dx, y: startItemY + dy } : i) });
             }
           } else if (mode === 'scale' && type !== 'drawing') {
@@ -9424,7 +9464,7 @@
             const factor = 1 + (dx > 0 ? dist / 200 : -dist / 200);
             const newScale = Math.max(0.1, Math.min(10, startScale * factor));
             const listKey = type + 'Items';
-            const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : shapeItems));
+            const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : (type === 'shape' ? shapeItems : lineItems)));
             updateData(widget.id, { [listKey]: list.map(i => i.id === id ? { ...i, scale: newScale } : i) });
           } else if (mode === 'rotate' && type !== 'drawing') {
             const canvasRect = canvasRef.current.getBoundingClientRect();
@@ -9432,7 +9472,7 @@
             const mouseY = me.clientY - canvasRect.top;
             const angle = Math.atan2(mouseY - item.y, mouseX - item.x) * (180 / Math.PI);
             const listKey = type + 'Items';
-            const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : shapeItems));
+            const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : (type === 'shape' ? shapeItems : lineItems)));
             updateData(widget.id, { [listKey]: list.map(i => i.id === id ? { ...i, rotation: angle + 90 } : i) });
           }
         };
@@ -9497,6 +9537,7 @@
             <button onClick={() => updateData(widget.id, { tool: 'text' })} className={`p-1.5 rounded-lg transition-all ${tool === 'text' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Text"><Type size={16} /></button>
             <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`p-1.5 rounded-lg transition-all ${showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Emoji"><Smile size={16} /></button>
             <button onClick={() => setShowShapePicker(!showShapePicker)} className={`p-1.5 rounded-lg transition-all ${showShapePicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Shapes"><Shapes size={16} /></button>
+            <button onClick={() => updateData(widget.id, { tool: 'line' })} className={`p-1.5 rounded-lg transition-all ${tool === 'line' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Straight Line"><Minus size={16} className="rotate-45" /></button>
             <div className="w-px h-5 bg-gray-200" />
             <input type="range" min="2" max="40" value={brushSize} onChange={(e) => updateData(widget.id, { brushSize: Number(e.target.value) })} className="w-16 h-1 accent-blue-500" title={`Size: ${brushSize}`} />
             <div className="w-px h-5 bg-gray-200" />
@@ -9514,7 +9555,21 @@
           {showColorPicker && (
             <div className="absolute top-12 left-4 z-[100] bg-white p-2 rounded-xl shadow-2xl flex gap-1 border">
               {COLORS.map(c => (
-                <button key={c} onClick={() => { updateData(widget.id, { color: c }); setShowColorPicker(false); }} className="w-6 h-6 rounded-full border hover:scale-125 transition-transform shadow-sm" style={{ backgroundColor: c, borderColor: c === '#ffffff' ? '#ddd' : c }} />
+                <button
+                  key={c}
+                  onClick={() => {
+                    if (selectedItem && (selectedItem.type === 'shape' || selectedItem.type === 'text' || selectedItem.type === 'line')) {
+                      const listKey = selectedItem.type + 'Items';
+                      const list = selectedItem.type === 'text' ? textItems : (selectedItem.type === 'shape' ? shapeItems : lineItems);
+                      updateData(widget.id, { [listKey]: list.map(i => i.id === selectedItem.id ? { ...i, color: c } : i), color: c });
+                    } else {
+                      updateData(widget.id, { color: c });
+                    }
+                    setShowColorPicker(false);
+                  }}
+                  className="w-6 h-6 rounded-full border hover:scale-125 transition-transform shadow-sm"
+                  style={{ backgroundColor: c, borderColor: c === '#ffffff' ? '#ddd' : c }}
+                />
               ))}
             </div>
           )}
@@ -9591,6 +9646,15 @@
                 onClick={handleCanvasClick}
                 onTouchStart={startDrawing}
               />
+              {previewLine && (
+                <div className="absolute pointer-events-none" style={{ left: previewLine.x1, top: previewLine.y1 }}>
+                  <Line
+                    color={color}
+                    length={Math.sqrt(Math.pow(previewLine.x2 - previewLine.x1, 2) + Math.pow(previewLine.y2 - previewLine.y1, 2))}
+                    rotation={Math.atan2(previewLine.y2 - previewLine.y1, previewLine.x2 - previewLine.x1) * (180 / Math.PI)}
+                  />
+                </div>
+              )}
             </div>
 
             {imageItems.map(img => {
@@ -9768,6 +9832,48 @@
                       <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow z-20"
                         style={{ top: boxSize / 2 - 10, left: boxSize / 2 - 10 }}
                         onMouseDown={(e) => handleItemMouseDown(e, 'emoji', em.id, 'scale')} title="Scale" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {lineItems.map(l => {
+              const rotation = l.rotation || 0;
+              return (
+                <div key={l.id} className="absolute" style={{ left: l.x, top: l.y, zIndex: selectedItem?.id === l.id ? 10 : 1 }}>
+                  <div
+                    className="cursor-move group"
+                    style={{
+                      transform: `rotate(${rotation}deg)`,
+                      transformOrigin: 'left center',
+                      padding: '8px 0',
+                      margin: '-8px 0',
+                      pointerEvents: tool === 'select' ? 'auto' : 'none'
+                    }}
+                    onMouseDown={(e) => handleItemMouseDown(e, 'line', l.id, 'move')}
+                  >
+                    <Line color={l.color} length={l.length} rotation={0} />
+                    {selectedItem?.id === l.id && (
+                      <div className="absolute inset-x-0 h-4 border border-blue-500 rounded pointer-events-none opacity-50 -top-1" style={{ width: l.length }} />
+                    )}
+                  </div>
+                  {selectedItem?.id === l.id && (
+                    <div style={{ transform: `rotate(${rotation}deg)`, transformOrigin: 'left center', position: 'absolute', top: 0, left: 0, width: l.length, height: 0 }}>
+                      <div
+                        className="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow z-20"
+                        style={{ top: -8, left: l.length - 8 }}
+                        onMouseDown={(e) => handleItemMouseDown(e, 'line', l.id, 'scale')}
+                        title="Resize"
+                      />
+                      <div
+                        className="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-grab shadow z-20 flex items-center justify-center"
+                        style={{ top: -28, left: l.length / 2 - 8 }}
+                        onMouseDown={(e) => handleItemMouseDown(e, 'line', l.id, 'rotate')}
+                        title="Rotate"
+                      >
+                        <RotateCw size={10} className="text-blue-500" />
+                      </div>
                     </div>
                   )}
                 </div>

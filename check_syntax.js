@@ -1,8 +1,18 @@
-const fs = require('fs');
-const content = fs.readFileSync('c:/Users/jeff_/Downloads/HomeROom ANtigravity/HomeRoom-Pro/index.html', 'utf8');
-const scriptMatch = content.match(/<script type="text\/babel">([\s\S]*?)<\/script>/);
-if (scriptMatch) {
-    const script = scriptMatch[1];
+import fs from 'fs';
+import { parse } from 'node-html-parser';
+
+const filePath = process.argv[2];
+if (!filePath) {
+    console.error('Usage: node check_syntax.js <file_path>');
+    process.exit(1);
+}
+
+const content = fs.readFileSync(filePath, 'utf8');
+const root = parse(content);
+const scriptTag = root.querySelector('script[type="text/babel"]');
+
+if (scriptTag) {
+    const script = scriptTag.text;
     try {
         new Function(script);
         console.log("Syntax OK");
