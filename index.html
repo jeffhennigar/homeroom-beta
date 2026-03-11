@@ -9,6 +9,7 @@
   <link rel="icon" type="image/svg+xml" href="./favicon-CuRdcC1_.svg" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="js/constants/word-banks.js"></script>
+  <script src="js/constants/emojis.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -6193,11 +6194,74 @@
     };
 
     const SortWidget = ({ widget, updateData }) => {
-      const { categories = [], unsorted = [], mode = 'setup', categoryCount = 2, bulkText = '' } = widget.data;
+      const { 
+        categories = [], 
+        unsorted = [], 
+        mode = 'setup', 
+        categoryCount = 2, 
+        bulkText = '',
+        selectedMedia = [] // { id, type: 'image'|'emoji', content, label }
+      } = widget.data;
+
+      const [setupTab, setSetupTab] = useState('text');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [searchResults, setSearchResults] = useState([]);
+      const [isSearching, setIsSearching] = useState(false);
+      const [emojiCategory, setEmojiCategory] = useState("Animals");
+      const PIXABAY_KEY = '49221539-74312678da47f3ad5b565a58d'; // Placeholder for user to fill
+
+      const searchPixabay = async () => {
+        if (!searchQuery.trim()) return;
+        setIsSearching(true);
+        try {
+          const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(searchQuery)}&image_type=illustration&safesearch=true&per_page=20`);
+          const data = await res.json();
+          setSearchResults(data.hits || []);
+        } catch (e) {
+          console.error("Pixabay search failed:", e);
+        } finally {
+          setIsSearching(false);
+        }
+      };
+
+      const handleFileUpload = (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+          if (selectedMedia.length >= 12) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const newItem = {
+              id: `upload-${Date.now()}-${Math.random()}`,
+              type: 'image',
+              content: ev.target.result,
+              label: file.name.split('.')[0]
+            };
+            updateData(widget.id, { selectedMedia: [...(selectedMedia || []), newItem] });
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      const addMedia = (item) => {
+         if (selectedMedia.length >= 12) return;
+         updateData(widget.id, { selectedMedia: [...(selectedMedia || []), item] });
+      };
+
+      const removeMedia = (id) => {
+         updateData(widget.id, { selectedMedia: selectedMedia.filter(m => m.id !== id) });
+      };
 
       const handleGenerate = () => {
-        const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        const newUnsorted = lines.map((text, i) => ({ id: `card-${Date.now()}-${i}`, text }));
+        const textLines = bulkText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const textCards = textLines.map((text, i) => ({ id: `card-txt-${Date.now()}-${i}`, type: 'text', text }));
+        const mediaCards = (selectedMedia || []).map((m, i) => ({ 
+          id: `card-med-${Date.now()}-${i}`, 
+          type: m.type, 
+          content: m.content, 
+          text: m.label 
+        }));
+
+        const newUnsorted = [...textCards, ...mediaCards];
         
         let newCategories = categories;
         if (newCategories.length !== categoryCount) {
@@ -6207,7 +6271,6 @@
             cards: []
           }));
         } else {
-          // Just clear cards if regenerating with same count
           newCategories = newCategories.map(c => ({ ...c, cards: [] }));
         }
 
@@ -6220,7 +6283,7 @@
 
       const handleCardDragStart = (e, card, sourceContext) => {
         e.dataTransfer.setData('cardId', card.id);
-        e.dataTransfer.setData('sourceContext', sourceContext); // 'unsorted' or cat index
+        e.dataTransfer.setData('sourceContext', sourceContext);
       };
 
       const handleDrop = (e, targetContext) => {
@@ -6234,7 +6297,6 @@
         let newUnsorted = [...unsorted];
         let newCategories = categories.map(c => ({ ...c, cards: [...c.cards] }));
 
-        // Remove from source
         if (sourceContext === 'unsorted') {
           const idx = newUnsorted.findIndex(c => c.id === cardId);
           if (idx > -1) [movedCard] = newUnsorted.splice(idx, 1);
@@ -6246,7 +6308,6 @@
 
         if (!movedCard) return;
 
-        // Add to target
         if (targetContext === 'unsorted') {
           newUnsorted.push(movedCard);
         } else {
@@ -6258,12 +6319,11 @@
       };
 
       const updateCardText = (cardId, newText) => {
-        const newUnsorted = unsorted.map(c => c.id === cardId ? { ...c, text: newText } : c);
-        const newCategories = categories.map(cat => ({
-          ...cat,
-          cards: cat.cards.map(c => c.id === cardId ? { ...c, text: newText } : c)
-        }));
-        updateData(widget.id, { unsorted: newUnsorted, categories: newCategories });
+        const update = (c) => c.id === cardId ? { ...c, text: newText } : c;
+        updateData(widget.id, { 
+          unsorted: unsorted.map(update), 
+          categories: categories.map(cat => ({ ...cat, cards: cat.cards.map(update) })) 
+        });
       };
 
       const updateCategoryName = (catIdx, newName) => {
@@ -6273,38 +6333,53 @@
       };
 
       if (mode === 'setup') {
+        const emojiList = window.EMOJI_LIBRARY ? window.EMOJI_LIBRARY[emojiCategory] : [];
+        const emojiCategories = window.EMOJI_LIBRARY ? Object.keys(window.EMOJI_LIBRARY) : [];
+
         return (
-          <div className="flex flex-col h-full bg-slate-50 p-4 overflow-y-auto custom-scrollbar">
-            <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+          <div className="flex flex-col h-full bg-slate-50 p-4 overflow-hidden">
+            <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2 shrink-0">
               <Columns size={20} className="text-blue-600" />
               Sort Activity Setup
             </h3>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Number of Categories</label>
-                <div className="flex gap-2">
-                  {[2, 3, 4].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => updateData(widget.id, { categoryCount: n })}
-                      className={`px-4 py-2 rounded-lg font-bold transition-all ${categoryCount === n ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex gap-4 mb-4 shrink-0 overflow-x-auto pb-1 no-scrollbar">
+              <button 
+                onClick={() => setSetupTab('text')}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${setupTab === 'text' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
+              >
+                <Type size={16} /> Text List
+              </button>
+              <button 
+                onClick={() => setSetupTab('media')}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${setupTab === 'media' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-100'}`}
+              >
+                <Image size={16} /> Images & Emojis
+              </button>
+              <div className="flex-1" />
+              <div className="flex bg-white rounded-xl p-1 shadow-sm border border-slate-200">
+                {[2, 3, 4].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => updateData(widget.id, { categoryCount: n })}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${categoryCount === n ? 'bg-slate-100 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    {n} Columns
+                  </button>
+                ))}
               </div>
+            </div>
 
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Category Names</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Category Titles</label>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                   {Array.from({ length: categoryCount }).map((_, i) => (
                     <input
                       key={i}
                       type="text"
                       placeholder={`Category ${i + 1}`}
-                      className="bg-white border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="bg-white border border-slate-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium"
                       value={categories[i]?.name || ''}
                       onChange={(e) => {
                         const newCats = [...categories];
@@ -6317,100 +6392,219 @@
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Word List (One per line)</label>
-                <textarea
-                  className="w-full h-48 bg-white border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none custom-scrollbar resize-none"
-                  placeholder="Paste your list here..."
-                  value={bulkText}
-                  onChange={(e) => updateData(widget.id, { bulkText: e.target.value })}
-                />
-              </div>
+              {setupTab === 'text' ? (
+                <div className="animate-in fade-in slide-in-from-left-2">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Word List (One item per line)</label>
+                  <textarea
+                    className="w-full h-48 bg-white border border-slate-200 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm custom-scrollbar resize-none font-medium leading-relaxed"
+                    placeholder="Apple\nBanana\nCherry..."
+                    value={bulkText}
+                    onChange={(e) => updateData(widget.id, { bulkText: e.target.value })}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Pixabay Search */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pixabay Clipart</label>
+                        <span className="text-[10px] text-slate-300 italic">illustrations only</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          placeholder="Search for clipart..."
+                          className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && searchPixabay()}
+                        />
+                        <button 
+                          onClick={searchPixabay}
+                          className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                        >
+                          <Search size={18} />
+                        </button>
+                      </div>
+                      <div className="h-48 bg-white rounded-2xl border border-slate-200 overflow-y-auto p-2 custom-scrollbar grid grid-cols-3 gap-2">
+                        {isSearching ? (
+                          <div className="col-span-3 flex items-center justify-center h-full text-slate-300 italic text-xs animate-pulse">Searching...</div>
+                        ) : searchResults.length > 0 ? (
+                          searchResults.map(img => (
+                            <button 
+                              key={img.id}
+                              onClick={() => addMedia({ id: `pix-${img.id}-${Date.now()}`, type: 'image', content: img.previewURL, label: img.tags.split(',')[0] })}
+                              className="aspect-square rounded-lg overflow-hidden border border-slate-100 hover:border-blue-500 transition-all hover:scale-105 bg-slate-50"
+                            >
+                              <img src={img.previewURL} className="w-full h-full object-contain p-1" />
+                            </button>
+                          ))
+                        ) : (
+                          <div className="col-span-3 flex items-center justify-center h-full text-slate-300 italic text-xs">Search for items to sort</div>
+                        )}
+                      </div>
+                    </div>
 
-              <button
-                onClick={handleGenerate}
-                disabled={!bulkText.trim()}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50"
-              >
-                Generate Sort Activity
-              </button>
+                    {/* Emoji Library */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Emoji Library</label>
+                        <select 
+                          className="text-[10px] font-bold text-blue-600 outline-none bg-transparent"
+                          value={emojiCategory}
+                          onChange={(e) => setEmojiCategory(e.target.value)}
+                        >
+                          {emojiCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                      </div>
+                      <div className="h-[244px] bg-white rounded-2xl border border-slate-200 overflow-y-auto p-3 custom-scrollbar grid grid-cols-5 gap-2 text-2xl">
+                        {emojiList.map(emoji => (
+                          <button 
+                            key={emoji} 
+                            onClick={() => addMedia({ id: `emo-${emoji}-${Date.now()}`, type: 'emoji', content: emoji, label: '' })}
+                            className="hover:scale-125 transition-transform p-1 rounded-lg hover:bg-slate-50 flex items-center justify-center"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manual Upload & Selected Preview */}
+                  <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-3">
+                        <label className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Selected Media ({selectedMedia.length}/12)</label>
+                        <button 
+                          onClick={() => document.getElementById('sort-file-upload').click()}
+                          className="flex items-center gap-1.5 px-3 py-1 bg-white border border-blue-200 rounded-full text-[10px] font-bold text-blue-600 hover:bg-blue-100 transition-all"
+                        >
+                          <Upload size={12} /> Upload Images
+                        </button>
+                        <input id="sort-file-upload" type="file" className="hidden" multiple accept="image/*" onChange={handleFileUpload} />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {selectedMedia.map(item => (
+                        <div key={item.id} className="relative group w-16 h-16 bg-white rounded-xl border-2 border-white shadow-sm flex items-center justify-center">
+                          {item.type === 'image' ? (
+                            <img src={item.content} className="max-w-full max-h-full object-contain p-1 rounded-lg" />
+                          ) : (
+                            <span className="text-3xl">{item.content}</span>
+                          )}
+                          <button 
+                            onClick={() => removeMedia(item.id)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white p-0.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {selectedMedia.length === 0 && (
+                        <div className="text-xs text-blue-300 italic py-4">No images or emojis selected yet...</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+
+            <button
+              onClick={handleGenerate}
+              className="w-full mt-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl shadow-blue-100 transition-all active:scale-95 flex items-center justify-center gap-2 shrink-0"
+            >
+              <Zap size={20} className="fill-current" /> Finish & Start Sorting
+            </button>
           </div>
         );
       }
 
       return (
-        <div className="flex flex-col h-full bg-slate-100">
+        <div className="flex flex-col h-full bg-slate-100 overflow-hidden">
           <div className="flex justify-between items-center p-2 bg-white border-b border-slate-200 shadow-sm shrink-0">
              <div className="flex items-center gap-2">
                <Columns size={16} className="text-blue-600" />
-               <span className="text-xs font-bold text-slate-800">Sort Activity</span>
+               <span className="text-[10px] font-black text-slate-800 uppercase tracking-wider">Sort Activity</span>
              </div>
              <button
                onClick={() => updateData(widget.id, { mode: 'setup' })}
-               className="text-[10px] font-bold text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors"
+               className="text-[10px] font-bold text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-slate-50"
              >
-               <Settings size={12} /> Edit Setup
+               <Settings size={12} /> Edit Cards
              </button>
           </div>
 
           <div className="flex flex-1 min-h-0">
             {/* Unsorted Sidebar */}
             <div 
-              className="w-48 bg-slate-50 border-r border-slate-200 p-2 overflow-y-auto custom-scrollbar"
+              className="w-40 md:w-56 bg-white/40 border-r border-slate-200 p-2 overflow-y-auto custom-scrollbar flex flex-col gap-2"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, 'unsorted')}
             >
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Unsorted</div>
-              <div className="space-y-2">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Unsorted Bin</div>
+              <div className="space-y-2 flex-1">
                 {unsorted.map(card => (
                   <div
                     key={card.id}
                     draggable
                     onDragStart={(e) => handleCardDragStart(e, card, 'unsorted')}
-                    className="bg-white p-2 rounded-lg shadow-sm border border-slate-200 text-sm font-medium cursor-grab active:cursor-grabbing hover:border-blue-300 transition-colors"
+                    className="bg-white p-2 rounded-xl shadow-md border border-slate-100 transition-all cursor-grab active:cursor-grabbing hover:border-blue-400 group"
                   >
+                    {card.type === 'emoji' ? (
+                      <div className="text-center text-4xl py-2">{card.content}</div>
+                    ) : card.content ? (
+                      <img src={card.content} className="w-full h-16 object-contain rounded-lg mb-2 p-1" />
+                    ) : null}
                     <input
                       type="text"
-                      className="w-full bg-transparent outline-none focus:text-blue-600"
-                      value={card.text}
+                      className="w-full bg-transparent outline-none text-xs font-bold text-slate-700 text-center focus:text-blue-600"
+                      value={card.text || ''}
                       onChange={(e) => updateCardText(card.id, e.target.value)}
+                      placeholder={card.type === 'text' ? 'Text' : 'Label...'}
                     />
                   </div>
                 ))}
-                {unsorted.length === 0 && <div className="text-[10px] text-slate-300 italic text-center py-4">All sorted!</div>}
+                {unsorted.length === 0 && <div className="text-[10px] text-slate-300 italic text-center py-8">Empty</div>}
               </div>
             </div>
 
             {/* Sort Zones */}
-            <div className={`flex-1 grid grid-cols-${categoryCount > 2 ? 3 : 2} gap-3 p-3 overflow-y-auto custom-scrollbar`}>
+            <div className={`flex-1 grid grid-cols-${categoryCount > 2 ? 2 : 1} lg:grid-cols-${categoryCount} gap-3 p-3 overflow-y-auto custom-scrollbar bg-slate-100 content-start`}>
               {categories.map((cat, i) => (
                 <div
                   key={cat.id}
-                  className="bg-white/50 rounded-2xl border-2 border-dashed border-slate-300 p-3 flex flex-col min-h-[150px] transition-colors hover:border-blue-400/50 hover:bg-blue-50/20"
+                  className="bg-white/60 rounded-3xl border-2 border-dashed border-slate-200 p-3 flex flex-col min-h-[300px] transition-all hover:border-blue-300 hover:bg-white/80"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, i.toString())}
                 >
                   <input
                     type="text"
-                    className="font-bold text-xs text-slate-500 uppercase tracking-widest mb-3 bg-transparent text-center outline-none focus:text-blue-600"
+                    className="font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] mb-4 bg-transparent text-center outline-none focus:text-blue-600 focus:scale-105 transition-all"
                     value={cat.name}
                     onChange={(e) => updateCategoryName(i, e.target.value)}
                   />
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 grid grid-cols-1 gap-3 content-start pb-4">
                     {cat.cards.map(card => (
                       <div
                         key={card.id}
                         draggable
                         onDragStart={(e) => handleCardDragStart(e, card, i.toString())}
-                        className="bg-white p-3 rounded-xl shadow-md border border-slate-100 text-sm font-bold text-slate-700 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-all"
+                        className="bg-white p-3 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-50 transition-all cursor-grab active:cursor-grabbing hover:translate-y-[-2px] active:scale-95 group animate-in zoom-in-95 duration-200"
                       >
-                         <input
-                          type="text"
-                          className="w-full bg-transparent outline-none focus:text-blue-600"
-                          value={card.text}
-                          onChange={(e) => updateCardText(card.id, e.target.value)}
-                        />
+                         {card.type === 'emoji' ? (
+                            <div className="text-center text-5xl py-2">{card.content}</div>
+                          ) : card.content ? (
+                            <img src={card.content} className="w-full h-24 object-contain rounded-xl mb-2 p-1" />
+                          ) : null}
+                          <input
+                            type="text"
+                            className="w-full bg-transparent outline-none text-sm font-black text-slate-800 text-center focus:text-blue-600"
+                            value={card.text || ''}
+                            onChange={(e) => updateCardText(card.id, e.target.value)}
+                            placeholder={card.type === 'text' ? 'Text' : 'Label...'}
+                          />
                       </div>
                     ))}
                   </div>
