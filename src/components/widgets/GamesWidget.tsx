@@ -1,31 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Type, Grid, RefreshCw, Settings, X, Lightbulb } from 'lucide-react';
+import { WORD_BANKS } from '../../constants/wordBanks';
 
-// Use global WORD_BANKS for parity with monolithic version and to support expanded list
-declare global {
-    interface Window {
-        WORD_BANKS: any;
-    }
-}
-
-const GET_WORD_BANKS = () => (window as any).WORD_BANKS || {
-    3: ['THE', 'AND', 'FOR'], // fallback
-    4: ['THAT', 'THIS', 'WITH'],
-    5: ['ABOUT', 'OTHER', 'WHICH'],
-    6: ['SEARCH', 'ONLINE', 'PEOPLE']
-};
-
-export const LexiGuess = ({ widget, updateData }) => {
+export const LexiGuess = ({ widget, updateData }: any) => {
     const [input, setInput] = useState('');
     const [shake, setShake] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
     const wordLength = widget.data.wordleSize || 5;
     const guesses = widget.data.wordleGuesses || [];
     const target = widget.data.wordleTarget || 'APPLE';
     const isGameOver = widget.data.wordleStatus === 'won' || guesses.length >= 6;
 
     const resetGame = () => {
-        const wordBanks = GET_WORD_BANKS();
-        const words = wordBanks[wordLength as keyof typeof wordBanks] || wordBanks[5];
+        const words = WORD_BANKS[wordLength as keyof typeof WORD_BANKS] || WORD_BANKS[5];
         const newTarget = words[Math.floor(Math.random() * words.length)];
         updateData(widget.id, {
             wordleTarget: newTarget,
@@ -33,6 +20,7 @@ export const LexiGuess = ({ widget, updateData }) => {
             wordleStatus: 'playing'
         });
         setInput('');
+        setMessage(null);
     };
 
     const handleKey = (key: string) => {
@@ -41,9 +29,8 @@ export const LexiGuess = ({ widget, updateData }) => {
             if (input.length === wordLength) {
                 const uppercaseInput = input.toUpperCase();
                 let isValidWord = false;
-                const wordBanks = GET_WORD_BANKS();
-                for (const len in wordBanks) {
-                    if (wordBanks[len as unknown as keyof typeof wordBanks].includes(uppercaseInput)) {
+                for (const len in WORD_BANKS) {
+                    if (WORD_BANKS[len as unknown as keyof typeof WORD_BANKS].includes(uppercaseInput)) {
                         isValidWord = true;
                         break;
                     }
@@ -51,7 +38,11 @@ export const LexiGuess = ({ widget, updateData }) => {
 
                 if (!isValidWord) {
                     setShake(true);
-                    setTimeout(() => setShake(false), 500);
+                    setMessage('Not in word bank');
+                    setTimeout(() => {
+                        setShake(false);
+                        setMessage(null);
+                    }, 1500);
                     return;
                 }
 
@@ -84,7 +75,7 @@ export const LexiGuess = ({ widget, updateData }) => {
 
     return (
         <div className="p-3 h-full flex flex-col items-center justify-center gap-3 bg-slate-100/50 overflow-y-auto custom-scrollbar">
-            <div className={`grid gap-1.5 mb-2 ${shake ? 'animate-shake' : ''}`}>
+            <div className={`grid gap-1.5 mb-2 relative ${shake ? 'animate-shake' : ''}`}>
                 {[...Array(6)].map((_, i) => (
                     <div key={i} className="flex gap-1.5">
                         {[...Array(wordLength)].map((_, j) => {
@@ -99,6 +90,11 @@ export const LexiGuess = ({ widget, updateData }) => {
                         })}
                     </div>
                 ))}
+                {message && (
+                    <div className="absolute inset-x-0 -bottom-8 flex justify-center z-10 animate-in fade-in zoom-in slide-in-from-top-2">
+                        <span className="bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wider">{message}</span>
+                    </div>
+                )}
             </div>
 
             <div className="w-full max-w-[280px] flex gap-2">
@@ -211,9 +207,8 @@ export const GridGlide = ({ widget, updateData }: any) => {
         const word = selection.map(idx => grid[idx]).join('');
 
         let isValidWord = false;
-        const wordBanks = GET_WORD_BANKS();
-        for (const len in wordBanks) {
-            if (wordBanks[len as unknown as keyof typeof wordBanks].includes(word)) {
+        for (const len in WORD_BANKS) {
+            if (WORD_BANKS[len as unknown as keyof typeof WORD_BANKS].includes(word)) {
                 isValidWord = true;
                 break;
             }
@@ -317,8 +312,7 @@ export const ScrambleSwap = ({ widget, updateData }: any) => {
     };
 
     const resetGame = () => {
-        const wordBanks = GET_WORD_BANKS();
-        const words = wordBanks[wordLength as keyof typeof wordBanks] || wordBanks[5];
+        const words = WORD_BANKS[wordLength as keyof typeof WORD_BANKS] || WORD_BANKS[5];
         const newTarget = words[Math.floor(Math.random() * words.length)];
         updateData(widget.id, {
             scrambleTarget: newTarget,
@@ -378,8 +372,7 @@ export const ScrambleSwap = ({ widget, updateData }: any) => {
 
     const checkWord = () => {
         const word = current.join('');
-        const wordBanks = GET_WORD_BANKS();
-        const bank = wordBanks[wordLength as keyof typeof wordBanks] || [];
+        const bank = WORD_BANKS[wordLength as keyof typeof WORD_BANKS] || [];
         if (word === target || bank.includes(word)) {
             updateData(widget.id, { scrambleSolved: true });
         } else {
