@@ -6193,7 +6193,7 @@
       );
     };
 
-    const SortWidget = ({ widget, updateData }) => {
+    const SortWidget = ({ widget, updateData, user }) => {
       const { 
         categories = [], 
         unsorted = [], 
@@ -6202,7 +6202,6 @@
         bulkText = '',
         selectedMedia = [] // { id, type: 'image'|'emoji', content, label }
       } = widget.data;
-      const user = props.user; // Access user from props
 
       const [setupTab, setSetupTab] = useState('text');
       const [searchQuery, setSearchQuery] = useState('');
