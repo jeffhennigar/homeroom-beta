@@ -690,7 +690,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, LayoutGrid, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell, Music, Repeat,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search, Calculator, Ruler, Zap, Gamepad2, Grid, Shapes, Triangle, Hexagon, ArrowRight, Columns
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search, Calculator, Ruler, Zap, Gamepad2, Grid, Shapes, Triangle, Hexagon, ArrowRight, Columns, Folder
     } from 'lucide-react';
 
 
@@ -6202,6 +6202,7 @@
         bulkText = '',
         selectedMedia = [] // { id, type: 'image'|'emoji', content, label }
       } = widget.data;
+      const user = props.user; // Access user from props
 
       const [setupTab, setSetupTab] = useState('text');
       const [searchQuery, setSearchQuery] = useState('');
@@ -6212,6 +6213,15 @@
       const [pixabayError, setPixabayError] = useState(null);
       const PIXABAY_KEY = '49221539-74312678da47f3ad5b565a58d';
 
+      // Saved Sets State
+      const [savedSets, setSavedSets] = useState([]);
+      const [isLoadingSets, setIsLoadingSets] = useState(false);
+      const [showSaveDialog, setShowSaveDialog] = useState(false);
+      const [showLoadMenu, setShowLoadMenu] = useState(false);
+      const [saveTitle, setSaveTitle] = useState('');
+      const [isSaving, setIsSaving] = useState(false);
+      const [statusMsg, setStatusMsg] = useState(null);
+
       const DEFAULT_EMOJIS = {
         "Animals": ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼"],
         "Food": ["🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇"],
@@ -6221,17 +6231,107 @@
       const [lib, setLib] = useState(window.EMOJI_LIBRARY || DEFAULT_EMOJIS);
 
       useEffect(() => {
-        // Sync with global emoji library if it loads later
-        if (!window.EMOJI_LIBRARY) {
-          const interval = setInterval(() => {
-            if (window.EMOJI_LIBRARY) {
-              setLib(window.EMOJI_LIBRARY);
-              clearInterval(interval);
-            }
-          }, 1000);
-          return () => clearInterval(interval);
+        // Fetch saved sets if logged in
+        if (user) {
+          loadActivitySets();
         }
-      }, []);
+      }, [user]);
+
+      const loadActivitySets = async () => {
+        if (!user) return;
+        setIsLoadingSets(true);
+        try {
+          const { data, error } = await supabase
+            .from('activity_sets')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('activity_type', 'sort')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setSavedSets(data || []);
+        } catch (e) {
+          console.error("Error loading activity sets:", e);
+        } finally {
+          setIsLoadingSets(false);
+        }
+      };
+
+      const saveActivitySet = async () => {
+        if (!user || !saveTitle.trim()) return;
+        setIsSaving(true);
+        setStatusMsg({ type: 'info', text: 'Saving...' });
+
+        // Filter out large base64 data to avoid Supabase limits/usage
+        const filteredMedia = (selectedMedia || []).map(m => {
+          if (m.type === 'image' && m.content.startsWith('data:')) {
+            // If it's a large upload, maybe skip or warn
+            if (m.content.length > 500000) { 
+               console.warn("Skipping large image blob in save");
+               return { ...m, content: '' }; 
+            }
+          }
+          return m;
+        });
+
+        const content = {
+          categories,
+          bulkText,
+          categoryCount,
+          selectedMedia: filteredMedia
+        };
+
+        try {
+          const { error } = await supabase
+            .from('activity_sets')
+            .upsert({
+              user_id: user.id,
+              title: saveTitle,
+              activity_type: 'sort',
+              content: content
+            });
+
+          if (error) throw error;
+          
+          setStatusMsg({ type: 'success', text: 'Set saved successfully!' });
+          setShowSaveDialog(false);
+          setSaveTitle('');
+          loadActivitySets();
+        } catch (e) {
+          console.error("Error saving activity set:", e);
+          setStatusMsg({ type: 'error', text: 'Failed to save set.' });
+        } finally {
+          setIsSaving(false);
+          setTimeout(() => setStatusMsg(null), 3000);
+        }
+      };
+
+      const deleteActivitySet = async (setId) => {
+        if (!user) return;
+        try {
+          const { error } = await supabase
+            .from('activity_sets')
+            .delete()
+            .eq('id', setId);
+          
+          if (error) throw error;
+          loadActivitySets();
+        } catch (e) {
+          console.error("Error deleting activity set:", e);
+        }
+      };
+
+      const handleLoadSet = (set) => {
+        const { content } = set;
+        updateData(widget.id, {
+          categories: content.categories || [],
+          bulkText: content.bulkText || '',
+          categoryCount: content.categoryCount || 2,
+          selectedMedia: content.selectedMedia || [],
+          mode: 'setup'
+        });
+        setShowLoadMenu(false);
+      };
 
       const performSearch = () => {
         if (searchSource === 'pixabay') searchPixabay();
@@ -6409,6 +6509,96 @@
               <Columns size={20} className="text-blue-600" />
               Sort Activity Setup
             </h3>
+
+            {/* Save/Load Controls */}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {statusMsg && (
+                <div className={`text-[10px] font-bold px-2 py-1 rounded ${statusMsg.type === 'success' ? 'bg-green-50 text-green-600' : statusMsg.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'} animate-in fade-in duration-300`}>
+                  {statusMsg.text}
+                </div>
+              )}
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setShowLoadMenu(!showLoadMenu)}
+                  title="Load saved sets"
+                  className="p-2 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"
+                >
+                  <Folder size={18} />
+                </button>
+                {showLoadMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex justify-between items-center mb-3">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Your Saved Sets</span>
+                       <button onClick={() => setShowLoadMenu(false)}><X size={12} className="text-slate-300" /></button>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-1">
+                      {isLoadingSets ? (
+                        <div className="text-[10px] text-slate-300 italic text-center py-4">Loading...</div>
+                      ) : savedSets.length === 0 ? (
+                        <div className="text-[10px] text-slate-300 italic text-center py-4">No saved sets found.</div>
+                      ) : (
+                        savedSets.map(set => (
+                          <div key={set.id} className="group flex items-center gap-2 p-2 hover:bg-slate-50 rounded-xl transition-colors text-left">
+                            <button 
+                              onClick={() => handleLoadSet(set)}
+                              className="flex-1 text-xs font-bold text-slate-700 truncate"
+                            >
+                              {set.title}
+                            </button>
+                            <button 
+                              onClick={() => deleteActivitySet(set.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <button 
+                  onClick={() => setShowSaveDialog(!showSaveDialog)}
+                  title="Save current set"
+                  className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all hover:scale-105 active:scale-95"
+                >
+                  <Save size={18} />
+                </button>
+                {showSaveDialog && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 animate-in fade-in slide-in-from-top-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Save As...</label>
+                    <input 
+                      type="text"
+                      placeholder="Enter set title..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                      value={saveTitle}
+                      onChange={(e) => setSaveTitle(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveActivitySet()}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setShowSaveDialog(false)}
+                        className="flex-1 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={saveActivitySet}
+                        disabled={isSaving || !saveTitle.trim()}
+                        className="flex-1 py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50 transition-all"
+                      >
+                        {isSaving ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
             
             <div className="flex gap-4 mb-4 shrink-0 overflow-x-auto pb-1 no-scrollbar">
               <button 
@@ -12482,7 +12672,8 @@
             setSparkGrade,
             studentName,
             setStudentName
-          }
+          },
+          user: user // Pass user to widgets
         };
 
         switch (widget.type) {
