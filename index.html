@@ -689,7 +689,7 @@
       Save, AlertCircle, AlertTriangle, Share2, Edit3, Layout, LayoutGrid, User, MoreVertical, MoreHorizontal, Briefcase,
       RotateCw, Lock, Unlock, Grip, Palette, Image as ImageIcon, UploadCloud, Bell, Music, Repeat,
       Sun, Moon, BarChart2, Italic, Underline, AlignLeft, Clock, Smile,
-      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search, Calculator, Ruler, Zap, Gamepad2, Grid, Shapes, Triangle, Hexagon, ArrowRight
+      Volume2, VolumeX, Download, Upload, Check, Info, ExternalLink, Mail, Calendar, Youtube, Lightbulb, MousePointer2, Undo2, Redo2, ArrowRightSquare, QrCode, StickyNote, PieChart, Hash, ListOrdered, Pencil, Cloud, Activity, Shield, Globe, Circle, PenSquare, Terminal, FileSpreadsheet, Search, Calculator, Ruler, Zap, Gamepad2, Grid, Shapes, Triangle, Hexagon, ArrowRight, Columns
     } from 'lucide-react';
 
 
@@ -949,7 +949,8 @@
       CALCULATOR: { label: 'Calc', icon: <Calculator /> },
       COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
       WEATHER: { label: 'Weather', icon: <Cloud /> },
-      GAMES: { label: 'Games', icon: <Gamepad2 /> }
+      GAMES: { label: 'Games', icon: <Gamepad2 /> },
+      SORT: { label: 'Sort', icon: <Columns /> }
     };
 
     const WindowIcon = ({ size = 16 }) => (
@@ -1101,7 +1102,8 @@
       SPARK: { width: 400, height: 450 },
       WEATHER: { width: 300, height: 300 },
       POLYPAD: { width: 900, height: 600 },
-      GAMES: { width: 480, height: 530 }
+      GAMES: { width: 480, height: 530 },
+      SORT: { width: 900, height: 550 }
     };
 
     // --- COMPONENTS ---
@@ -3235,7 +3237,8 @@
         tempUnit = 'F', windUnit = 'mph', showWind = true, showHumidity = true, showUV = false, showFeelsLike = false, showForecast = false
       } = widget.data || {};
 
-      const [showSettings, setShowSettings] = useState(false);
+      const { showSettings = false } = widget.data || {};
+      const setShowSettings = (val) => updateData(widget.id, { showSettings: val });
       const [settingsSearchQuery, setSettingsSearchQuery] = useState('');
 
       const WMO_CODES = {
@@ -3277,6 +3280,7 @@
         const tempParam = tUnit === 'C' ? 'celsius' : 'fahrenheit';
         const windParam = wUnit === 'km/h' ? 'kmh' : 'mph';
         updateData(widget.id, { isLoading: true, error: null });
+        window.dispatchEvent(new CustomEvent('weather-refresh-started', { detail: { id: widget.id } }));
         try {
           const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=${tempParam}&wind_speed_unit=${windParam}&forecast_days=3`);
           const data = await res.json();
@@ -3302,6 +3306,9 @@
           updateData(widget.id, { isLoading: false, error: err.message });
         }
       }, [widget.id, updateData, tempUnit, windUnit]);
+
+      // Add a hidden button to trigger refresh from parent
+      const refreshTriggerRef = useRef(null);
 
       useEffect(() => {
         if (!lat || !lon) return;
@@ -3580,23 +3587,13 @@
             </div>
           )}
 
-          {/* Hover controls: Settings gear + Refresh — bottom right, under the X */}
-          <div className="absolute top-12 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-20">
-            <button
-              onClick={(e) => { e.stopPropagation(); fetchWeather(lat, lon, cityName); }}
-              className={`p-1.5 rounded-full backdrop-blur-md transition-all active:scale-90 ${isLight ? 'bg-black/20 hover:bg-black/40 text-white' : 'bg-white/60 hover:bg-white shadow-sm text-slate-600'}`}
-              title="Refresh"
-            >
-              <RefreshCw size={14} />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
-              className={`p-1.5 rounded-full backdrop-blur-md transition-all active:scale-90 ${isLight ? 'bg-black/20 hover:bg-black/40 text-white' : 'bg-white/60 hover:bg-white shadow-sm text-slate-600'}`}
-              title="Settings"
-            >
-              <Settings size={14} />
-            </button>
-          </div>
+          <button
+            ref={refreshTriggerRef}
+            className="weather-refresh-trigger hidden"
+            onClick={() => fetchWeather(lat, lon, cityName)}
+          />
+
+          {/* DraggableResizable now handles floating tools for Weather */}
 
           {/* Loading indicator */}
           {isLoading && <div className="absolute bottom-1 left-1"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /></div>}
@@ -3607,7 +3604,7 @@
 
     const GRID_SIZE = 20;
     const HEADER_HEIGHT = 40;
-    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'Exit Ticket', SPARK: 'Spark', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals' };
+    const WIDGET_TYPE_LABELS = { TIMER: 'Timers', RANDOMIZER: 'Random', GROUP_MAKER: 'Groups', SEAT_PICKER: 'Seats', TEXT: 'Notes', WEBCAM: 'Cam', DICE: 'Dice', TRAFFIC: 'Noise', QR: 'Exit Ticket', SPARK: 'Spark', VOTE: 'Poll', DRAWING: 'Drawing', SCHEDULE: 'Schedule', YOUTUBE: 'Embed', CLOCK: 'Clock', MARBLE_JAR: 'Goals', WEATHER: 'Weather', CALENDAR: 'Calendar', GAMES: 'Games', SORT: 'Sort' };
 
     // --- UTILS ---
     const DraggableResizable = ({ id, position, size, zIndex, isSelected, isMinimized = false, isSpotlighted = false, isGridEnabled = false, widgetType, onUpdate, onSelect, onRemove, onFontSizeChange, onMinimizeToggle, onSpotlight, onSettings, children, chromeless = false, isGlassy = false, onToggleGlass, isClosing = false, title }) => {
@@ -3842,7 +3839,16 @@
             className={`absolute top-2 right-2 flex gap-1 z-[10006] transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
           >
             <div className="flex bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200 p-0.5 pointer-events-auto">
-              {(onSettings && widgetType === 'CLOCK') && (
+              {widgetType === 'WEATHER' && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); const el = document.querySelector(`[data-widget-id="${id}"] .weather-refresh-trigger`); if (el) el.click(); }}
+                  className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                  title="Refresh Weather"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              )}
+              {(onSettings && (widgetType === 'CLOCK' || widgetType === 'WEATHER' || widgetType === 'CALENDAR' || widgetType === 'GAMES')) && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onSettings(id); }}
                   className="p-1 w-7 h-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
@@ -6187,6 +6193,236 @@
       );
     };
 
+    const SortWidget = ({ widget, updateData }) => {
+      const { categories = [], unsorted = [], mode = 'setup', categoryCount = 2, bulkText = '' } = widget.data;
+
+      const handleGenerate = () => {
+        const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const newUnsorted = lines.map((text, i) => ({ id: `card-${Date.now()}-${i}`, text }));
+        
+        let newCategories = categories;
+        if (newCategories.length !== categoryCount) {
+          newCategories = Array.from({ length: categoryCount }, (_, i) => ({
+            id: `cat-${i}`,
+            name: categories[i]?.name || `Category ${i + 1}`,
+            cards: []
+          }));
+        } else {
+          // Just clear cards if regenerating with same count
+          newCategories = newCategories.map(c => ({ ...c, cards: [] }));
+        }
+
+        updateData(widget.id, {
+          categories: newCategories,
+          unsorted: newUnsorted,
+          mode: 'play'
+        });
+      };
+
+      const handleCardDragStart = (e, card, sourceContext) => {
+        e.dataTransfer.setData('cardId', card.id);
+        e.dataTransfer.setData('sourceContext', sourceContext); // 'unsorted' or cat index
+      };
+
+      const handleDrop = (e, targetContext) => {
+        e.preventDefault();
+        const cardId = e.dataTransfer.getData('cardId');
+        const sourceContext = e.dataTransfer.getData('sourceContext');
+
+        if (sourceContext === targetContext) return;
+
+        let movedCard;
+        let newUnsorted = [...unsorted];
+        let newCategories = categories.map(c => ({ ...c, cards: [...c.cards] }));
+
+        // Remove from source
+        if (sourceContext === 'unsorted') {
+          const idx = newUnsorted.findIndex(c => c.id === cardId);
+          if (idx > -1) [movedCard] = newUnsorted.splice(idx, 1);
+        } else {
+          const catIdx = parseInt(sourceContext);
+          const idx = newCategories[catIdx].cards.findIndex(c => c.id === cardId);
+          if (idx > -1) [movedCard] = newCategories[catIdx].cards.splice(idx, 1);
+        }
+
+        if (!movedCard) return;
+
+        // Add to target
+        if (targetContext === 'unsorted') {
+          newUnsorted.push(movedCard);
+        } else {
+          const catIdx = parseInt(targetContext);
+          newCategories[catIdx].cards.push(movedCard);
+        }
+
+        updateData(widget.id, { unsorted: newUnsorted, categories: newCategories });
+      };
+
+      const updateCardText = (cardId, newText) => {
+        const newUnsorted = unsorted.map(c => c.id === cardId ? { ...c, text: newText } : c);
+        const newCategories = categories.map(cat => ({
+          ...cat,
+          cards: cat.cards.map(c => c.id === cardId ? { ...c, text: newText } : c)
+        }));
+        updateData(widget.id, { unsorted: newUnsorted, categories: newCategories });
+      };
+
+      const updateCategoryName = (catIdx, newName) => {
+        const newCategories = [...categories];
+        newCategories[catIdx] = { ...newCategories[catIdx], name: newName };
+        updateData(widget.id, { categories: newCategories });
+      };
+
+      if (mode === 'setup') {
+        return (
+          <div className="flex flex-col h-full bg-slate-50 p-4 overflow-y-auto custom-scrollbar">
+            <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+              <Columns size={20} className="text-blue-600" />
+              Sort Activity Setup
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Number of Categories</label>
+                <div className="flex gap-2">
+                  {[2, 3, 4].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => updateData(widget.id, { categoryCount: n })}
+                      className={`px-4 py-2 rounded-lg font-bold transition-all ${categoryCount === n ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Category Names</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {Array.from({ length: categoryCount }).map((_, i) => (
+                    <input
+                      key={i}
+                      type="text"
+                      placeholder={`Category ${i + 1}`}
+                      className="bg-white border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={categories[i]?.name || ''}
+                      onChange={(e) => {
+                        const newCats = [...categories];
+                        while(newCats.length < categoryCount) newCats.push({ id: `cat-${newCats.length}`, name: '', cards: [] });
+                        newCats[i].name = e.target.value;
+                        updateData(widget.id, { categories: newCats });
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Word List (One per line)</label>
+                <textarea
+                  className="w-full h-48 bg-white border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none custom-scrollbar resize-none"
+                  placeholder="Paste your list here..."
+                  value={bulkText}
+                  onChange={(e) => updateData(widget.id, { bulkText: e.target.value })}
+                />
+              </div>
+
+              <button
+                onClick={handleGenerate}
+                disabled={!bulkText.trim()}
+                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50"
+              >
+                Generate Sort Activity
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex flex-col h-full bg-slate-100">
+          <div className="flex justify-between items-center p-2 bg-white border-b border-slate-200 shadow-sm shrink-0">
+             <div className="flex items-center gap-2">
+               <Columns size={16} className="text-blue-600" />
+               <span className="text-xs font-bold text-slate-800">Sort Activity</span>
+             </div>
+             <button
+               onClick={() => updateData(widget.id, { mode: 'setup' })}
+               className="text-[10px] font-bold text-slate-400 hover:text-blue-600 flex items-center gap-1 transition-colors"
+             >
+               <Settings size={12} /> Edit Setup
+             </button>
+          </div>
+
+          <div className="flex flex-1 min-h-0">
+            {/* Unsorted Sidebar */}
+            <div 
+              className="w-48 bg-slate-50 border-r border-slate-200 p-2 overflow-y-auto custom-scrollbar"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, 'unsorted')}
+            >
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Unsorted</div>
+              <div className="space-y-2">
+                {unsorted.map(card => (
+                  <div
+                    key={card.id}
+                    draggable
+                    onDragStart={(e) => handleCardDragStart(e, card, 'unsorted')}
+                    className="bg-white p-2 rounded-lg shadow-sm border border-slate-200 text-sm font-medium cursor-grab active:cursor-grabbing hover:border-blue-300 transition-colors"
+                  >
+                    <input
+                      type="text"
+                      className="w-full bg-transparent outline-none focus:text-blue-600"
+                      value={card.text}
+                      onChange={(e) => updateCardText(card.id, e.target.value)}
+                    />
+                  </div>
+                ))}
+                {unsorted.length === 0 && <div className="text-[10px] text-slate-300 italic text-center py-4">All sorted!</div>}
+              </div>
+            </div>
+
+            {/* Sort Zones */}
+            <div className={`flex-1 grid grid-cols-${categoryCount > 2 ? 3 : 2} gap-3 p-3 overflow-y-auto custom-scrollbar`}>
+              {categories.map((cat, i) => (
+                <div
+                  key={cat.id}
+                  className="bg-white/50 rounded-2xl border-2 border-dashed border-slate-300 p-3 flex flex-col min-h-[150px] transition-colors hover:border-blue-400/50 hover:bg-blue-50/20"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDrop(e, i.toString())}
+                >
+                  <input
+                    type="text"
+                    className="font-bold text-xs text-slate-500 uppercase tracking-widest mb-3 bg-transparent text-center outline-none focus:text-blue-600"
+                    value={cat.name}
+                    onChange={(e) => updateCategoryName(i, e.target.value)}
+                  />
+                  <div className="flex-1 space-y-2">
+                    {cat.cards.map(card => (
+                      <div
+                        key={card.id}
+                        draggable
+                        onDragStart={(e) => handleCardDragStart(e, card, i.toString())}
+                        className="bg-white p-3 rounded-xl shadow-md border border-slate-100 text-sm font-bold text-slate-700 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-all"
+                      >
+                         <input
+                          type="text"
+                          className="w-full bg-transparent outline-none focus:text-blue-600"
+                          value={card.text}
+                          onChange={(e) => updateCardText(card.id, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const WebcamWidget = ({ widget, updateData }) => {
       const { isMirrored = true, isActive = true } = widget.data;
       const videoRef = useRef(null);
@@ -6464,8 +6700,8 @@
 
                 {/* Rotating Mode: Cycle Picker */}
                 {scheduleMode === 'rotating' && (
-                  <span onClick={(e) => { e.stopPropagation(); setShowCyclePicker(!showCyclePicker); }} className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider hover:bg-indigo-50 px-1 rounded cursor-pointer relative top-0.5">
-                    (Change Day)
+                  <span onClick={(e) => { e.stopPropagation(); setShowCyclePicker(!showCyclePicker); }} className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider hover:bg-indigo-50 px-1 rounded cursor-pointer relative top-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    (Set Day)
                   </span>
                 )}
                 {/* Weekly Mode: Date Only */}
@@ -6489,13 +6725,13 @@
               </div>
               <button onClick={() => changeDate(1)} className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600"><ChevronRight size={20} /></button>
 
-              <div className="relative ml-2">
+              <div className="relative ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 ring-1 ring-indigo-200 transition-colors shadow-sm"><Calendar size={14} /></button>
                 <input type="date" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleDateChange} />
               </div>
             </div>
 
-            <div className="flex gap-1 items-center">
+            <div className="flex gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
               <select
                 className="text-[10px] font-bold border rounded bg-white px-1 py-0.5 text-slate-600"
                 value={fontSize <= 11 ? 'S' : fontSize >= 18 ? 'L' : 'M'}
@@ -8644,26 +8880,49 @@
       const target = widget.data.wordleTarget || 'APPLE';
       const isGameOver = widget.data.wordleStatus === 'won' || guesses.length >= 6;
 
-      const resetGame = () => {
-        const bank = window.WORD_BANKS || {};
-        const words = bank[wordLength] || bank[5] || [];
-        if (words.length === 0) return;
-        const newTarget = words[Math.floor(Math.random() * words.length)];
-        updateData(widget.id, {
-          wordleTarget: newTarget,
-          wordleGuesses: [],
-          wordleStatus: 'playing'
-        });
+      const resetGame = (isNewWord = true) => {
+        if (isNewWord) {
+          const bank = window.WORD_BANKS || {};
+          const words = bank[wordLength] || bank[5] || [];
+          if (words.length === 0) {
+            console.warn('Word bank not loaded yet');
+            return;
+          }
+          const newTarget = words[Math.floor(Math.random() * words.length)];
+          updateData(widget.id, {
+            wordleTarget: newTarget,
+            wordleGuesses: [],
+            wordleStatus: 'playing'
+          });
+        } else {
+          updateData(widget.id, {
+            wordleGuesses: [],
+            wordleStatus: 'playing'
+          });
+        }
         setInput('');
       };
 
       const handleKey = (key) => {
-        if (isGameOver) return;
+        if (isGameOver && key !== 'Enter') return;
         if (key === 'Enter') {
+          if (isGameOver) {
+            resetGame(true);
+            return;
+          }
           if (input.length === wordLength) {
             const uppercaseInput = input.toUpperCase();
             let isValidWord = false;
             const bank = window.WORD_BANKS || {};
+            
+            // Check if bank is loaded
+            if (Object.keys(bank).length === 0) {
+              setShake(true);
+              setTimeout(() => setShake(false), 500);
+              console.warn("Word bank not available");
+              return;
+            }
+
             for (const len in bank) {
               if (bank[len].includes(uppercaseInput)) {
                 isValidWord = true;
@@ -8706,6 +8965,22 @@
 
       return (
         <div className="p-4 h-full flex flex-col items-center justify-center gap-4 bg-slate-100/50">
+          <div className="flex gap-2 mb-2">
+            <button
+              onClick={() => resetGame(false)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 border-b-2 border-slate-200 transition-all active:translate-y-px active:border-b-0"
+              title="Clear all guesses"
+            >
+              <RotateCcw size={12} /> Restart
+            </button>
+            <button
+              onClick={() => resetGame(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white text-blue-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 border-b-2 border-slate-200 transition-all active:translate-y-px active:border-b-0"
+              title="New random word"
+            >
+              <RefreshCw size={12} /> New Word
+            </button>
+          </div>
           <div className={`grid gap-2 mb-4 ${shake ? 'animate-shake' : ''}`}>
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex gap-2">
@@ -8860,6 +9135,22 @@
 
       return (
         <div className="p-4 h-full flex flex-col items-center gap-4 bg-slate-100/50 overflow-y-auto" onPointerUp={handlePointerUp}>
+          <div className="flex gap-2">
+            <button
+              onClick={() => updateData(widget.id, { boggleFound: [] })}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 border-b-2 border-slate-200 transition-all active:translate-y-px active:border-b-0"
+              title="Clear found words"
+            >
+              <RotateCcw size={12} /> Restart
+            </button>
+            <button
+              onClick={generateGrid}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white text-blue-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 border-b-2 border-slate-200 transition-all active:translate-y-px active:border-b-0"
+              title="New random board"
+            >
+              <RefreshCw size={12} /> New Board
+            </button>
+          </div>
           <div className="flex justify-between w-full max-w-[280px] mb-2">
             <div className="text-[10px] font-black uppercase text-slate-400">Words: {foundWords.length}</div>
             {message && <div className={`text-[10px] font-black uppercase ${message.color} animate-pulse`}>{message.text}</div>}
@@ -8940,17 +9231,29 @@
         return arr;
       };
 
-      const resetGame = () => {
+      const resetGame = (isNewWord = true) => {
         const bank = window.WORD_BANKS || {};
         const words = bank[wordLength] || bank[5] || [];
-        if (words.length === 0) return;
-        const newTarget = words[Math.floor(Math.random() * words.length)];
-        updateData(widget.id, {
-          scrambleTarget: newTarget,
-          scrambleCurrent: scrambleWord(newTarget),
-          scrambleSolved: false,
-          scrambleHints: []
-        });
+        if (words.length === 0) {
+          console.warn('Word bank not loaded yet');
+          return;
+        }
+
+        if (isNewWord) {
+          const newTarget = words[Math.floor(Math.random() * words.length)];
+          updateData(widget.id, {
+            scrambleTarget: newTarget,
+            scrambleCurrent: scrambleWord(newTarget),
+            scrambleSolved: false,
+            scrambleHints: []
+          });
+        } else {
+          updateData(widget.id, {
+            scrambleCurrent: scrambleWord(target),
+            scrambleSolved: false,
+            scrambleHints: []
+          });
+        }
         setSelectedIndex(null);
         setShake(false);
       };
@@ -8989,8 +9292,10 @@
       };
 
       useEffect(() => {
-        if (!widget.data.scrambleTarget) resetGame();
-      }, [wordLength]);
+        if (!widget.data.scrambleTarget || !widget.data.scrambleCurrent || widget.data.scrambleCurrent.length === 0) {
+          resetGame();
+        }
+      }, [wordLength, widget.data.scrambleTarget, widget.data.scrambleCurrent]);
 
       const swap = (i, j) => {
         const next = [...current];
@@ -9013,6 +9318,22 @@
 
       return (
         <div className="p-8 h-full flex flex-col items-center justify-center gap-8 bg-slate-100/50 relative overflow-hidden">
+          <div className="flex gap-2 mb-2">
+            <button
+              onClick={() => resetGame(false)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 border-b-2 border-slate-200 transition-all active:translate-y-px active:border-b-0"
+              title="Rescramble current word"
+            >
+              <RotateCcw size={12} /> Restart
+            </button>
+            <button
+              onClick={() => resetGame(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white text-blue-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 border-b-2 border-slate-200 transition-all active:translate-y-px active:border-b-0"
+              title="New random word"
+            >
+              <RefreshCw size={12} /> New Word
+            </button>
+          </div>
           <div className={`flex gap-2 flex-wrap justify-center ${shake ? 'animate-shake' : ''}`}>
             {current.map((char, i) => (
               <button
@@ -10004,7 +10325,8 @@
         SOUNDBOARD: SoundboardWidget,
         CALCULATOR: CalculatorWidget,
         COUNTDOWN: CountdownWidget,
-        WEATHER: WeatherWidget
+        WEATHER: WeatherWidget,
+        SORT: SortWidget
       };
 
       return (
@@ -10013,7 +10335,7 @@
             const WidgetComp = WIDGET_COMPONENTS[w.type];
             if (!WidgetComp) return null;
             return (
-              <div key={w.id} className="absolute overflow-hidden rounded-2xl border-2 border-slate-200 bg-white" style={{ left: w.position.x, top: w.position.y, width: w.size.width, height: w.size.height, zIndex: w.zIndex }}>
+              <div key={w.id} className="absolute overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-white" style={{ left: w.position.x, top: w.position.y, width: w.size.width, height: w.size.height, zIndex: w.zIndex }}>
                 <WidgetComp
                   widget={w}
                   updateData={() => { }}
@@ -10053,8 +10375,8 @@
       };
 
       return (
-        <div className={`fixed bottom-24 right-8 w-[400px] h-[500px] bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col z-[10005] overflow-hidden ${isClosing ? 'animate-slide-manager-close' : 'animate-slide-manager'} origin-bottom-right`}>
-          <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
+        <div className={`fixed bottom-24 right-8 w-[400px] h-[500px] bg-white/95 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.35)] border border-white/50 flex flex-col z-[10005] overflow-hidden ${isClosing ? 'animate-slide-manager-close' : 'animate-slide-manager'} origin-bottom-right`}>
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white/50">
             <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
               <Layout size={20} className="text-indigo-600" />
               Slide Manager
@@ -10064,8 +10386,8 @@
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-slate-50/30">
-            <div className="grid grid-cols-3 gap-4">
+          <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-slate-50/10">
+            <div className="grid grid-cols-4 gap-3">
               {slides.map((slideWidgets, index) => {
                 const isActive = index === currentSlideIndex;
                 const slideBg = slideBackgrounds[index] || background;
@@ -10081,7 +10403,7 @@
                     onClick={() => { onSelectSlide(index); onClose(); }}
                     className={`relative group cursor-pointer transition-all duration-300 ${draggedIndex === index ? 'opacity-0' : 'opacity-100'}`}
                   >
-                    <div className={`aspect-video rounded-2xl overflow-hidden border-2 transition-all duration-300 shadow-sm group-hover:shadow-xl group-hover:-translate-y-1 ${isActive ? 'border-indigo-600 ring-4 ring-indigo-100' : 'border-white group-hover:border-indigo-200'}`}>
+                    <div className={`aspect-video rounded-[1.5rem] overflow-hidden border-2 transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:-translate-y-1 ${isActive ? 'border-indigo-600 ring-4 ring-indigo-100' : 'border-white group-hover:border-indigo-200'}`}>
                       <div className="absolute inset-0 pointer-events-none">
                         {isDefaultBg ? <OriginalBackground /> : (
                           <div className="w-full h-full" style={{
@@ -10103,7 +10425,7 @@
               })}
               <button
                 onClick={onAddSlide}
-                className="aspect-video rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 hover:border-indigo-400 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-all group"
+                className="aspect-video rounded-[1.5rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 hover:border-indigo-400 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-all group"
               >
                 <div className="p-2 rounded-full bg-slate-100 group-hover:bg-indigo-100 transition-colors">
                   <Plus size={18} />
@@ -11468,6 +11790,7 @@
         if (type === 'CALCULATOR') data = { ...data, display: '0', prevValue: null, operator: null, expression: '' };
         if (type === 'COUNTDOWN') data = { ...data, eventName: '', targetDate: '', isRunning: false };
         if (type === 'GAMES') data = { ...data, activeGame: 'wordle' };
+        if (type === 'SORT') data = { ...data, mode: 'setup', categoryCount: 2, bulkText: '', categories: [], unsorted: [] };
 
         data = { ...data, ...extraData };
         const newWidget = { id, type, position, size, zIndex: maxZIndex + 1, data, isMinimized: false };
@@ -11884,6 +12207,7 @@
           case 'CALCULATOR': return <CalculatorWidget {...props} />;
           case 'COUNTDOWN': return <CountdownWidget {...props} />;
           case 'WEATHER': return <WeatherWidget {...props} />;
+          case 'SORT': return <SortWidget {...props} />;
           default: return null;
         }
       };
