@@ -6208,8 +6208,35 @@
       const [searchResults, setSearchResults] = useState([]);
       const [isSearching, setIsSearching] = useState(false);
       const [emojiCategory, setEmojiCategory] = useState("Animals");
+      const [searchSource, setSearchSource] = useState('wikimedia'); // Default to wikimedia for school safety
       const [pixabayError, setPixabayError] = useState(null);
       const PIXABAY_KEY = '49221539-74312678da47f3ad5b565a58d';
+
+      const DEFAULT_EMOJIS = {
+        "Animals": ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼"],
+        "Food": ["🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇"],
+        "Nature": ["🌵", "🎄", "🌲", "🌳", "🌴", "🪵", "🌱", "🌿"],
+        "Objects": ["⌚", "📱", "💻", "📚", "🎨", "🎭", "🎮", "🧵"]
+      };
+      const [lib, setLib] = useState(window.EMOJI_LIBRARY || DEFAULT_EMOJIS);
+
+      useEffect(() => {
+        // Sync with global emoji library if it loads later
+        if (!window.EMOJI_LIBRARY) {
+          const interval = setInterval(() => {
+            if (window.EMOJI_LIBRARY) {
+              setLib(window.EMOJI_LIBRARY);
+              clearInterval(interval);
+            }
+          }, 1000);
+          return () => clearInterval(interval);
+        }
+      }, []);
+
+      const performSearch = () => {
+        if (searchSource === 'pixabay') searchPixabay();
+        else searchWikimedia();
+      };
 
       const searchPixabay = async () => {
         if (!searchQuery.trim()) return;
@@ -6220,14 +6247,40 @@
           if (!res.ok) throw new Error(`Search failed: ${res.status}`);
           const data = await res.json();
           if (data.hits) {
-            setSearchResults(data.hits);
+            setSearchResults(data.hits.map(h => ({ id: h.id, previewURL: h.previewURL, tags: h.tags })));
             if (data.hits.length === 0) setPixabayError("No clipart found for '" + searchQuery + "'.");
           } else {
             setPixabayError("Unexpected response from Pixabay.");
           }
         } catch (e) {
           console.error("Pixabay search failed:", e);
-          setPixabayError("Search error. Check your API key or connection.");
+          setPixabayError("Search blocked by school server or invalid key. Try Wikimedia!");
+        } finally {
+          setIsSearching(false);
+        }
+      };
+
+      const searchWikimedia = async () => {
+        if (!searchQuery.trim()) return;
+        setIsSearching(true);
+        setPixabayError(null);
+        try {
+          // Searching for files in the Category:Clipart or with clipart in title
+          const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&generator=search&gsrsearch=${encodeURIComponent(searchQuery + " clipart")}&gsrnamespace=6&iiprop=url|thumburl&iiurlwidth=200&gsrlimit=20`);
+          const data = await res.json();
+          if (data.query && data.query.pages) {
+            const hits = Object.values(data.query.pages).map(p => ({
+              id: p.pageid,
+              previewURL: p.imageinfo[0].thumburl || p.imageinfo[0].url,
+              tags: p.title.replace('File:', '').split('.')[0]
+            }));
+            setSearchResults(hits);
+          } else {
+            setPixabayError("No Wikimedia clipart found for '" + searchQuery + "'.");
+          }
+        } catch (e) {
+          console.error("Wikimedia search failed:", e);
+          setPixabayError("Wikimedia error. Check your connection.");
         } finally {
           setIsSearching(false);
         }
@@ -6347,7 +6400,6 @@
           "Food": ["🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇"],
           "Nature": ["🌵", "🎄", "🌲", "🌳", "🌴", "🪵", "🌱", "🌿"]
         };
-        const lib = window.EMOJI_LIBRARY || DEFAULT_EMOJIS;
         const emojiList = lib[emojiCategory] || lib[Object.keys(lib)[0]] || [];
         const emojiCategories = Object.keys(lib);
 
@@ -6423,20 +6475,27 @@
                     {/* Pixabay Search */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pixabay Clipart</label>
-                        <span className="text-[10px] text-slate-300 italic">illustrations only</span>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Image Search</label>
+                        <select 
+                          className="text-[10px] font-bold text-blue-600 outline-none bg-transparent"
+                          value={searchSource}
+                          onChange={(e) => setSearchSource(e.target.value)}
+                        >
+                          <option value="wikimedia">Wikimedia (School Safe)</option>
+                          <option value="pixabay">Pixabay (Clipart)</option>
+                        </select>
                       </div>
                       <div className="flex gap-2">
                         <input 
                           type="text"
-                          placeholder="Search for clipart..."
+                          placeholder={`Search ${searchSource === 'pixabay' ? 'Pixabay' : 'Wikimedia'}...`}
                           className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && searchPixabay()}
+                          onKeyDown={(e) => e.key === 'Enter' && performSearch()}
                         />
                         <button 
-                          onClick={searchPixabay}
+                          onClick={performSearch}
                           className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
                         >
                           <Search size={18} />
