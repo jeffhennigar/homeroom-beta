@@ -83,16 +83,16 @@ export const LexiGuess = ({ widget, updateData }) => {
     };
 
     return (
-        <div className="p-4 h-full flex flex-col items-center justify-center gap-4 bg-slate-100/50">
-            <div className={`grid gap-2 mb-4 ${shake ? 'animate-shake' : ''}`}>
+        <div className="p-3 h-full flex flex-col items-center justify-center gap-3 bg-slate-100/50 overflow-y-auto custom-scrollbar">
+            <div className={`grid gap-1.5 mb-2 ${shake ? 'animate-shake' : ''}`}>
                 {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex gap-2">
+                    <div key={i} className="flex gap-1.5">
                         {[...Array(wordLength)].map((_, j) => {
                             const guess = guesses[i];
                             const char = guess ? guess[j] : (i === guesses.length ? input[j] : '');
                             const statusClass = guess ? getCharClass(char, j, guess) : (char ? 'border-slate-400 border-2 scale-105' : 'border-slate-200');
                             return (
-                                <div key={j} className={`w-12 h-12 flex items-center justify-center text-xl font-black rounded-xl border-b-4 transition-all duration-500 shadow-sm ${statusClass} ${!guess && !char ? 'bg-white' : ''}`}>
+                                <div key={j} className={`w-10 h-10 flex items-center justify-center text-lg font-black rounded-lg border-b-2 transition-all duration-500 shadow-sm ${statusClass} ${!guess && !char ? 'bg-white' : ''}`}>
                                     {char}
                                 </div>
                             );
@@ -364,8 +364,10 @@ export const ScrambleSwap = ({ widget, updateData }: any) => {
     };
 
     useEffect(() => {
-        if (!widget.data.scrambleTarget) resetGame();
-    }, [wordLength]);
+        if (!widget.data.scrambleTarget || !widget.data.scrambleCurrent || widget.data.scrambleCurrent.length === 0) {
+            resetGame();
+        }
+    }, [wordLength, widget.data.scrambleTarget]);
 
     const swap = (i: number, j: number) => {
         const next = [...current];
@@ -387,7 +389,7 @@ export const ScrambleSwap = ({ widget, updateData }: any) => {
     };
 
     return (
-        <div className="p-8 h-full flex flex-col items-center justify-center gap-8 bg-slate-100/50 relative overflow-hidden">
+        <div className="p-4 h-full flex flex-col items-center justify-center gap-6 bg-slate-100/50 relative overflow-y-auto custom-scrollbar">
             <div className={`flex gap-2 flex-wrap justify-center ${shake ? 'animate-shake' : ''}`}>
                 {current.map((char: string, i: number) => (
                     <button
@@ -398,7 +400,7 @@ export const ScrambleSwap = ({ widget, updateData }: any) => {
                             else if (selectedIndex === i) setSelectedIndex(null);
                             else swap(selectedIndex, i);
                         }}
-                        className={`w-14 h-14 flex items-center justify-center text-2xl font-black rounded-2xl border-b-4 transition-all duration-300 shadow-lg ${isSolved ? 'bg-green-500 text-white border-green-600 scale-110' : (hintedIndices.includes(i) && current[i] === target[i] ? 'bg-amber-100 text-amber-700 border-amber-300' : (selectedIndex === i ? 'bg-blue-600 text-white border-blue-800 -translate-y-2' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'))}`}
+                        className={`w-12 h-12 flex items-center justify-center text-xl font-black rounded-xl border-b-4 transition-all duration-300 shadow-lg ${isSolved ? 'bg-green-500 text-white border-green-600 scale-110' : (hintedIndices.includes(i) && current[i] === target[i] ? 'bg-amber-100 text-amber-700 border-amber-300' : (selectedIndex === i ? 'bg-blue-600 text-white border-blue-800 -translate-y-2' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'))}`}
                     >
                         {char}
                     </button>
