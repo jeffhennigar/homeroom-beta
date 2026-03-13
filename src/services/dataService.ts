@@ -124,5 +124,37 @@ export const dataService = {
         if (writeError) return { success: false, error: `Write Error: ${writeError.message}` };
 
         return { success: true, error: null };
+    },
+
+    // --- Activity Sets (Sort widget) ---
+    async getActivitySets(userId: string, activityType: string) {
+        const { data, error } = await supabase
+            .from('activity_sets')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('activity_type', activityType)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    },
+
+    async saveActivitySet(userId: string, title: string, activityType: string, content: any) {
+        const { error } = await supabase
+            .from('activity_sets')
+            .upsert({
+                user_id: userId,
+                title,
+                activity_type: activityType,
+                content
+            });
+        if (error) throw error;
+    },
+
+    async deleteActivitySet(setId: string) {
+        const { error } = await supabase
+            .from('activity_sets')
+            .delete()
+            .eq('id', setId);
+        if (error) throw error;
     }
 };

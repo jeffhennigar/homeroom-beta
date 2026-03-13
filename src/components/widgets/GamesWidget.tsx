@@ -1,482 +1,577 @@
-import React, { useState, useEffect } from 'react';
-import { Type, Grid, RefreshCw, Settings, X, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Type, Grid, RefreshCw, Settings, X, Lightbulb, ChevronRight, Trophy } from 'lucide-react';
 import { WORD_BANKS } from '../../constants/wordBanks';
+import { VALIDATION_BANKS } from '../../constants/validationBanks';
 
-export const WordWizard = ({ widget, updateData }: any) => {
+// --- Premium Animations (Custom Styles) ---
+const GameStyles = () => (
+    <style>{`
+        @keyframes flipDown {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(-90deg); opacity: 0.5; }
+            100% { transform: rotateX(0); opacity: 1; }
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes floatIn {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .animate-flip { animation: flipDown 0.6s ease-in-out; }
+        .animate-wiggle { animation: wiggle 0.2s ease-in-out 2; }
+        .animate-pop { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .animate-float { animation: floatIn 0.5s ease-out; }
+    `}</style>
+);
+
+// --- Game 1: Word Wizard (LexiGuess/Wordle) ---
+const WordWizard = ({ widget, updateData }: any) => {
     const [input, setInput] = useState('');
     const [shake, setShake] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
-    const wordLength = widget.data.wordleSize || 5;
-    const guesses = widget.data.wordleGuesses || [];
-    const target = widget.data.wordleTarget || 'APPLE';
-    const isGameOver = widget.data.wordleStatus === 'won' || guesses.length >= 6;
+    const [revealing, setRevealing] = useState(false);
 
-    const resetGame = () => {
-        const words = WORD_BANKS[wordLength as keyof typeof WORD_BANKS] || WORD_BANKS[5];
-        const newTarget = words[Math.floor(Math.random() * words.length)];
-        updateData(widget.id, {
+    const data = widget.data || {};
+    const wordLength = data.wordleSize || 5;
+    const guesses = data.wordleGuesses || [];
+    const target = data.wordleTarget;
+    const status = data.wordleStatus || 'playing';
+    const isGameOver = status !== 'playing';
+
+    const resetGame = useCallback(() => {
+        const bank = WORD_BANKS[wordLength.toString() as keyof typeof WORD_BANKS] || WORD_BANKS["5"];
+        const newTarget = bank[Math.floor(Math.random() * bank.length)];
+        updateData({
             wordleTarget: newTarget,
             wordleGuesses: [],
-            wordleStatus: 'playing'
+            wordleStatus: 'playing',
+            showSettings: false
         });
         setInput('');
         setMessage(null);
-    };
-
-    const handleKey = (key: string) => {
-        if (isGameOver) return;
-        if (key === 'Enter') {
-            if (input.length === wordLength) {
-                const uppercaseInput = input.toUpperCase();
-                let isValidWord = false;
-                for (const len in WORD_BANKS) {
-                    if (WORD_BANKS[len as unknown as keyof typeof WORD_BANKS].includes(uppercaseInput)) {
-                        isValidWord = true;
-                        break;
-                    }
-                }
-
-                if (!isValidWord) {
-                    setShake(true);
-                    setMessage('Not in word bank');
-                    setTimeout(() => {
-                        setShake(false);
-                        setMessage(null);
-                    }, 1500);
-                    return;
-                }
-
-                const newGuesses = [...guesses, uppercaseInput];
-                let status = 'playing';
-                if (uppercaseInput === target) status = 'won';
-                else if (newGuesses.length >= 6) status = 'lost';
-                updateData(widget.id, { wordleGuesses: newGuesses, wordleStatus: status });
-                setInput('');
-            } else {
-                setShake(true);
-                setTimeout(() => setShake(false), 500);
-            }
-        } else if (key === 'Backspace') {
-            setInput(prev => prev.slice(0, -1));
-        } else if (/^[a-zA-Z]$/.test(key) && input.length < wordLength) {
-            setInput(prev => prev + key.toUpperCase());
-        }
-    };
+    }, [wordLength, updateData]);
 
     useEffect(() => {
-        if (!widget.data.wordleTarget) resetGame();
-    }, [widget.data.wordleTarget, wordLength]);
+        if (!target) resetGame();
+    }, [target, resetGame]);
 
-    const getCharClass = (char: string, index: number, guess: string) => {
-        if (target[index] === char) return 'bg-green-500 text-white border-green-600 scale-105';
-        if (target.includes(char)) return 'bg-yellow-500 text-white border-yellow-600';
-        return 'bg-slate-400 text-white border-slate-500 opacity-80';
+    const handleSubmit = () => {
+        if (!target || input.length !== wordLength || isGameOver || revealing) return;
+
+        const guess = input.toUpperCase();
+        
+        // Validation against full dictionary for THIS word length
+        const bank = VALIDATION_BANKS[wordLength.toString()] || [];
+        const exists = bank.includes(guess);
+
+        if (!exists && guess !== target) {
+            setShake(true);
+            setMessage('NOT IN DICTIONARY');
+            setTimeout(() => { setShake(false); setMessage(null); }, 1500);
+            return;
+        }
+
+        setRevealing(true);
+        const newGuesses = [...guesses, guess];
+        let newStatus = 'playing';
+        if (guess === target) newStatus = 'won';
+        else if (newGuesses.length >= 6) newStatus = 'lost';
+
+        // Staggered reveal effect simulation (handled by CSS animations on grid)
+        setTimeout(() => {
+            updateData({ wordleGuesses: newGuesses, wordleStatus: newStatus });
+            setRevealing(false);
+            setInput('');
+        }, 500);
+    };
+
+    const getCharStatus = (char: string, index: number, guess: string) => {
+        if (target[index] === char) return 'correct';
+        if (target.includes(char)) return 'present';
+        return 'absent';
+    };
+
+    const statusColors = {
+        correct: 'bg-emerald-500 border-emerald-600 text-white',
+        present: 'bg-amber-400 border-amber-500 text-white',
+        absent: 'bg-slate-400 border-slate-500 text-white opacity-75'
     };
 
     return (
-        <div className="p-3 h-full flex flex-col items-center justify-center gap-3 bg-slate-100/50 overflow-y-auto custom-scrollbar">
-            <div className={`grid gap-1.5 mb-2 relative ${shake ? 'animate-shake' : ''}`}>
+        <div className="h-full flex flex-col items-center justify-center p-4 gap-6 bg-slate-50/50">
+            {/* Wordle Grid */}
+            <div className={`grid gap-2 ${shake ? 'animate-wiggle' : ''}`}>
                 {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex gap-1.5">
+                    <div key={i} className="flex gap-2">
                         {[...Array(wordLength)].map((_, j) => {
                             const guess = guesses[i];
                             const char = guess ? guess[j] : (i === guesses.length ? input[j] : '');
-                            const statusClass = guess ? getCharClass(char, j, guess) : (char ? 'border-slate-400 border-2 scale-105' : 'border-slate-200');
+                            const charStatus = guess ? getCharStatus(char, j, guess) : null;
+                            const isRevealed = i < guesses.length;
+
                             return (
-                                <div key={j} className={`w-10 h-10 flex items-center justify-center text-lg font-black rounded-lg border-b-2 transition-all duration-500 shadow-sm ${statusClass} ${!guess && !char ? 'bg-white' : ''}`}>
+                                <div 
+                                    key={j}
+                                    className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-xl sm:text-2xl font-black rounded-xl border-b-4 transition-all duration-300 shadow-sm
+                                        ${isRevealed ? `${statusColors[charStatus as keyof typeof statusColors]} animate-flip` : (char ? 'bg-white border-slate-300 scale-105 shadow-md' : 'bg-white/50 border-slate-100')}
+                                    `}
+                                    style={{ animationDelay: isRevealed ? `${j * 100}ms` : '0ms' }}
+                                >
                                     {char}
                                 </div>
                             );
                         })}
                     </div>
                 ))}
-                {message && (
-                    <div className="absolute inset-x-0 -bottom-8 flex justify-center z-10 animate-in fade-in zoom-in slide-in-from-top-2">
-                        <span className="bg-slate-800 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg uppercase tracking-wider">{message}</span>
-                    </div>
-                )}
             </div>
 
-            <div className="w-full max-w-[280px] flex gap-2">
-                <input
-                    type="text"
-                    maxLength={wordLength}
-                    value={input}
-                    onChange={e => setInput(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
-                    onKeyDown={e => e.key === 'Enter' && handleKey('Enter')}
-                    className="flex-1 p-2 rounded-xl border-2 border-slate-200 text-center font-black text-xl tracking-widest uppercase focus:border-blue-500 outline-none shadow-sm"
-                    placeholder="TYPE GUESS"
-                    disabled={isGameOver}
-                />
-                <button onClick={() => handleKey('Enter')} disabled={isGameOver || input.length !== wordLength} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 shadow-md transition-all active:scale-95">Enter</button>
-            </div>
-
-            {isGameOver && (
-                <div className="text-center animate-in fade-in zoom-in slide-in-from-bottom-4 mt-2">
-                    <div className={`text-lg font-black mb-4 ${widget.data.wordleStatus === 'won' ? 'text-green-600' : 'text-red-500'}`}>
-                        {widget.data.wordleStatus === 'won' ? 'PERFECT! 🎉' : `Word was: ${target}`}
+            {/* Input Overlay */}
+            {!isGameOver ? (
+                <div className="w-full max-w-sm flex flex-col gap-3 animate-float">
+                    <div className="flex gap-2 relative">
+                        <input 
+                            type="text"
+                            maxLength={wordLength}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                            placeholder="Type word..."
+                            disabled={isGameOver || revealing}
+                            className="flex-1 bg-white border-2 border-slate-200 focus:border-indigo-500 rounded-2xl px-4 py-3 text-xl font-bold uppercase tracking-widest outline-none shadow-lg transition-all"
+                        />
+                        <button 
+                            onClick={handleSubmit}
+                            disabled={input.length !== wordLength || revealing}
+                            className={`px-6 py-3 rounded-2xl font-black uppercase tracking-tight text-white transition-all transform active:scale-95 shadow-lg
+                                ${input.length === wordLength ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-300 opacity-50'}
+                            `}
+                        >
+                            Enter
+                        </button>
                     </div>
-                    <button onClick={resetGame} className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95">Play Again</button>
+                    {message && (
+                        <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-full text-center">
+                            <span className="bg-slate-800 text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-2xl animate-pop uppercase tracking-widest">
+                                {message}
+                            </span>
+                        </div>
+                    )}
                 </div>
-            )}
-
-            {widget.data.showSettings && (
-                <div className="absolute inset-0 bg-white/95 backdrop-blur-md z-30 p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4">
-                    <div className="flex justify-between items-center">
-                        <h3 className="font-black text-slate-800 uppercase tracking-tight">Game Settings</h3>
-                        <button onClick={() => updateData(widget.id, { showSettings: false })} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} /></button>
+            ) : (
+                <div className="text-center flex flex-col items-center gap-4 animate-pop">
+                    <div className={`text-2xl font-black tracking-tight ${status === 'won' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                        {status === 'won' ? 'EXTRAORDINARY! 🎉' : `THE WORD WAS: ${target}`}
                     </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Word Length</label>
-                            <div className="flex gap-2">
-                                {[3, 4, 5, 6].map(s => (
-                                    <button key={s} onClick={() => { updateData(widget.id, { wordleSize: s }); resetGame(); }} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${wordLength === s ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>{s}</button>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Custom Word (Teacher)</label>
-                            <input
-                                type="text"
-                                placeholder="Enter word..."
-                                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-blue-500 outline-none uppercase font-bold"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        const val = e.currentTarget.value.toUpperCase();
-                                        if (val.length >= 3 && val.length <= 6) {
-                                            updateData(widget.id, { wordleTarget: val, wordleGuesses: [], wordleStatus: 'playing', wordleSize: val.length, showSettings: false });
-                                        }
-                                    }
-                                }}
-                            />
-                        </div>
-                    </div>
+                    <button 
+                        onClick={resetGame}
+                        className="group flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 transition-all active:scale-95"
+                    >
+                        <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+                        PLAY AGAIN
+                    </button>
                 </div>
             )}
         </div>
     );
 };
 
-export const GridGlide = ({ widget, updateData }: any) => {
-    const gridSize = widget.data.boggleSize || 4;
-    const grid = widget.data.boggleGrid || [];
-    const foundWords = widget.data.boggleFound || [];
-    const [selection, setSelection] = useState<number[]>([]);
+// --- Game 2: Grid Glide (Boggle) ---
+const GridGlide = ({ widget, updateData }: any) => {
+    const data = widget.data || {};
+    const size = data.boggleSize || 4;
+    const grid = data.boggleGrid || [];
+    const found = data.boggleFound || [];
+    
+    const [currentPath, setCurrentPath] = useState<number[]>([]);
     const [isSelecting, setIsSelecting] = useState(false);
-    const [message, setMessage] = useState<{ text: string, color: string } | null>(null);
+    const [msg, setMsg] = useState<{ text: string, type: 'success' | 'warn' | 'info' } | null>(null);
 
-    const generateGrid = () => {
-        const vowels = 'AEIOU';
-        const consonants = 'BCDFGHJKLMNPQRSTVWXYZ';
-        const newGrid: string[] = [];
-        for (let i = 0; i < gridSize * gridSize; i++) {
-            const isVowel = Math.random() < 0.3;
-            const source = isVowel ? vowels : consonants;
-            newGrid.push(source[Math.floor(Math.random() * source.length)]);
-        }
-        updateData(widget.id, { boggleGrid: newGrid, boggleFound: [] });
-        setSelection([]);
-    };
+    const generateGrid = useCallback(() => {
+        // Improved letter distribution (Pro logic)
+        const distribution = "EEEEEEEEEEEEEEEEEEAAAAAAAAAIIIIIIIIIOOOOOOOOONNNNNNNRRRRRRTTTTTTLLLLSSSSUUUUDDDDGGGHHHBCCMMPPYYFFKWWVXZJQ";
+        const newGrid = Array.from({ length: size * size }, () => 
+            distribution[Math.floor(Math.random() * distribution.length)]
+        );
+        updateData({ 
+            boggleGrid: newGrid, 
+            boggleFound: [],
+            showSettings: false 
+        });
+        setCurrentPath([]);
+    }, [size, updateData]);
 
     useEffect(() => {
-        if (!widget.data.boggleGrid) generateGrid();
-    }, [gridSize]);
+        if (!grid || grid.length === 0) generateGrid();
+    }, [grid.length, generateGrid]);
 
-    const handlePointerDown = (idx: number) => {
+    const handleStart = (idx: number) => {
         setIsSelecting(true);
-        setSelection([idx]);
+        setCurrentPath([idx]);
     };
 
-    const handlePointerEnter = (idx: number) => {
-        if (!isSelecting || selection.includes(idx)) return;
-        const lastIdx = selection[selection.length - 1];
-        const lastRow = Math.floor(lastIdx / gridSize);
-        const lastCol = lastIdx % gridSize;
-        const currRow = Math.floor(idx / gridSize);
-        const currCol = idx % gridSize;
+    const handleEnter = (idx: number) => {
+        if (!isSelecting || currentPath.includes(idx)) return;
+        
+        const last = currentPath[currentPath.length - 1];
+        const lr = Math.floor(last / size), lc = last % size;
+        const cr = Math.floor(idx / size), cc = idx % size;
 
-        if (Math.abs(lastRow - currRow) <= 1 && Math.abs(lastCol - currCol) <= 1) {
-            setSelection([...selection, idx]);
+        if (Math.abs(lr - cr) <= 1 && Math.abs(lc - cc) <= 1) {
+            setCurrentPath(prev => [...prev, idx]);
         }
     };
 
-    const handlePointerUp = () => {
+    const handleEnd = () => {
         if (!isSelecting) return;
         setIsSelecting(false);
-        const word = selection.map(idx => grid[idx]).join('');
-
-        let isValidWord = false;
-        for (const len in WORD_BANKS) {
-            if (WORD_BANKS[len as unknown as keyof typeof WORD_BANKS].includes(word)) {
-                isValidWord = true;
-                break;
-            }
-        }
-
+        const word = currentPath.map(i => grid[i]).join('');
+        
         if (word.length < 3) {
-            setSelection([]);
+            setCurrentPath([]);
             return;
         }
 
-        if (isValidWord && !foundWords.includes(word)) {
-            updateData(widget.id, { boggleFound: [...foundWords, word] });
-            setMessage({ text: 'Valid!', color: 'text-green-500' });
-        } else if (foundWords.includes(word)) {
-            setMessage({ text: 'Already found', color: 'text-yellow-500' });
+        if (found.includes(word)) {
+            setMsg({ text: 'ALREADY FOUND', type: 'warn' });
         } else {
-            setMessage({ text: 'Not in word bank', color: 'text-slate-400' });
+            // Validate against the massive dictionary
+            const isValid = VALIDATION_BANKS[word.length.toString()]?.includes(word);
+            if (isValid) {
+                updateData({ boggleFound: [word, ...found] });
+                setMsg({ text: 'VALID!', type: 'success' });
+            } else {
+                setMsg({ text: 'NOT IN BANK', type: 'info' });
+            }
         }
-        setTimeout(() => { setMessage(null); setSelection([]); }, 1000);
+
+        setTimeout(() => { setMsg(null); setCurrentPath([]); }, 800);
     };
 
     return (
-        <div className="p-4 h-full flex flex-col items-center gap-4 bg-slate-100/50 overflow-y-auto" onPointerUp={handlePointerUp}>
-            <div className="flex justify-between w-full max-w-[280px] mb-2">
-                <div className="text-[10px] font-black uppercase text-slate-400">Words: {foundWords.length}</div>
-                {message && <div className={`text-[10px] font-black uppercase ${message.color} animate-pulse`}>{message.text}</div>}
+        <div className="h-full flex flex-col bg-slate-50/50 p-4" onPointerUp={handleEnd}>
+            <div className="flex justify-between items-center mb-4 px-2">
+                <div className="flex items-center gap-2">
+                    <Trophy size={16} className="text-amber-500" />
+                    <span className="text-[10px] font-black uppercase text-slate-400">FOUND: {found.length}</span>
+                </div>
+                {msg && (
+                    <span className={`text-[10px] font-black uppercase animate-pop ${msg.type === 'success' ? 'text-emerald-600' : (msg.type === 'warn' ? 'text-amber-600' : 'text-slate-400')}`}>
+                        {msg.text}
+                    </span>
+                )}
             </div>
 
-            <div
-                className="grid gap-2 select-none touch-none"
-                style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+            <div 
+                className="grid gap-2 sm:gap-3 mx-auto select-none touch-none"
+                style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}
             >
                 {grid.map((char: string, i: number) => (
-                    <div
+                    <div 
                         key={i}
-                        onPointerDown={() => handlePointerDown(i)}
-                        onPointerEnter={() => handlePointerEnter(i)}
-                        className={`w-14 h-14 flex items-center justify-center text-2xl font-black rounded-2xl border-b-4 transition-all duration-100 cursor-pointer shadow-md ${selection.includes(i) ? 'bg-blue-600 text-white border-blue-800 scale-95 shadow-inner' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'}`}
+                        onPointerDown={() => handleStart(i)}
+                        onPointerEnter={() => handleEnter(i)}
+                        className={`w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center text-2xl font-black rounded-2xl border-b-4 transition-all duration-75 cursor-pointer shadow-md
+                            ${currentPath.includes(i) ? 'bg-indigo-600 text-white border-indigo-800 scale-95 shadow-inner' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'}
+                        `}
                     >
                         {char}
                     </div>
                 ))}
             </div>
 
-            <div className="w-full max-w-[320px] bg-white/50 backdrop-blur rounded-xl p-3 flex flex-wrap gap-2 mt-2">
-                {foundWords.length === 0 && <div className="text-[10px] italic text-slate-400 w-full text-center py-2">Swipe letters to find words!</div>}
-                {foundWords.map((w: string, i: number) => (
-                    <span key={i} className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-[10px] font-bold border border-green-200">
-                        {w}
-                    </span>
-                ))}
-            </div>
-
-            {widget.data.showSettings && (
-                <div className="absolute inset-0 bg-white/95 backdrop-blur-md z-30 p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4">
-                    <div className="flex justify-between items-center">
-                        <h3 className="font-black text-slate-800 uppercase tracking-tight">Game Settings</h3>
-                        <button onClick={() => updateData(widget.id, { showSettings: false })} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} /></button>
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Grid Size</label>
-                            <div className="flex gap-2">
-                                {[4, 5].map(s => (
-                                    <button key={s} onClick={() => { updateData(widget.id, { boggleSize: s }); generateGrid(); }} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${gridSize === s ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>{s}x{s}</button>
-                                ))}
-                            </div>
+            {/* Found Scroll List */}
+            <div className="mt-6 flex-1 min-h-0 bg-white/40 rounded-3xl p-4 border border-white/60 overflow-y-auto custom-scrollbar shadow-inner">
+                <div className="flex flex-wrap gap-2">
+                    {found.length === 0 && <span className="text-slate-400 font-bold text-xs italic opacity-50">Swipe to find words...</span>}
+                    {found.map((w: string, i: number) => (
+                        <div key={i} className="bg-white px-3 py-1.5 rounded-xl border-b-2 border-slate-100 shadow-sm text-xs font-black text-indigo-700 animate-pop">
+                            {w}
                         </div>
-                        <button onClick={generateGrid} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 transition-all">
-                            <RefreshCw size={16} /> New Board
-                        </button>
-                    </div>
+                    ))}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
 
-export const ScrambleSwap = ({ widget, updateData }: any) => {
-    const wordLength = widget.data.scrambleSize || 5;
-    const target = widget.data.scrambleTarget || 'APPLE';
-    const current = widget.data.scrambleCurrent || [];
-    const isSolved = widget.data.scrambleSolved || false;
-    const hintedIndices = widget.data.scrambleHints || [];
-    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+// --- Game 3: Scramble (Anagrams) ---
+const Scramble = ({ widget, updateData }: any) => {
+    const data = widget.data || {};
+    const wordLength = data.scrambleSize || 5;
+    const target = data.scrambleTarget;
+    const current = data.scrambleCurrent || [];
+    const solved = data.scrambleSolved || false;
+    const hinted = data.scrambleHints || [];
+    
+    const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [shake, setShake] = useState(false);
+    const [msg, setMsg] = useState<string | null>(null);
 
-    const scrambleWord = (word: string) => {
+    const scramble = useCallback((word: string) => {
+        if (!word) return [];
         const arr = word.split('');
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        if (arr.join('') === word && word.length > 1) {
-            for (let i = arr.length - 1; i > 0; i--) {
+        let scrambled = [...arr];
+        let attempts = 0;
+        while (attempts < 10) {
+            for (let i = scrambled.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
+                [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
             }
+            if (scrambled.join('') !== word) break;
+            attempts++;
         }
-        return arr;
-    };
+        return scrambled;
+    }, []);
 
-    const resetGame = () => {
-        const words = WORD_BANKS[wordLength as keyof typeof WORD_BANKS] || WORD_BANKS[5];
-        const newTarget = words[Math.floor(Math.random() * words.length)];
-        updateData(widget.id, {
-            scrambleTarget: newTarget,
-            scrambleCurrent: scrambleWord(newTarget),
+    const resetGame = useCallback(() => {
+        const bank = WORD_BANKS[wordLength.toString() as keyof typeof WORD_BANKS] || WORD_BANKS["5"];
+        const next = bank[Math.floor(Math.random() * bank.length)];
+        updateData({
+            scrambleTarget: next,
+            scrambleCurrent: scramble(next),
             scrambleSolved: false,
-            scrambleHints: []
+            scrambleHints: [],
+            showSettings: false
         });
-        setSelectedIndex(null);
-        setShake(false);
-    };
-
-    const giveHint = () => {
-        if (isSolved) return;
-        const incorrectIndices = [];
-        for (let i = 0; i < target.length; i++) {
-            if (current[i] !== target[i]) {
-                incorrectIndices.push(i);
-            }
-        }
-        if (incorrectIndices.length === 0) return;
-
-        const targetIndex = incorrectIndices[Math.floor(Math.random() * incorrectIndices.length)];
-        const targetChar = target[targetIndex];
-
-        let currentIndex = -1;
-        for (let i = 0; i < current.length; i++) {
-            if (i !== targetIndex && current[i] === targetChar && current[i] !== target[i]) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        if (currentIndex !== -1) {
-            const next = [...current];
-            [next[targetIndex], next[currentIndex]] = [next[currentIndex], next[targetIndex]];
-            updateData(widget.id, {
-                scrambleCurrent: next,
-                scrambleSolved: next.join('') === target,
-                scrambleHints: [...hintedIndices, targetIndex]
-            });
-            setSelectedIndex(null);
-        }
-    };
+        setSelectedIdx(null);
+    }, [wordLength, scramble, updateData]);
 
     useEffect(() => {
-        if (!widget.data.scrambleTarget || !widget.data.scrambleCurrent || widget.data.scrambleCurrent.length === 0) {
-            resetGame();
-        }
-    }, [wordLength, widget.data.scrambleTarget]);
+        if (!target || current.length === 0) resetGame();
+    }, [target, current.length, resetGame]);
 
-    const swap = (i: number, j: number) => {
+    const handleSwap = (idx: number) => {
+        if (solved) return;
+        if (selectedIdx === null) {
+            setSelectedIdx(idx);
+            return;
+        }
+        if (selectedIdx === idx) {
+            setSelectedIdx(null);
+            return;
+        }
+
         const next = [...current];
-        [next[i], next[j]] = [next[j], next[i]];
-        updateData(widget.id, { scrambleCurrent: next, scrambleSolved: false });
-        setSelectedIndex(null);
+        [next[selectedIdx], next[idx]] = [next[idx], next[selectedIdx]];
+        updateData({ scrambleCurrent: next, scrambleSolved: false });
+        setSelectedIdx(null);
     };
 
-    const checkWord = () => {
+    const handleCheck = () => {
         const word = current.join('');
-        const bank = WORD_BANKS[wordLength as keyof typeof WORD_BANKS] || [];
+        const bank = VALIDATION_BANKS[wordLength.toString()] || [];
         if (word === target || bank.includes(word)) {
-            updateData(widget.id, { scrambleSolved: true });
+            updateData({ scrambleSolved: true });
         } else {
             setShake(true);
             setTimeout(() => setShake(false), 500);
         }
     };
 
+    const handleHint = () => {
+        if (solved) return;
+        const mismatch = current.findIndex((c, i) => c !== target[i]);
+        if (mismatch === -1) return;
+
+        const targetChar = target[mismatch];
+        const fromIdx = current.findIndex((c, i) => i > mismatch && c === targetChar);
+        if (fromIdx === -1) return;
+
+        const next = [...current];
+        [next[mismatch], next[fromIdx]] = [next[fromIdx], next[mismatch]];
+        updateData({ 
+            scrambleCurrent: next, 
+            scrambleHints: [...hinted, mismatch],
+            scrambleSolved: next.join('') === target
+        });
+    };
+
     return (
-        <div className="p-4 h-full flex flex-col items-center justify-center gap-6 bg-slate-100/50 relative overflow-y-auto custom-scrollbar">
-            <div className={`flex gap-2 flex-wrap justify-center ${shake ? 'animate-shake' : ''}`}>
+        <div className="h-full flex flex-col items-center justify-center p-4 gap-8 bg-slate-50/50">
+            <div className={`flex flex-wrap justify-center gap-3 ${shake ? 'animate-wiggle' : ''}`}>
                 {current.map((char: string, i: number) => (
-                    <button
+                    <button 
                         key={i}
-                        onClick={() => {
-                            if (isSolved) return;
-                            if (selectedIndex === null) setSelectedIndex(i);
-                            else if (selectedIndex === i) setSelectedIndex(null);
-                            else swap(selectedIndex, i);
-                        }}
-                        className={`w-12 h-12 flex items-center justify-center text-xl font-black rounded-xl border-b-4 transition-all duration-300 shadow-lg ${isSolved ? 'bg-green-500 text-white border-green-600 scale-110' : (hintedIndices.includes(i) && current[i] === target[i] ? 'bg-amber-100 text-amber-700 border-amber-300' : (selectedIndex === i ? 'bg-blue-600 text-white border-blue-800 -translate-y-2' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'))}`}
+                        onClick={() => handleSwap(i)}
+                        className={`w-14 h-14 flex items-center justify-center text-2xl font-black rounded-2xl border-b-4 transition-all duration-300 shadow-xl
+                            ${solved ? 'bg-emerald-500 border-emerald-600 text-white scale-110 shadow-emerald-200' : 
+                              (hinted.includes(i) && current[i] === target[i] ? 'bg-amber-100 text-amber-600 border-amber-300 scale-105' :
+                              (selectedIdx === i ? 'bg-indigo-600 text-white border-indigo-800 -translate-y-2' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'))}
+                        `}
                     >
                         {char}
                     </button>
                 ))}
             </div>
 
-            {!isSolved ? (
-                <div className="flex gap-4">
-                    <button onClick={giveHint} className="px-5 py-3 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-xl font-bold border-2 border-amber-200 transition-all active:scale-95 flex items-center gap-2" title="Reveal one letter">
-                        <Lightbulb size={20} /> Hint
+            {!solved ? (
+                <div className="flex gap-4 animate-float">
+                    <button 
+                        onClick={handleHint}
+                        className="flex items-center gap-2 px-6 py-3 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-2xl font-black border-2 border-amber-300 shadow-lg active:scale-95 transition-all"
+                    >
+                        <Lightbulb size={20} /> HINT
                     </button>
-                    <button onClick={checkWord} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95 uppercase tracking-wider">Check Word</button>
+                    <button 
+                        onClick={handleCheck}
+                        className="px-10 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 active:scale-95 transition-all tracking-wider uppercase"
+                    >
+                        CHECK
+                    </button>
                 </div>
             ) : (
-                <div className="text-center animate-in fade-in zoom-in slide-in-from-bottom-4">
-                    <div className="text-green-600 text-lg font-black mb-4 uppercase tracking-[0.2em]">Unscrambled! 🏆</div>
-                    <button onClick={resetGame} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95">Next Word</button>
-                </div>
-            )}
-
-            {widget.data.showSettings && (
-                <div className="absolute inset-0 bg-white/95 backdrop-blur-md z-30 p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4">
-                    <div className="flex justify-between items-center">
-                        <h3 className="font-black text-slate-800 uppercase tracking-tight">Game Settings</h3>
-                        <button onClick={() => updateData(widget.id, { showSettings: false })} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} /></button>
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Word Length</label>
-                            <div className="flex gap-2">
-                                {[3, 4, 5, 6].map(s => (
-                                    <button key={s} onClick={() => { updateData(widget.id, { scrambleSize: s }); resetGame(); }} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${wordLength === s ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>{s}</button>
-                                ))}
-                            </div>
-                        </div>
-                        <button onClick={resetGame} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 transition-all">
-                            <RefreshCw size={16} /> New Word
-                        </button>
-                    </div>
+                <div className="text-center animate-pop flex flex-col items-center gap-4">
+                    <div className="text-2xl font-black tracking-widest text-emerald-600">UNSCRAMBLED! 🎉</div>
+                    <button 
+                        onClick={resetGame}
+                        className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 transition-all active:scale-95"
+                    >
+                        NEXT WORD
+                    </button>
                 </div>
             )}
         </div>
     );
 };
 
+// --- Main Widget Shell ---
 const GamesWidget = ({ widget, updateData }: any) => {
-    const { activeGame = 'wordle' } = widget.data;
+    const activeGame = widget.data?.activeGame || 'wordle';
+    const showSettings = widget.data?.showSettings || false;
+
+    const navItems = [
+        { id: 'wordle', label: 'Wizard', icon: <Type size={16} /> },
+        { id: 'boggle', label: 'Glide', icon: <Grid size={16} /> },
+        { id: 'scramble', label: 'Scramble', icon: <RefreshCw size={16} /> }
+    ];
 
     return (
-        <div className="h-full bg-white flex flex-col min-h-0 relative no-drag overflow-hidden">
-            <div className="bg-slate-50 p-2 border-b flex items-center justify-between shrink-0 z-20">
-                <div className="flex gap-1 items-center bg-slate-200/50 p-1 rounded-xl">
-                    <button
-                        onClick={() => updateData(widget.id, { activeGame: 'wordle' })}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeGame === 'wordle' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <Type size={14} /> Word Wizard
-                    </button>
-                    <button
-                        onClick={() => updateData(widget.id, { activeGame: 'boggle' })}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeGame === 'boggle' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <Grid size={14} /> Grid Glide
-                    </button>
-                    <button
-                        onClick={() => updateData(widget.id, { activeGame: 'scramble' })}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeGame === 'scramble' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <RefreshCw size={14} /> Scramble
-                    </button>
+        <div className="h-full bg-white flex flex-col min-h-0 relative no-drag overflow-hidden select-none">
+            <GameStyles />
+
+            {/* Premium Header */}
+            <div className="h-14 bg-white/40 backdrop-blur-xl border-b flex items-center justify-between px-3 shrink-0 z-30">
+                <div className="flex gap-1.5 items-center bg-white/30 p-1 rounded-2xl border border-white/40 shadow-sm">
+                    {navItems.map(item => (
+                        <button
+                            key={item.id}
+                            onClick={() => updateData({ activeGame: item.id })}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-tight transition-all
+                                ${activeGame === item.id ? 'bg-white text-indigo-600 shadow-lg shadow-indigo-50/50' : 'text-slate-500 hover:text-slate-700'}
+                            `}
+                        >
+                            {item.icon}
+                            <span className="hidden sm:inline">{item.label}</span>
+                        </button>
+                    ))}
                 </div>
-                <button
-                    onClick={() => updateData(widget.id, { showSettings: !widget.data.showSettings })}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
+                <button 
+                    onClick={() => updateData({ showSettings: !showSettings })}
+                    className={`p-2 rounded-xl transition-all ${showSettings ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white hover:text-indigo-600'}`}
                 >
-                    <Settings size={18} />
+                    <Settings size={20} />
                 </button>
             </div>
 
+            {/* Game Canvas */}
             <div className="flex-1 min-h-0 relative">
-                {activeGame === 'wordle' && <WordWizard widget={widget} updateData={updateData} />}
-                {activeGame === 'boggle' && <GridGlide widget={widget} updateData={updateData} />}
-                {activeGame === 'scramble' && <ScrambleSwap widget={widget} updateData={updateData} />}
+                {activeGame === 'wordle' && <WordWizard widget={widget} updateData={(d) => updateData(d)} />}
+                {activeGame === 'boggle' && <GridGlide widget={widget} updateData={(d) => updateData(d)} />}
+                {activeGame === 'scramble' && <Scramble widget={widget} updateData={(d) => updateData(d)} />}
+
+                {/* Settings Overlay */}
+                {showSettings && (
+                    <div className="absolute inset-0 bg-white/95 backdrop-blur-xl z-50 p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-black text-slate-800 uppercase tracking-tighter text-xl">Game Settings</h3>
+                            <button onClick={() => updateData({ showSettings: false })} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={24} /></button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Size/Length Selector */}
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-slate-400 mb-3 block tracking-widest">
+                                    {activeGame === 'boggle' ? 'Board Size' : 'Word Length'}
+                                </label>
+                                <div className="flex gap-2">
+                                    {(activeGame === 'boggle' ? [4, 5] : [3, 4, 5, 6]).map(s => {
+                                        const isActive = (activeGame === 'wordle' && (widget.data.wordleSize || 5) === s) ||
+                                                       (activeGame === 'boggle' && (widget.data.boggleSize || 4) === s) ||
+                                                       (activeGame === 'scramble' && (widget.data.scrambleSize || 5) === s);
+                                        return (
+                                            <button 
+                                                key={s} 
+                                                onClick={() => {
+                                                    const key = activeGame === 'wordle' ? 'wordleSize' : (activeGame === 'boggle' ? 'boggleSize' : 'scrambleSize');
+                                                    updateData({ [key]: s, showSettings: false });
+                                                }}
+                                                className={`flex-1 py-4 rounded-3xl font-black border-4 transition-all transform active:scale-95
+                                                    ${isActive ? 'bg-indigo-600 text-white border-indigo-200' : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-slate-200'}
+                                                `}
+                                            >
+                                                {s}{activeGame === 'boggle' && 'x' + s}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Teacher Override for Wordle */}
+                            {activeGame === 'wordle' && (
+                                <div className="animate-float">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 mb-3 block tracking-widest">Custom Target Word</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text"
+                                            placeholder="SECRET WORD..."
+                                            className="flex-1 bg-slate-50 border-2 border-slate-100 focus:border-indigo-500 rounded-2xl px-4 py-3 font-bold uppercase tracking-widest outline-none"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    const val = e.currentTarget.value.toUpperCase().trim();
+                                                    if (val.length >= 3 && val.length <= 6) {
+                                                        updateData({ 
+                                                            wordleTarget: val, 
+                                                            wordleSize: val.length,
+                                                            wordleGuesses: [], 
+                                                            wordleStatus: 'playing', 
+                                                            showSettings: false 
+                                                        });
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 font-bold mt-2 italic px-1">Press Enter to assign to the whole class.</p>
+                                </div>
+                            )}
+
+                            {/* Reset Button */}
+                            <button 
+                                onClick={() => {
+                                    if (activeGame === 'boggle') {
+                                        // Grid Glide uses a specific function we'll trigger via prop update
+                                        updateData({ boggleGrid: [], showSettings: false });
+                                    } else {
+                                        updateData({ 
+                                            [activeGame === 'wordle' ? 'wordleTarget' : 'scrambleTarget']: null,
+                                            showSettings: false 
+                                        });
+                                    }
+                                }}
+                                className="w-full py-4 bg-slate-800 hover:bg-black text-white rounded-3xl font-black flex items-center justify-center gap-2 shadow-xl shadow-slate-200 transition-all active:scale-95 uppercase tracking-widest"
+                            >
+                                <RefreshCw size={20} /> New Game
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

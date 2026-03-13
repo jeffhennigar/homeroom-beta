@@ -60,6 +60,25 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSetting
         </div>
     );
 
+    const renderModernAnalog = () => (
+        <div className="flex flex-col items-center justify-center gap-4 w-full h-full p-6">
+            <div className={`relative w-64 h-64 shadow-2xl flex items-center justify-center transition-all duration-500 overflow-hidden ${textColor === 'text-white' ? 'bg-white/20 border border-white/20' : 'bg-white border border-slate-100'}`} style={{ borderRadius: '24%' }}>
+                {/* Hour Ticks */}
+                {[...Array(12)].map((_, i) => (
+                    <div key={i} className={`absolute w-1 h-3 rounded-full ${textColor === 'text-white' ? 'bg-white/40' : 'bg-slate-400/30'}`} style={{ transform: `rotate(${i * 30}deg) translateY(-28px)` }} />
+                ))}
+                {/* Hands */}
+                <div className="relative w-full h-full flex items-center justify-center">
+                    <div className={`absolute w-2 h-16 rounded-full shadow-sm origin-bottom bottom-1/2 -ml-[4px] ${textColor === 'text-white' ? 'bg-white' : 'bg-slate-800'}`} style={{ transform: `rotate(${getRotation(hours % 12 + minutes / 60, 12)}deg) translateY(-8px)` }} />
+                    <div className="absolute w-1.5 h-20 bg-blue-400 rounded-full shadow-sm origin-bottom bottom-1/2 -ml-[3px] opacity-90" style={{ transform: `rotate(${getRotation(minutes, 60)}deg) translateY(-10px)` }} />
+                    <div className="absolute w-[0.8px] h-22 bg-red-400 rounded-full shadow-sm origin-bottom bottom-1/2 -ml-[0.4px]" style={{ transform: `rotate(${getRotation(seconds, 60)}deg) translateY(-11px)` }} />
+                    <div className={`absolute w-3.5 h-3.5 rounded-full z-10 shadow-md border-2 border-red-500 ${textColor === 'text-white' ? 'bg-white' : 'bg-slate-800'}`} />
+                </div>
+            </div>
+            <div className={`text-sm font-bold uppercase tracking-[0.3em] opacity-80 text-center ${textColor}`}>{dateString}</div>
+        </div>
+    );
+
     const renderBigHour = () => (
         <div className="flex flex-col items-center leading-none">
             <div className={`text-[10rem] font-black tracking-tighter ${textColor} opacity-90 drop-shadow-lg`} style={{ lineHeight: '0.8' }}>
@@ -115,8 +134,9 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSetting
     );
 
     return (
-        <div onClick={onSettingsClick} className="cursor-pointer hover:opacity-80 transition-opacity flex flex-col items-start gap-1">
+        <div className="flex flex-col items-start gap-1 p-4 w-full h-full">
             {style === 'analog' && renderAnalog()}
+            {style === 'modern-analog' && renderModernAnalog()}
             {style === 'bighour' && renderBigHour()}
             {style === 'modern' && renderModern()}
             {style === 'retro' && renderRetro()}

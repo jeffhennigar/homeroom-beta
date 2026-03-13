@@ -1,726 +1,612 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Layout, MousePointer2, Pencil, Eraser, Type, Smile, Shapes,
   Undo2, Redo2, Trash2, Download, RotateCcw, Triangle, Hexagon,
-  ArrowRight, RotateCw
+  ArrowRight, RotateCw, Square, Circle, Diamond, Star, Image as ImageIcon,
+  BringToFront, SendToBack, ChevronUp, ChevronDown, Copy, Palette, Type as FontIcon,
+  Maximize2, ArrowUpRight
 } from 'lucide-react';
 
-const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎'];
+// --- Types ---
 
-const Shape = ({ type, color, scale = 1, rotation = 0 }) => {
-  const styles: React.CSSProperties = {
-    transform: `scale(${scale}) rotate(${rotation}deg)`,
-    transformOrigin: 'center',
-    color: color,
-    fill: 'currentColor'
+type ElementType = 'path' | 'line' | 'rect' | 'circle' | 'triangle' | 'diamond' | 'hexagon' | 'star' | 'arrow' | 'text' | 'emoji' | 'image';
+
+interface DrawingElement {
+  id: string;
+  type: ElementType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  opacity: number;
+  content?: string; // For text, emoji, image src, or path data
+  points?: { x: number; y: number }[]; // For freehand paths
+}
+
+// --- Constants ---
+
+const DRAWING_EMOJIS = ['⭐', '❤️', '✅', '❌', '👍', '👎', '🎯', '🏆', '🔥', '💡', '📌', '🎨', '📄', '🌟', '✨', '🎉', '💯', '👀', '🤔', '💪', '🌈', '⚡', '🎁', '😊', '🙌', '🎵', '🌸', '🍎', '🚀', '💎'];
+const COLORS = ['#000000', '#ffffff', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b', 'transparent'];
+
+const BG_TEMPLATES = [
+  { id: 'none', label: 'None', style: { backgroundColor: '#ffffff' } },
+  { id: 'grid', label: 'Grid', style: { backgroundImage: 'linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)', backgroundSize: '30px 30px' } },
+  { id: 'lines', label: 'Lines', style: { backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px)', backgroundSize: '100% 30px' } },
+  { id: 'dots', label: 'Dots', style: { backgroundImage: 'radial-gradient(#e2e8f0 1.5px, transparent 1.5px)', backgroundSize: '30px 30px' } },
+  { id: 'blueprint', label: 'Blueprint', style: { backgroundColor: '#1e293b', backgroundImage: 'linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' } }
+];
+
+// --- Sub-components ---
+
+const ShapeRenderer = ({ element }: { element: DrawingElement }) => {
+  const { type, width, height, fill, stroke, strokeWidth, points, content } = element;
+  
+  const commonProps = {
+    fill: fill === 'transparent' ? 'none' : fill,
+    stroke: stroke,
+    strokeWidth: strokeWidth,
+    width: width,
+    height: height
   };
 
-  if (type === 'square') return <div style={{ ...styles, width: '60px', height: '60px', backgroundColor: color }} />;
-  if (type === 'circle') return <div style={{ ...styles, width: '60px', height: '60px', backgroundColor: color, borderRadius: '999px' }} />;
-  if (type === 'triangle') return <Triangle size={60} style={styles} />;
-  if (type === 'hexagon') return <Hexagon size={60} style={styles} />;
-  if (type === 'arrow') return <ArrowRight size={60} style={styles} />;
-  if (type === 'semicircle') return <div style={{ ...styles, width: '60px', height: '30px', backgroundColor: color, borderRadius: '60px 60px 0 0' }} />;
-  return null;
+  switch (type) {
+    case 'rect':
+      return <rect {...commonProps} />;
+    case 'line':
+      return <line x1={0} y1={0} x2={width} y2={height} stroke={stroke} strokeWidth={strokeWidth} />;
+    case 'circle':
+      return <ellipse cx={width / 2} cy={height / 2} rx={width / 2} ry={height / 2} {...commonProps} />;
+    case 'triangle':
+      return <path d={`M ${width / 2} 0 L ${width} ${height} L 0 ${height} Z`} {...commonProps} />;
+    case 'diamond':
+      return <path d={`M ${width / 2} 0 L ${width} ${height / 2} L ${width / 2} ${height} L 0 ${height / 2} Z`} {...commonProps} />;
+    case 'hexagon':
+      return <path d={`M ${width * 0.25} 0 L ${width * 0.75} 0 L ${width} ${height * 0.5} L ${width * 0.75} ${height} L ${width * 0.25} ${height} L 0 ${height * 0.5} Z`} {...commonProps} />;
+    case 'star':
+      return <path d={`M ${width * 0.5} 0 L ${width * 0.61} ${height * 0.35} L ${width} ${height * 0.35} L ${width * 0.68} ${height * 0.57} L ${width * 0.79} ${height} L ${width * 0.5} ${height * 0.75} L ${width * 0.21} ${height} L ${width * 0.32} ${height * 0.57} L 0 ${height * 0.35} L ${width * 0.39} ${height * 0.35} Z`} {...commonProps} />;
+    case 'arrow':
+      return (
+        <g {...commonProps}>
+          <path d={`M 0 ${height * 0.35} L ${width * 0.6} ${height * 0.35} L ${width * 0.6} 0 L ${width} ${height * 0.5} L ${width * 0.6} ${height} L ${width * 0.6} ${height * 0.65} L 0 ${height * 0.65} Z`} />
+        </g>
+      );
+    case 'path':
+        if (!points || points.length < 2) return null;
+        const d = points.reduce((acc, p, i) => acc + (i === 0 ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`), "");
+        return <path d={d} fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />;
+    case 'text':
+      return (
+        <foreignObject width={width} height={height}>
+          <div style={{ color: stroke, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(width, height) * 0.4, fontWeight: 'bold', overflow: 'hidden', textAlign: 'center' }}>
+            {content}
+          </div>
+        </foreignObject>
+      );
+    case 'emoji':
+        return (
+          <foreignObject width={width} height={height}>
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(width, height) * 0.8, userSelect: 'none' }}>
+              {content}
+            </div>
+          </foreignObject>
+        );
+    case 'image':
+        return <image href={content} width={width} height={height} preserveAspectRatio="none" />;
+    default:
+      return null;
+  }
 };
+
+// --- Main Component ---
 
 const DrawingWidget = ({ widget, updateData }) => {
   const {
-    color = '#000000',
-    brushSize = 8,
-    tool = 'pen',
-    textItems = [],
-    emojiItems = [],
-    imageItems = [],
-    shapeItems = [],
-    drawOffset = { x: 0, y: 0 },
+    elements = [],
+    tool = 'select',
+    selectionId = null,
     bgType = 'none',
-    canvasData
+    activeColor = '#3b82f6',
+    activeStroke = '#000000',
+    activeSize = 4
   } = widget.data;
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const isDrawing = useRef(false);
-  const lastPoint = useRef<any>(null);
-  const lastTime = useRef<number | null>(null);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showShapePicker, setShowShapePicker] = useState(false);
-  const [showBgPicker, setShowBgPicker] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [history, setHistory] = useState<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragMode, setDragMode] = useState<'move' | 'resize' | 'rotate' | 'draw' | null>(null);
+  const [resizeHandle, setResizeHandle] = useState<string | null>(null);
+  
+  // History for standard Undo/Redo
+  const [history, setHistory] = useState<any[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const resizeTimeout = useRef<any>(null);
 
-  const BG_TEMPLATES = [
-    { id: 'none', label: 'None', icon: 'None' },
-    { id: 'grid', label: 'Grid', style: { backgroundImage: 'linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)', backgroundSize: '30px 30px' } },
-    { id: 'dots', label: 'Dots', style: { backgroundImage: 'radial-gradient(#e2e8f0 1.5px, transparent 1.5px)', backgroundSize: '30px 30px' } },
-    { id: 'lines', label: 'Lines', style: { backgroundImage: 'linear-gradient(#f1f5f9 1.5px, transparent 1.5px)', backgroundSize: '100% 30px' } },
-    { id: 'dark-grid', label: 'Blueprint', style: { backgroundColor: '#1e293b', backgroundImage: 'linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' } }
-  ];
-
-  const saveToHistory = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const imageData = canvas.toDataURL();
-    setHistory(prev => [...prev.slice(0, historyIndex + 1), imageData]);
-    setHistoryIndex(prev => prev + 1);
-    updateData(widget.id, { canvasData: imageData });
-  };
-
-  // Initialize canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const parent = canvas.parentElement;
-    if (!parent) return;
-    const rect = parent.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.scale(dpr, dpr);
-
-    if (bgType === 'none' || !BG_TEMPLATES.find(t => t.id === bgType)?.style?.backgroundColor) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-    }
-
-    if (canvasData) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
-        if (history.length === 0) {
-            setHistory([canvasData]);
-            setHistoryIndex(0);
-        }
-      };
-      img.src = canvasData;
-    } else if (history.length === 0) {
-      saveToHistory();
-    }
-
-    ctxRef.current = ctx;
-  }, [bgType]);
-
-  const lastDimensions = useRef({ width: 0, height: 0 });
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const handleResize = () => {
-      clearTimeout(resizeTimeout.current);
-      resizeTimeout.current = setTimeout(() => {
-        const parent = canvas.parentElement;
-        if (!parent) return;
-        const rect = parent.getBoundingClientRect();
-        if (Math.abs(rect.width - lastDimensions.current.width) < 5 &&
-          Math.abs(rect.height - lastDimensions.current.height) < 5) {
-          return;
-        }
-        lastDimensions.current = { width: rect.width, height: rect.height };
-        const imageData = canvas.toDataURL();
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
-        const img = new Image();
-        img.onload = () => {
-          if (!ctxRef.current) return;
-          ctxRef.current.scale(dpr, dpr);
-          ctxRef.current.fillStyle = '#ffffff';
-          ctxRef.current.fillRect(0, 0, rect.width, rect.height);
-          ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
-        };
-        img.src = imageData;
-      }, 50);
-    };
-    const observer = new ResizeObserver(handleResize);
-    observer.observe(canvas.parentElement!);
-    return () => { observer.disconnect(); clearTimeout(resizeTimeout.current); };
-  }, []);
+  const saveToHistory = useCallback((newData: any) => {
+    setHistory(prev => {
+        const next = [...prev.slice(0, historyIndex + 1), newData];
+        if (next.length > 50) next.shift();
+        return next;
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, 49));
+  }, [historyIndex]);
 
   const undo = () => {
-    if (historyIndex <= 0) return;
-    const newIndex = historyIndex - 1;
-    setHistoryIndex(newIndex);
-    const img = new Image();
-    img.onload = () => {
-      const parent = canvasRef.current?.parentElement;
-      if (!parent || !ctxRef.current) return;
-      const rect = parent.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      ctxRef.current.fillStyle = '#ffffff';
-      ctxRef.current.fillRect(0, 0, rect.width, rect.height);
-      ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
-    };
-    img.src = history[newIndex];
+    if (historyIndex > 0) {
+        const prev = history[historyIndex - 1];
+        setHistoryIndex(historyIndex - 1);
+        updateData(widget.id, prev);
+    }
   };
 
   const redo = () => {
-    if (historyIndex >= history.length - 1) return;
-    const newIndex = historyIndex + 1;
-    setHistoryIndex(newIndex);
-    const img = new Image();
-    img.onload = () => {
-      const parent = canvasRef.current?.parentElement;
-      if (!parent || !ctxRef.current) return;
-      const rect = parent.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      ctxRef.current.fillStyle = '#ffffff';
-      ctxRef.current.fillRect(0, 0, rect.width, rect.height);
-      ctxRef.current.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
+    if (historyIndex < history.length - 1) {
+        const next = history[historyIndex + 1];
+        setHistoryIndex(historyIndex + 1);
+        updateData(widget.id, next);
+    }
+  };
+
+  // --- Helpers ---
+
+  const getRelativeCoords = (e: any) => {
+    if (!svgRef.current) return { x: 0, y: 0 };
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+    return { x, y };
+  };
+
+  const findElementById = (id: string) => elements.find((el: any) => el.id === id);
+
+  // --- Tool Actions ---
+
+  const addElement = (type: ElementType, x: number, y: number, content?: string) => {
+    const newElement: DrawingElement = {
+      id: Date.now().toString(),
+      type,
+      x,
+      y,
+      width: 100,
+      height: 100,
+      rotation: 0,
+      fill: type === 'path' ? 'transparent' : (type === 'text' || type === 'image' || type === 'emoji' ? 'transparent' : activeColor),
+      stroke: activeStroke,
+      strokeWidth: type === 'path' ? activeSize : (type === 'rect' || type === 'circle' ? 2 : 0),
+      opacity: 1,
+      content,
     };
-    img.src = history[newIndex];
+
+    const newElements = [...elements, newElement];
+    updateData(widget.id, { elements: newElements, selectionId: newElement.id, tool: 'select' });
+    saveToHistory({ elements: newElements, selectionId: newElement.id });
   };
 
-  const getPos = (e: any) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0, time: 0 };
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left;
-    const y = (e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0)) - rect.top;
-    return { x, y, time: performance.now() };
-  };
-
-  const points = useRef<any[]>([]);
-  const smoothedVelocity = useRef(0);
-  const currentWidth = useRef<number | null>(null);
-
-  const startDrawing = (e: any) => {
-    if (tool !== 'pen' && tool !== 'eraser') return;
-    // e.preventDefault(); // Might trigger warning in Chrome for passive listeners
-    isDrawing.current = true;
-    const pos = getPos(e);
-    lastPoint.current = pos;
-    lastTime.current = pos.time;
-    points.current = [pos];
-    smoothedVelocity.current = 0;
-    currentWidth.current = brushSize;
-
-    const ctx = ctxRef.current;
-    if (!ctx) return;
-    ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
-    ctx.lineWidth = brushSize;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-    ctx.lineTo(pos.x + 0.1, pos.y + 0.1);
-    ctx.stroke();
-
-    window.addEventListener('mousemove', draw);
-    window.addEventListener('mouseup', stopDrawing);
-    window.addEventListener('touchmove', draw, { passive: false });
-    window.addEventListener('touchend', stopDrawing);
-  };
-
-  const draw = (e: any) => {
-    if (!isDrawing.current || !lastPoint.current) return;
-    if (e.type === 'touchmove') e.preventDefault();
-    const pos = getPos(e);
-    const ctx = ctxRef.current;
-    if (!ctx) return;
-
-    const dx = pos.x - lastPoint.current.x;
-    const dy = pos.y - lastPoint.current.y;
-    const dt = Math.max(pos.time - lastTime.current!, 1);
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const velocity = distance / dt;
-
-    smoothedVelocity.current = smoothedVelocity.current * 0.6 + velocity * 0.4;
-    const speedFactor = tool === 'eraser' ? 3 : Math.max(0.5, Math.min(1.8, 1.6 - smoothedVelocity.current * 0.1));
-    const targetWidth = brushSize * speedFactor;
-
-    const prevWidth = currentWidth.current || brushSize;
-    currentWidth.current = prevWidth * 0.7 + targetWidth * 0.3;
-
-    ctx.fillStyle = tool === 'eraser' ? '#ffffff' : color;
-    const steps = Math.max(1, Math.ceil(distance / 2));
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const x = lastPoint.current.x + dx * t;
-      const y = lastPoint.current.y + dy * t;
-      const w = prevWidth + (currentWidth.current - prevWidth) * t;
-
-      ctx.beginPath();
-      ctx.arc(x, y, w / 2, 0, Math.PI * 2);
-      ctx.fill();
+  const handlePointerDown = (e: React.PointerEvent) => {
+    const { x, y } = getRelativeCoords(e);
+    
+    if (tool === 'pen') {
+        const newId = Date.now().toString();
+        const newElement: DrawingElement = {
+            id: newId,
+            type: 'path',
+            x: 0, y: 0,
+            width: 1, height: 1,
+            rotation: 0,
+            fill: 'transparent',
+            stroke: activeStroke,
+            strokeWidth: activeSize,
+            opacity: 1,
+            points: [{ x, y }]
+        };
+        const newElements = [...elements, newElement];
+        updateData(widget.id, { elements: newElements, selectionId: newId });
+        setIsDragging(true);
+        setDragMode('draw');
+        setDragStart({ x, y });
+        return;
     }
 
-    lastPoint.current = pos;
-    lastTime.current = pos.time;
-  };
-
-  const stopDrawing = () => {
-    if (isDrawing.current) {
-      isDrawing.current = false;
-      ctxRef.current?.closePath();
-      saveToHistory();
+    if (tool === 'line') {
+        const newId = Date.now().toString();
+        const newElement: DrawingElement = {
+            id: newId,
+            type: 'line',
+            x, y,
+            width: 1, height: 1,
+            rotation: 0,
+            fill: 'transparent',
+            stroke: activeStroke,
+            strokeWidth: activeSize,
+            opacity: 1
+        };
+        const newElements = [...elements, newElement];
+        updateData(widget.id, { elements: newElements, selectionId: newId });
+        setIsDragging(true);
+        setDragMode('resize');
+        setResizeHandle('se');
+        setDragStart({ x, y });
+        return;
     }
-    window.removeEventListener('mousemove', draw);
-    window.removeEventListener('mouseup', stopDrawing);
-    window.removeEventListener('touchmove', draw);
-    window.removeEventListener('touchend', stopDrawing);
-  };
 
-  const handleCanvasClick = (e: any) => {
     if (tool === 'text') {
-      const pos = getPos(e);
-      const newText = { id: Date.now().toString(), x: pos.x, y: pos.y, text: 'Text', scale: 1, rotation: 0, color };
-      updateData(widget.id, { textItems: [...textItems, newText], tool: 'select' });
-      setSelectedItem({ type: 'text', id: newText.id });
+        addElement('text', x - 50, y - 50, 'Text');
+        return;
     }
-  };
 
-  const addEmoji = (emoji: string) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const newEmoji = { id: Date.now().toString(), x: canvas.width / (2 * (window.devicePixelRatio || 1)), y: canvas.height / (2 * (window.devicePixelRatio || 1)), emoji, scale: 1, rotation: 0 };
-    updateData(widget.id, { emojiItems: [...emojiItems, newEmoji], tool: 'select' });
-    setShowEmojiPicker(false);
-    setSelectedItem({ type: 'emoji', id: newEmoji.id });
-  };
-
-  const updateTextContent = (id: string, text: string) => {
-    updateData(widget.id, { textItems: textItems.map((t: any) => t.id === id ? { ...t, text } : t) });
-  };
-
-  const deleteSelected = () => {
-    if (!selectedItem) return;
-    if (selectedItem.type === 'text') {
-      updateData(widget.id, { textItems: textItems.filter((t: any) => t.id !== selectedItem.id) });
-    } else if (selectedItem.type === 'emoji') {
-      updateData(widget.id, { emojiItems: emojiItems.filter((e: any) => e.id !== selectedItem.id) });
-    } else if (selectedItem.type === 'image') {
-      updateData(widget.id, { imageItems: imageItems.filter((img: any) => img.id !== selectedItem.id) });
-    } else if (selectedItem.type === 'shape') {
-      updateData(widget.id, { shapeItems: shapeItems.filter((s: any) => s.id !== selectedItem.id) });
-    }
-    setSelectedItem(null);
-  };
-
-  const addShape = (shapeType: string) => {
-    const newShape = { id: Date.now().toString(), x: 150, y: 150, shapeType, color, scale: 1, rotation: 0 };
-    updateData(widget.id, { shapeItems: [...shapeItems, newShape], tool: 'select' });
-    setShowShapePicker(false);
-    setSelectedItem({ type: 'shape', id: newShape.id });
-  };
-
-  const clearCanvas = () => {
-    if (!window.confirm('Clear the entire canvas?')) return;
-    const ctx = ctxRef.current;
-    const canvas = canvasRef.current;
-    if (!ctx || !canvas) return;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    updateData(widget.id, { textItems: [], emojiItems: [], shapeItems: [], imageItems: [] });
-    setSelectedItem(null);
-    saveToHistory();
-  };
-
-  const downloadPNG = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const link = document.createElement('a');
-    link.download = 'drawing.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  };
-
-  const handleItemMouseDown = (e: any, type: string, id: string, mode = 'move') => {
-    if (tool !== 'select' && type !== 'drawing') return;
-    e.stopPropagation();
-    e.preventDefault();
-    setSelectedItem({ type, id });
-
-    let item: any;
-    if (type === 'text') item = textItems.find((i: any) => i.id === id);
-    else if (type === 'emoji') item = emojiItems.find((i: any) => i.id === id);
-    else if (type === 'image') item = imageItems.find((i: any) => i.id === id);
-    else if (type === 'shape') item = shapeItems.find((i: any) => i.id === id);
-    else if (type === 'drawing') item = { x: drawOffset.x, y: drawOffset.y, scale: 1, rotation: 0 };
-
-    if (!item) return;
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startItemX = item.x;
-    const startItemY = item.y;
-    const startScale = item.scale || 1;
-    const startRotation = item.rotation || 0;
-
-    const onMove = (me: any) => {
-      const dx = me.clientX - startX;
-      const dy = me.clientY - startY;
-
-      if (mode === 'move') {
-        if (type === 'drawing') {
-          updateData(widget.id, { drawOffset: { x: startItemX + dx, y: startItemY + dy } });
-        } else {
-          const listKey = type + 'Items';
-          const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : shapeItems));
-          updateData(widget.id, { [listKey]: list.map((i: any) => i.id === id ? { ...i, x: startItemX + dx, y: startItemY + dy } : i) });
+    if (tool === 'eraser') {
+        const targetElement = (e.target as any).closest('.drawing-element');
+        if (targetElement) {
+            const id = targetElement.dataset.id;
+            const newElements = elements.filter((el: any) => el.id !== id);
+            updateData(widget.id, { elements: newElements, selectionId: null });
+            saveToHistory({ elements: newElements, selectionId: null });
         }
-      } else if (mode === 'scale' && type !== 'drawing') {
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const factor = 1 + (dx > 0 ? dist / 200 : -dist / 200);
-        const newScale = Math.max(0.1, Math.min(10, startScale * factor));
-        const listKey = type + 'Items';
-        const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : shapeItems));
-        updateData(widget.id, { [listKey]: list.map((i: any) => i.id === id ? { ...i, scale: newScale } : i) });
-      } else if (mode === 'rotate' && type !== 'drawing') {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const canvasRect = canvas.getBoundingClientRect();
-        const mouseX = me.clientX - canvasRect.left;
-        const mouseY = me.clientY - canvasRect.top;
-        const angle = Math.atan2(mouseY - item.y, mouseX - item.x) * (180 / Math.PI);
-        const listKey = type + 'Items';
-        const list = type === 'text' ? textItems : (type === 'emoji' ? emojiItems : (type === 'image' ? imageItems : shapeItems));
-        updateData(widget.id, { [listKey]: list.map((i: any) => i.id === id ? { ...i, rotation: angle + 90 } : i) });
-      }
-    };
+        return;
+    }
 
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
+    // Default select/move logic
+    const targetElement = (e.target as any).closest('.drawing-element');
+    const handle = (e.target as any).closest('.resize-handle');
+    const rotateHandle = (e.target as any).closest('.rotate-handle');
 
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    if (rotateHandle) {
+        setIsDragging(true);
+        setDragMode('rotate');
+        setDragStart({ x, y });
+        return;
+    }
+
+    if (handle) {
+        setIsDragging(true);
+        setDragMode('resize');
+        setResizeHandle(handle.dataset.handle);
+        setDragStart({ x, y });
+        return;
+    }
+
+    if (targetElement) {
+      const id = targetElement.dataset.id;
+      updateData(widget.id, { selectionId: id });
+      setIsDragging(true);
+      setDragMode('move');
+      setDragStart({ x, y });
+    } else {
+      updateData(widget.id, { selectionId: null });
+    }
   };
 
-  const COLORS = ['#000000', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging || !selectionId) return;
+    const { x, y } = getRelativeCoords(e);
+    const dx = x - dragStart.x;
+    const dy = y - dragStart.y;
+
+    if (dragMode === 'draw') {
+        const newElements = elements.map((el: any) => {
+            if (el.id === selectionId) {
+                return { ...el, points: [...(el.points || []), { x, y }] };
+            }
+            return el;
+        });
+        updateData(widget.id, { elements: newElements });
+        return;
+    }
+
+    const element = findElementById(selectionId);
+    if (!element) return;
+
+    if (dragMode === 'move') {
+      const newElements = elements.map((el: any) => 
+        el.id === selectionId ? { ...el, x: el.x + dx, y: el.y + dy } : el
+      );
+      updateData(widget.id, { elements: newElements });
+      setDragStart({ x, y });
+    } else if (dragMode === 'resize' && resizeHandle) {
+        let newEl = { ...element };
+        if (resizeHandle.includes('e')) newEl.width = Math.max(10, element.width + dx);
+        if (resizeHandle.includes('s')) newEl.height = Math.max(10, element.height + dy);
+        if (resizeHandle.includes('w')) {
+            const dw = Math.min(element.width - 10, -dx);
+            newEl.width = element.width + dw;
+            newEl.x = element.x - dw;
+        }
+        if (resizeHandle.includes('n')) {
+            const dh = Math.min(element.height - 10, -dy);
+            newEl.height = element.height + dh;
+            newEl.y = element.y - dh;
+        }
+        
+        const newElements = elements.map((el: any) => el.id === selectionId ? newEl : el);
+        updateData(widget.id, { elements: newElements });
+        setDragStart({ x, y });
+    } else if (dragMode === 'rotate') {
+        const cx = element.x + element.width / 2;
+        const cy = element.y + element.height / 2;
+        const angle = Math.atan2(y - cy, x - cx) * (180 / Math.PI) + 90;
+        const newElements = elements.map((el: any) => el.id === selectionId ? { ...el, rotation: angle } : el);
+        updateData(widget.id, { elements: newElements });
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (isDragging) {
+        setIsDragging(false);
+        setDragMode(null);
+        setResizeHandle(null);
+        saveToHistory({ elements, selectionId });
+    }
+  };
+
+  const deleteElement = () => {
+    if (!selectionId) return;
+    const newElements = elements.filter((el: any) => el.id !== selectionId);
+    updateData(widget.id, { elements: newElements, selectionId: null });
+    saveToHistory({ elements: newElements, selectionId: null });
+  };
+
+  const duplicateElement = () => {
+    if (!selectionId) return;
+    const el = findElementById(selectionId);
+    if (!el) return;
+    const newEl = { ...el, id: Date.now().toString(), x: el.x + 20, y: el.y + 20 };
+    const newElements = [...elements, newEl];
+    updateData(widget.id, { elements: newElements, selectionId: newEl.id });
+    saveToHistory({ elements: newElements, selectionId: newEl.id });
+  };
+
+  const moveLayer = (direction: 'up' | 'down' | 'front' | 'back') => {
+    if (!selectionId) return;
+    const idx = elements.findIndex((el: any) => el.id === selectionId);
+    const newElements = [...elements];
+    const item = newElements.splice(idx, 1)[0];
+
+    if (direction === 'up') newElements.splice(Math.min(newElements.length, idx + 1), 0, item);
+    else if (direction === 'down') newElements.splice(Math.max(0, idx - 1), 0, item);
+    else if (direction === 'front') newElements.push(item);
+    else if (direction === 'back') newElements.unshift(item);
+
+    updateData(widget.id, { elements: newElements });
+    saveToHistory({ elements: newElements, selectionId });
+  };
+
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.includes('image')) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const src = event.target?.result as string;
+            addElement('image', 100, 100, src);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+  }, [elements]);
 
   useEffect(() => {
-    const initialImage = widget.data.initialImage;
-    const pastedImage = widget.data.pastedImage;
-    const imgToLoad = pastedImage || initialImage;
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
 
-    if (imgToLoad) {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.8;
-        const newImg = {
-          id: Date.now().toString(),
-          src: imgToLoad,
-          x: canvas.width / (2 * (window.devicePixelRatio || 1)),
-          y: canvas.height / (2 * (window.devicePixelRatio || 1)),
-          baseWidth: img.width,
-          baseHeight: img.height,
-          scale: scale,
-          rotation: 0
-        };
-        updateData(widget.id, {
-          imageItems: [...imageItems, newImg],
-          initialImage: null,
-          pastedImage: null
-        });
-        setSelectedItem({ type: 'image', id: newImg.id });
-      };
-      img.src = imgToLoad;
-    }
-  }, [widget.data.initialImage, widget.data.pastedImage]);
+  const downloadPNG = () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData))));
+    img.onload = () => {
+      canvas.width = svg.clientWidth;
+      canvas.height = svg.clientHeight;
+      ctx?.drawImage(img, 0, 0);
+      const link = document.createElement("a");
+      link.download = "drawing.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+  };
+
+  // --- Context Bar ---
+  const selectedElement = findElementById(selectionId);
 
   return (
-    <div className="h-full bg-white flex flex-col min-h-0 relative no-drag">
-      <div className="bg-gray-50 p-2 border-b flex items-center gap-1 shrink-0 z-20 flex-nowrap overflow-x-auto custom-scrollbar">
-        <button onClick={() => setShowBgPicker(!showBgPicker)} className={`p-1.5 rounded-lg transition-all ${bgType !== 'none' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-200 text-gray-500'}`} title="Background Template">
-          <Layout size={16} />
-        </button>
-        <div className="w-px h-5 bg-gray-200" />
-        <div className="relative">
-          <button onClick={() => setShowColorPicker(!showColorPicker)} className="w-7 h-7 rounded-full border-2 border-white shadow-md" style={{ backgroundColor: color }} />
+    <div className="h-full bg-white flex flex-col min-h-0 relative no-drag overflow-hidden" ref={containerRef}>
+      {/* Top Toolbar */}
+      <div className="bg-white p-1 border-b flex items-center gap-1 shrink-0 z-30 flex-nowrap overflow-x-auto custom-scrollbar shadow-sm">
+        <div className="flex bg-gray-100 p-0.5 rounded-lg mr-2">
+            <button onClick={() => updateData(widget.id, { tool: 'select' })} className={`p-1.5 rounded-md transition-all ${tool === 'select' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`} title="Select"><MousePointer2 size={18} /></button>
+            <button onClick={() => updateData(widget.id, { tool: 'pen' })} className={`p-1.5 rounded-md transition-all ${tool === 'pen' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`} title="Pen"><Pencil size={18} /></button>
+            <button onClick={() => updateData(widget.id, { tool: 'line' })} className={`p-1.5 rounded-md transition-all ${tool === 'line' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`} title="Line"><Layout size={18} className="rotate-45" /></button>
+            <button onClick={() => updateData(widget.id, { tool: 'eraser' })} className={`p-1.5 rounded-md transition-all ${tool === 'eraser' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`} title="Eraser"><Eraser size={18} /></button>
+            <button onClick={() => updateData(widget.id, { tool: 'text' })} className={`p-1.5 rounded-md transition-all ${tool === 'text' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`} title="Text"><Type size={18} /></button>
         </div>
-        <div className="w-px h-5 bg-gray-200" />
-        <button onClick={() => updateData(widget.id, { tool: 'select' })} className={`p-1.5 rounded-lg transition-all ${tool === 'select' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Select"><MousePointer2 size={16} /></button>
-        <button onClick={() => updateData(widget.id, { tool: 'pen' })} className={`p-1.5 rounded-lg transition-all ${tool === 'pen' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Pen"><Pencil size={16} /></button>
-        <button onClick={() => updateData(widget.id, { tool: 'eraser' })} className={`p-1.5 rounded-lg transition-all ${tool === 'eraser' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Eraser"><Eraser size={16} /></button>
-        <button onClick={() => updateData(widget.id, { tool: 'text' })} className={`p-1.5 rounded-lg transition-all ${tool === 'text' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Text"><Type size={16} /></button>
-        <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`p-1.5 rounded-lg transition-all ${showEmojiPicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Emoji"><Smile size={16} /></button>
-        <button onClick={() => setShowShapePicker(!showShapePicker)} className={`p-1.5 rounded-lg transition-all ${showShapePicker ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`} title="Shapes"><Shapes size={16} /></button>
-        <div className="w-px h-5 bg-gray-200" />
-        <input type="range" min="2" max="40" value={brushSize} onChange={(e) => updateData(widget.id, { brushSize: Number(e.target.value) })} className="w-16 h-1 accent-blue-500" title={`Size: ${brushSize}`} />
-        <div className="w-px h-5 bg-gray-200" />
-        <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30" title="Undo"><Undo2 size={16} /></button>
-        <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30" title="Redo"><Redo2 size={16} /></button>
-        {selectedItem && <button onClick={deleteSelected} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100" title="Delete"><Trash2 size={16} /></button>}
-        <div className="w-px h-5 bg-gray-200 ml-auto" />
-        <div className="flex gap-1">
-          <button onClick={downloadPNG} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-green-600" title="Download"><Download size={16} /></button>
-          <button onClick={clearCanvas} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-500" title="Clear"><RotateCcw size={16} /></button>
+
+        <div className="w-px h-6 bg-gray-200" />
+        
+        <div className="flex gap-1 mx-1">
+            <button onClick={() => addElement('rect', 150, 150)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Rectangle"><Square size={18} /></button>
+            <button onClick={() => addElement('circle', 150, 150)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Circle"><Circle size={18} /></button>
+            <button onClick={() => addElement('triangle', 150, 150)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Triangle"><Triangle size={18} /></button>
+            <button onClick={() => addElement('star', 150, 150)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Star"><Star size={18} /></button>
+            <button onClick={() => addElement('diamond', 150, 150)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Diamond"><Diamond size={18} /></button>
+            <button onClick={() => addElement('arrow', 150, 150)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Arrow"><ArrowUpRight size={18} /></button>
+        </div>
+
+        <div className="w-px h-6 bg-gray-200" />
+
+        <div className="flex gap-1 mx-1">
+            <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Emojis" onClick={() => {
+                const em = DRAWING_EMOJIS[Math.floor(Math.random() * DRAWING_EMOJIS.length)];
+                addElement('emoji', 200, 200, em);
+            }}><Smile size={18} /></button>
+            <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Image" onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e: any) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => addElement('image', 100, 100, ev.target?.result as string);
+                        reader.readAsDataURL(file);
+                    }
+                };
+                input.click();
+            }}><ImageIcon size={18} /></button>
+        </div>
+
+        <div className="flex gap-1 ml-auto">
+          <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30" title="Undo"><Undo2 size={18} /></button>
+          <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30" title="Redo"><Redo2 size={18} /></button>
+          <div className="w-px h-6 bg-gray-200" />
+          <button onClick={downloadPNG} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-green-600" title="Export PNG"><Download size={18} /></button>
+          <button onClick={() => { if(confirm('Clear all?')) updateData(widget.id, { elements: [], selectionId: null }); saveToHistory({ elements: [], selectionId: null }); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-500" title="Clear All"><RotateCcw size={18} /></button>
         </div>
       </div>
 
-      {showColorPicker && (
-        <div className="absolute top-12 left-4 z-[100] bg-white p-2 rounded-xl shadow-2xl flex gap-1 border animate-in zoom-in-95 duration-200">
-          {COLORS.map(c => (
-            <button key={c} onClick={() => { updateData(widget.id, { color: c }); setShowColorPicker(false); }} className="w-6 h-6 rounded-full border hover:scale-125 transition-transform shadow-sm" style={{ backgroundColor: c, borderColor: c === '#ffffff' ? '#ddd' : c }} />
-          ))}
-        </div>
-      )}
+      {/* Formatting Context Bar (When element selected) */}
+      {selectedElement && (
+        <div className="bg-gray-50 border-b p-1 flex items-center gap-2 animate-in slide-in-from-top-1 duration-200 px-2 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-1 group relative">
+                <Palette size={14} className="text-gray-400" />
+                <div className="flex gap-0.5">
+                    {COLORS.slice(0, 8).map(c => (
+                        <button key={c} onClick={() => {
+                            const newElements = elements.map((el: any) => el.id === selectionId ? { ...el, fill: c } : el);
+                            updateData(widget.id, { elements: newElements });
+                        }} className={`w-5 h-5 rounded-full border border-white shadow-sm hover:scale-110 transition-transform ${selectedElement.fill === c ? 'ring-2 ring-blue-500' : ''}`} style={{ backgroundColor: c }} />
+                    ))}
+                </div>
+            </div>
+            <div className="w-px h-4 bg-gray-200" />
+            <div className="flex items-center gap-1">
+                <div className="flex gap-1">
+                    {['#000000', '#ffffff', '#ef4444', '#3b82f6'].map(c => (
+                        <button key={c} onClick={() => {
+                            const newElements = elements.map((el: any) => el.id === selectionId ? { ...el, stroke: c } : el);
+                            updateData(widget.id, { elements: newElements });
+                        }} className={`w-4 h-4 rounded-full border border-white shadow-sm ${selectedElement.stroke === c ? 'ring-2 ring-blue-500' : ''}`} style={{ backgroundColor: c }} />
+                    ))}
+                </div>
+            </div>
+            <div className="w-px h-4 bg-gray-200" />
+            <input type="range" min="0" max="20" value={selectedElement.strokeWidth} onChange={(e) => {
+                const val = parseInt(e.target.value);
+                const newElements = elements.map((el: any) => el.id === selectionId ? { ...el, strokeWidth: val } : el);
+                updateData(widget.id, { elements: newElements });
+            }} className="w-16 accent-gray-600" title="Stroke Width" />
+            
+            <div className="w-px h-4 bg-gray-200" />
+            
+            <div className="flex gap-1">
+                <button onClick={() => moveLayer('front')} className="p-1 rounded hover:bg-gray-200 text-gray-500" title="To Front"><BringToFront size={16} /></button>
+                <button onClick={() => moveLayer('back')} className="p-1 rounded hover:bg-gray-200 text-gray-500" title="To Back"><SendToBack size={16} /></button>
+                <button onClick={duplicateElement} className="p-1 rounded hover:bg-gray-200 text-gray-500" title="Duplicate"><Copy size={16} /></button>
+                <button onClick={deleteElement} className="p-1 rounded hover:bg-red-100 text-red-500" title="Delete"><Trash2 size={16} /></button>
+            </div>
 
-      {showEmojiPicker && (
-        <div className="absolute top-12 left-10 z-[100] bg-white rounded-xl shadow-2xl border p-3 w-64 max-h-64 overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-          <div className="grid grid-cols-6 gap-1">
-            {DRAWING_EMOJIS.map((em, i) => (
-              <button key={i} onClick={() => addEmoji(em)} className="text-xl p-1 rounded hover:bg-blue-50 hover:scale-110 transition-transform">{em}</button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showShapePicker && (
-        <div className="absolute top-12 left-16 z-[100] bg-white rounded-xl shadow-2xl border p-2 w-48 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { id: 'square', label: 'Square', icon: <div className="w-6 h-6 bg-slate-400" /> },
-              { id: 'circle', label: 'Circle', icon: <div className="w-6 h-6 bg-slate-400 rounded-full" /> },
-              { id: 'triangle', label: 'Triangle', icon: <Triangle size={24} className="text-slate-400" /> },
-              { id: 'hexagon', label: 'Hexagon', icon: <Hexagon size={24} className="text-slate-400" /> },
-              { id: 'arrow', label: 'Arrow', icon: <ArrowRight size={24} className="text-slate-400" /> },
-              { id: 'semicircle', label: 'Semicircle', icon: <div className="w-6 h-3 bg-slate-400 rounded-t-full" /> }
-            ].map(s => (
-              <button key={s.id} onClick={() => addShape(s.id)} className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-50 transition-colors" title={s.label}>
-                {s.icon}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showBgPicker && (
-        <div className="absolute top-12 left-2 z-[100] bg-white p-2 rounded-xl shadow-2xl flex flex-col gap-1 border min-w-[140px] animate-in zoom-in-95 duration-200">
-          {BG_TEMPLATES.map(t => (
-            <button
-              key={t.id}
-              onClick={() => { updateData(widget.id, { bgType: t.id }); setShowBgPicker(false); }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${bgType === t.id ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-50 text-slate-600'}`}
-            >
-              <div className="w-5 h-5 rounded border border-slate-200 shrink-0" style={t.style} />
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div
-        className="flex-1 relative overflow-hidden bg-white min-h-0"
-        style={BG_TEMPLATES.find(t => t.id === bgType)?.style || {}}
-        onMouseDown={() => tool === 'select' && setSelectedItem(null)}
-      >
-        <div
-          className="absolute inset-0 transition-shadow"
-          style={{
-            transform: `translate(${drawOffset.x}px, ${drawOffset.y}px)`,
-            width: '100%',
-            height: '100%',
-            zIndex: selectedItem?.type === 'drawing' ? 10 : 0,
-            border: (tool === 'select' && selectedItem?.type === 'drawing') ? '2px dashed #3b82f6' : 'none'
-          }}
-        >
-          <canvas
-            ref={canvasRef}
-            className={`w-full h-full touch-none ${tool === 'pen' || tool === 'eraser' ? 'cursor-crosshair' : tool === 'select' ? 'cursor-move' : tool === 'text' ? 'cursor-text' : 'cursor-default'}`}
-            onMouseDown={(e) => {
-              if (tool === 'select') {
-                handleItemMouseDown(e, 'drawing', 'layer');
-              } else {
-                startDrawing(e);
-              }
-            }}
-            onClick={handleCanvasClick}
-            onTouchStart={startDrawing}
-          />
-        </div>
-
-        {imageItems.map((img: any) => {
-          const imgScale = img.scale || 1;
-          const w = (img.baseWidth || 100) * imgScale;
-          const h = (img.baseHeight || 100) * imgScale;
-          return (
-            <div
-              key={img.id}
-              className="absolute"
-              style={{ left: img.x, top: img.y, zIndex: selectedItem?.id === img.id ? 15 : 5 }}
-            >
-              <div
-                className="cursor-move group"
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${img.rotation}deg)`,
-                  transformOrigin: 'center',
-                  pointerEvents: tool === 'select' ? 'auto' : 'none'
-                }}
-                onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'move')}
-              >
-                <img
-                  src={img.src}
-                  alt=""
-                  className={`max-w-none shadow-sm transition-shadow ${selectedItem?.id === img.id ? 'ring-2 ring-blue-500 shadow-xl' : 'group-hover:ring-1 group-hover:ring-blue-200'}`}
-                  style={{ width: w, height: h }}
-                />
-                {selectedItem?.id === img.id && (
-                  <>
-                    <div
-                      className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-grab shadow z-20 flex items-center justify-center -top-8 left-1/2 -translate-x-1/2"
-                      onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'rotate')}
-                      title="Rotate"
-                    >
-                      <RotateCw size={10} className="text-blue-500" />
-                    </div>
-                    <div
-                      className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow z-20 -bottom-2 -right-2"
-                      onMouseDown={(e) => handleItemMouseDown(e, 'image', img.id, 'scale')}
-                      title="Scale"
+            {selectedElement.type === 'text' && (
+                <div className="ml-auto flex items-center bg-white rounded-md border p-0.5">
+                    <input 
+                        type="text" 
+                        value={selectedElement.content} 
+                        onChange={(e) => {
+                            const newElements = elements.map((el: any) => el.id === selectionId ? { ...el, content: e.target.value } : el);
+                            updateData(widget.id, { elements: newElements });
+                        }}
+                        className="text-xs px-2 w-32 outline-none border-none font-medium"
+                        placeholder="Edit text..."
+                        autoFocus
                     />
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {textItems.map((t: any) => {
-          const textScale = t.scale || 1;
-          const baseHeight = 32;
-          const baseWidth = Math.max(60, (t.text?.length || 0) * 11 + 20);
-          return (
-            <div key={t.id} className="absolute" style={{ left: t.x, top: t.y, zIndex: selectedItem?.id === t.id ? 10 : 1 }}>
-              {selectedItem?.id === t.id && (
-                <div className="absolute border-2 border-blue-500 rounded pointer-events-none"
-                  style={{
-                    width: baseWidth * textScale + 4,
-                    height: baseHeight * textScale + 4,
-                    top: -(baseHeight * textScale) / 2 - 2,
-                    left: -(baseWidth * textScale) / 2 - 2,
-                    transform: `rotate(${t.rotation}deg)`
-                  }} />
-              )}
-              <div
-                className="cursor-move select-none"
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${t.rotation}deg) scale(${textScale})`,
-                  transformOrigin: 'center',
-                  pointerEvents: tool === 'select' ? 'auto' : 'none'
-                }}
-                onMouseDown={(e) => handleItemMouseDown(e, 'text', t.id, 'move')}
-              >
-                <input
-                  type="text"
-                  value={t.text}
-                  onChange={(e) => updateTextContent(t.id, e.target.value)}
-                  className="bg-transparent border-none outline-none text-center font-bold text-xl px-2 py-0 min-w-[40px] leading-tight"
-                  style={{ color: t.color, cursor: tool === 'select' ? 'text' : 'inherit' }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-              {selectedItem?.id === t.id && (
-                <div style={{ transform: `rotate(${t.rotation}deg)`, position: 'absolute', top: 0, left: 0, width: 0, height: 0 }}>
-                  <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-grab shadow z-20 flex items-center justify-center"
-                    style={{ top: -(baseHeight * textScale) / 2 - 12, left: -10 }}
-                    onMouseDown={(e) => handleItemMouseDown(e, 'text', t.id, 'rotate')} title="Rotate">
-                    <RotateCw size={10} className="text-blue-500" />
-                  </div>
-                  <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow z-20"
-                    style={{ top: (baseHeight * textScale) / 2 - 10, left: (baseWidth * textScale) / 2 - 10 }}
-                    onMouseDown={(e) => handleItemMouseDown(e, 'text', t.id, 'scale')} title="Scale" />
                 </div>
-              )}
-            </div>
-          );
-        })}
+            )}
+        </div>
+      )}
 
-        {shapeItems.map((s: any) => {
-          const shapeScale = s.scale || 1;
-          const boxSize = 60 * shapeScale;
-          return (
-            <div key={s.id} className="absolute" style={{ left: s.x, top: s.y, zIndex: selectedItem?.id === s.id ? 10 : 1 }}>
-              {selectedItem?.id === s.id && (
-                <div className="absolute border-2 border-blue-500 rounded pointer-events-none"
-                  style={{
-                    width: boxSize + 10,
-                    height: boxSize + 10,
-                    top: -boxSize / 2 - 5,
-                    left: -boxSize / 2 - 5,
-                    transform: `rotate(${s.rotation}deg)`
-                  }} />
-              )}
-              <div
-                className="cursor-move select-none"
-                style={{
-                  transform: `translate(-50%, -50%)`,
-                  pointerEvents: tool === 'select' ? 'auto' : 'none'
-                }}
-                onMouseDown={(e) => handleItemMouseDown(e, 'shape', s.id, 'move')}
-              >
-                <Shape type={s.shapeType} color={s.color} scale={shapeScale} rotation={s.rotation} />
-              </div>
-              {selectedItem?.id === s.id && (
-                <div style={{ transform: `rotate(${s.rotation}deg)`, position: 'absolute', top: 0, left: 0, width: 0, height: 0 }}>
-                  <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-grab shadow z-20 flex items-center justify-center font-bold text-blue-500"
-                    style={{ top: -boxSize / 2 - 18, left: -10 }}
-                    onMouseDown={(e) => handleItemMouseDown(e, 'shape', s.id, 'rotate')} title="Rotate">
-                    <RotateCw size={10} />
-                  </div>
-                  <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow z-20"
-                    style={{ top: boxSize / 2 - 10, left: boxSize / 2 - 10 }}
-                    onMouseDown={(e) => handleItemMouseDown(e, 'shape', s.id, 'scale')} title="Scale" />
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Main Drawing Area */}
+      <div 
+        className={`flex-1 relative overflow-hidden bg-white select-none`}
+        style={BG_TEMPLATES.find(t => t.id === bgType)?.style}
+      >
+        <svg
+          ref={svgRef}
+          className={`w-full h-full touch-none ${tool === 'pen' ? 'cursor-crosshair' : tool === 'eraser' ? 'cursor-not-allowed' : 'cursor-default'}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+        >
+          {elements.map((el: DrawingElement) => (
+            <g
+              key={el.id}
+              className={`drawing-element group ${selectionId === el.id ? 'is-selected' : ''}`}
+              data-id={el.id}
+              transform={`translate(${el.x}, ${el.y}) rotate(${el.rotation}, ${el.width/2}, ${el.height/2})`}
+              style={{ opacity: el.opacity, cursor: tool === 'select' ? 'move' : 'inherit' }}
+            >
+              <ShapeRenderer element={el} />
+              
+              {/* Active Selection Highlights & Handles */}
+              {selectionId === el.id && (
+                <g className="selection-overlay">
+                  {/* Outline */}
+                  <rect 
+                    x={-2} y={-2} width={el.width + 4} height={el.height + 4} 
+                    fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 2"
+                  />
+                  
+                  {/* Resize Handles */}
+                  {['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'].map(h => {
+                    let hx = 0, hy = 0;
+                    if (h.includes('e')) hx = el.width;
+                    if (h.includes('s')) hy = el.height;
+                    if (h === 'n' || h === 's') hx = el.width / 2;
+                    if (h === 'e' || h === 'w') hy = el.height / 2;
+                    
+                    return (
+                      <rect
+                        key={h}
+                        data-handle={h}
+                        className={`resize-handle cursor-${h}-resize`}
+                        x={hx - 4} y={hy - 4} width={8} height={8}
+                        fill="white" stroke="#3b82f6" strokeWidth="1"
+                      />
+                    );
+                  })}
 
-        {emojiItems.map((em: any) => {
-          const emojiScale = em.scale || 1;
-          const emojiSize = 30 * emojiScale;
-          const boxSize = emojiSize + 8;
-          return (
-            <div key={em.id} className="absolute" style={{ left: em.x, top: em.y, zIndex: selectedItem?.id === em.id ? 10 : 1 }}>
-              {selectedItem?.id === em.id && (
-                <div className="absolute border-2 border-blue-500 rounded pointer-events-none"
-                  style={{
-                    width: boxSize + 4,
-                    height: boxSize + 4,
-                    top: -boxSize / 2 - 2,
-                    left: -boxSize / 2 - 2,
-                    transform: `rotate(${em.rotation}deg)`
-                  }} />
+                  {/* Rotate Handle */}
+                  <g className="rotate-handle cursor-grab active:cursor-grabbing">
+                    <line x1={el.width / 2} y1={0} x2={el.width / 2} y2={-20} stroke="#3b82f6" strokeWidth="1" />
+                    <circle cx={el.width / 2} cy={-20} r={5} fill="white" stroke="#3b82f6" strokeWidth="1" />
+                  </g>
+                </g>
               )}
-              <div
-                className="cursor-move select-none text-3xl"
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${em.rotation}deg) scale(${emojiScale})`,
-                  transformOrigin: 'center',
-                  pointerEvents: tool === 'select' ? 'auto' : 'none',
-                  userSelect: 'none'
-                }}
-                onMouseDown={(e) => handleItemMouseDown(e, 'emoji', em.id, 'move')}
-              >
-                {em.emoji}
-              </div>
-              {selectedItem?.id === em.id && (
-                <div style={{ transform: `rotate(${em.rotation}deg)`, position: 'absolute', top: 0, left: 0, width: 0, height: 0 }}>
-                  <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-grab shadow z-20 flex items-center justify-center"
-                    style={{ top: -boxSize / 2 - 12, left: -10 }}
-                    onMouseDown={(e) => handleItemMouseDown(e, 'emoji', em.id, 'rotate')} title="Rotate">
-                    <RotateCw size={10} className="text-blue-500" />
-                  </div>
-                  <div className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize shadow z-20"
-                    style={{ top: boxSize / 2 - 10, left: boxSize / 2 - 10 }}
-                    onMouseDown={(e) => handleItemMouseDown(e, 'emoji', em.id, 'scale')} title="Scale" />
-                </div>
-              )}
-            </div>
-          );
-        })}
+            </g>
+          ))}
+        </svg>
+
+        {/* Floating background picker toggle */}
+        <button 
+            onClick={() => {
+                const types = BG_TEMPLATES.map(t => t.id);
+                const next = types[(types.indexOf(bgType) + 1) % types.length];
+                updateData(widget.id, { bgType: next });
+            }}
+            className="absolute bottom-4 right-4 p-2 bg-white/80 backdrop-blur rounded-full shadow-lg border border-gray-100 text-gray-400 hover:text-blue-500 hover:scale-110 transition-all z-20"
+            title="Toggle Background"
+        >
+            <Layout size={20} />
+        </button>
       </div>
     </div>
   );

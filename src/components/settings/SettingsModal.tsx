@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User, Users, ImageIcon, Calendar, Download, Info, Mail, X, Upload, Save, Check, RefreshCw, Trash2, Plus, PenSquare, Copy, Edit3, Cloud, Terminal, Shield, Lock, Bell, Clock } from 'lucide-react';
 import AppearanceSettings from './AppearanceSettings';
 import TimePicker from '../TimePicker';
@@ -7,12 +7,71 @@ import { SCHEDULE_EMOJIS } from '../../constants';
 import { dataService } from '../../services/dataService';
 import { supabase } from '../../services/supabaseClient';
 
-const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, syncStats = { pending: 0, raw: 0, comp: 0, lastSync: null }, roster, setRoster, backgrounds, currentBackground, setBackground, onUploadBackground, onDeleteBackground, showGrid, setShowGrid, allRosters, setAllRosters, activeRosterId, setActiveRosterId, activeScheduleDays, saveScheduleTemplate, clockStyle, setClockStyle, lastSyncError, cloudSyncEnabled, setCloudSyncEnabled, widgets, setWidgets, textColor, setTextColor, debugLog = [], channelStatus = {}, onHardRefresh }) => {
-    if (!isOpen) return null;
+const SettingsModal = ({ 
+    isOpen, 
+    onClose, 
+    user, 
+    onSignOut, 
+    onSignIn, 
+    isSyncing, 
+    syncStats = { pending: 0, raw: 0, comp: 0, lastSync: null }, 
+    roster, 
+    setRoster, 
+    backgrounds, 
+    currentBackground, 
+    setBackground, 
+    onUploadBackground, 
+    onDeleteBackground, 
+    showGrid, 
+    setShowGrid, 
+    allRosters, 
+    setAllRosters, 
+    activeRosterId, 
+    setActiveRosterId, 
+    activeScheduleDays, 
+    saveScheduleTemplate, 
+    clockStyle, 
+    setClockStyle, 
+    lastSyncError, 
+    cloudSyncEnabled, 
+    setCloudSyncEnabled, 
+    widgets, 
+    setWidgets, 
+    textColor, 
+    setTextColor, 
+    debugLog = [], 
+    channelStatus = {}, 
+    onHardRefresh,
+    // Pro Props
+    showClockDate,
+    setShowClockDate,
+    is24Hour,
+    setIs24Hour,
+    isGlassy,
+    setIsGlassy,
+    accentColor,
+    setAccentColor,
+    // Schedule Parity
+    scheduleSettings,
+    setScheduleSettings
+}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Backup Reminders
+    const [backupEnabled, setBackupEnabled] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeroom_backup_enabled') || 'false'); } catch { return false; }
+    });
+    const [backupInterval, setBackupInterval] = useState(() => {
+        try { return parseInt(localStorage.getItem('homeroom_backup_interval') || '7'); } catch { return 7; }
+    });
 
     const [activeTab, setActiveTab] = useState('roster');
     const [importText, setImportText] = useState("");
     const [feedback, setFeedback] = useState("");
+    const [feedbackName, setFeedbackName] = useState("");
+    const [feedbackEmail, setFeedbackEmail] = useState("");
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [feedbackStatus, setFeedbackStatus] = useState('');
     const [editingRosterId, setEditingRosterId] = useState(null);
     const [newRosterName, setNewRosterName] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -26,12 +85,29 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
     const [copyStatus, setCopyStatus] = useState('');
     const [copyTargetDays, setCopyTargetDays] = useState([]);
 
-    const copyScheduleDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].filter(d => d !== selectedDay);
     const [timePickerTrigger, setTimePickerTrigger] = useState(null);
 
     // Debug
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
     const [testResult, setTestResult] = useState<string | null>(null);
+
+    // Persist backup settings
+    useEffect(() => {
+        localStorage.setItem('homeroom_backup_enabled', JSON.stringify(backupEnabled));
+        localStorage.setItem('homeroom_backup_interval', String(backupInterval));
+    }, [backupEnabled, backupInterval]);
+
+    // Auto-disable backup reminders when cloud sync is active
+    useEffect(() => {
+        if (user && cloudSyncEnabled && backupEnabled) {
+            console.log('Cloud sync active: Disabling local backup reminders.');
+            setBackupEnabled(false);
+        }
+    }, [user, cloudSyncEnabled]);
+
+    if (!isOpen) return null;
+
+    const copyScheduleDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].filter(d => d !== selectedDay);
 
     const tabs = [
         { id: 'roster', label: 'Roster', icon: <Users size={16} /> },
@@ -146,17 +222,51 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
     const handleExport = () => {
         const data = {
             roster,
+            allRosters,
+            activeRosterId,
             background: currentBackground,
             scheduleTemplate: activeScheduleDays,
             widgets,
+            clockStyle,
+            accentColor,
+            showGrid,
             exportedAt: new Date().toISOString()
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'homeroompro_backup.json';
+        a.download = `homeroompro_backup_${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
+        URL.revokeObjectURL(url);
+        // Update last backup date
+        localStorage.setItem('homeroom_last_backup', new Date().toISOString());
+    };
+
+    const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target?.result as string);
+                if (data.roster) setRoster(data.roster);
+                if (data.allRosters) setAllRosters(data.allRosters);
+                if (data.activeRosterId) setActiveRosterId(data.activeRosterId);
+                if (data.background) setBackground(data.background);
+                if (data.scheduleTemplate) saveScheduleTemplate(data.scheduleTemplate);
+                if (data.widgets && setWidgets) setWidgets(data.widgets);
+                if (data.clockStyle) setClockStyle(data.clockStyle);
+                if (data.accentColor) setAccentColor(data.accentColor);
+                if (data.showGrid !== undefined) setShowGrid(data.showGrid);
+                alert('Data imported successfully!');
+            } catch (err) {
+                alert('Invalid backup file. Please select a valid HomeRoom Pro backup JSON.');
+            }
+        };
+        reader.readAsText(file);
+        // Reset input so same file can be re-selected
+        e.target.value = '';
     };
 
     const runConnectionTest = async () => {
@@ -181,26 +291,28 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
     const renderContent = () => {
         switch (activeTab) {
             case 'roster':
+            case 'roster-list':
+            case 'roster-bulk':
                 return (
                     <div className="space-y-6">
-                        <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between">
+                        <div className={`${accentColor === 'rose' ? 'bg-rose-50 border-rose-100' : accentColor === 'blue' ? 'bg-blue-50 border-blue-100' : accentColor === 'purple' ? 'bg-purple-50 border-purple-100' : accentColor === 'emerald' ? 'bg-emerald-50 border-emerald-100' : accentColor === 'amber' ? 'bg-amber-50 border-amber-100' : 'bg-indigo-50 border-indigo-100'} p-4 rounded-xl border flex items-center justify-between`}>
                             <div>
-                                <h3 className="font-bold text-indigo-900">Class Management</h3>
-                                <p className="text-xs text-indigo-600 mt-1">Select which class feeds your student tools (Randomizer, Group Maker, etc.)</p>
+                                <h3 className={`font-bold ${accentColor === 'rose' ? 'text-rose-900' : accentColor === 'blue' ? 'text-blue-900' : accentColor === 'purple' ? 'text-purple-900' : accentColor === 'emerald' ? 'text-emerald-900' : accentColor === 'amber' ? 'text-amber-900' : 'text-indigo-900'}`}>Class Management</h3>
+                                <p className={`text-xs ${accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : accentColor === 'amber' ? 'text-amber-600' : 'text-indigo-600'} mt-1`}>Select which class feeds your student tools (Randomizer, Group Maker, etc.)</p>
                             </div>
-                            <button onClick={createNewRoster} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 flex items-center gap-1"><Plus size={14} /> New Class</button>
+                            <button onClick={createNewRoster} className={`${accentColor === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1`}><Plus size={14} /> New Class</button>
                         </div>
 
                         <div className="flex gap-2 overflow-x-auto pb-2">
                             {allRosters.map(r => (
-                                <div key={r.id} onClick={() => { setActiveRosterId(r.id); setRoster(r.roster || []); }} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer min-w-[120px] justify-between group ${activeRosterId === r.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300'}`}>
+                                <div key={r.id} onClick={() => { setActiveRosterId(r.id); setRoster(r.roster || []); }} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer min-w-[120px] justify-between group ${activeRosterId === r.id ? (accentColor === 'rose' ? 'bg-rose-600 border-rose-600' : accentColor === 'blue' ? 'bg-blue-600 border-blue-600' : accentColor === 'purple' ? 'bg-purple-600 border-purple-600' : accentColor === 'emerald' ? 'bg-emerald-600 border-emerald-600' : 'bg-indigo-600 border-indigo-600') + ' text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-slate-300'}`}>
                                     {editingRosterId === r.id ? (
                                         <input autoFocus className="bg-white text-black text-xs px-1 py-0.5 rounded w-20 outline-none" value={newRosterName} onChange={e => setNewRosterName(e.target.value)} onKeyDown={e => e.key === 'Enter' && renameRoster(r.id, newRosterName)} onBlur={() => renameRoster(r.id, newRosterName)} />
                                     ) : (
                                         <span className="font-bold text-xs truncate">{r.name}</span>
                                     )}
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={(e) => { e.stopPropagation(); setEditingRosterId(r.id); setNewRosterName(r.name); }} className="hover:text-indigo-200"><PenSquare size={12} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); setEditingRosterId(r.id); setNewRosterName(r.name); }} className="hover:text-white/80"><PenSquare size={12} /></button>
                                         <button onClick={(e) => { e.stopPropagation(); setRosterToDelete(r.id); setShowDeleteConfirm(true); }} className="hover:text-red-300"><Trash2 size={12} /></button>
                                     </div>
                                 </div>
@@ -213,13 +325,13 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                 <div className="flex gap-1 bg-gray-100 p-0.5 rounded-lg">
                                     <button
                                         onClick={() => setActiveTab('roster-list')}
-                                        className={`px-2 py-1 text-xs font-bold rounded ${activeTab === 'roster-list' || activeTab === 'roster' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                                        className={`px-2 py-1 text-xs font-bold rounded ${activeTab === 'roster-list' || activeTab === 'roster' ? `bg-white ${accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : 'text-indigo-600'} shadow-sm` : 'text-gray-500'}`}
                                     >
                                         List
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('roster-bulk')}
-                                        className={`px-2 py-1 text-xs font-bold rounded ${activeTab === 'roster-bulk' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                                        className={`px-2 py-1 text-xs font-bold rounded ${activeTab === 'roster-bulk' ? `bg-white ${accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : 'text-indigo-600'} shadow-sm` : 'text-gray-500'}`}
                                     >
                                         Bulk Add
                                     </button>
@@ -253,7 +365,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                 </div>
                             ) : (
                                 <textarea
-                                    className="w-full h-48 p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono resize-none bg-slate-50"
+                                    className={`w-full h-48 p-3 border border-slate-200 rounded-xl text-sm outline-none font-mono resize-none bg-slate-50 focus:ring-2 ${accentColor === 'rose' ? 'focus:ring-rose-500' : accentColor === 'blue' ? 'focus:ring-blue-500' : accentColor === 'purple' ? 'focus:ring-purple-500' : accentColor === 'emerald' ? 'focus:ring-emerald-500' : accentColor === 'amber' ? 'focus:ring-amber-500' : 'focus:ring-indigo-500'}`}
                                     placeholder="Paste student names here (one per line)..."
                                     defaultValue={roster.map(s => s.name).join('\n')}
                                     onBlur={(e) => updateCurrentRosterData(e.target.value)}
@@ -281,25 +393,114 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                         setClockStyle={setClockStyle}
                         textColor={textColor}
                         setTextColor={setTextColor}
+                        // Pro Props
+                        showClockDate={showClockDate}
+                        setShowClockDate={setShowClockDate}
+                        is24Hour={is24Hour}
+                        setIs24Hour={setIs24Hour}
+                        isGlassy={isGlassy}
+                        setIsGlassy={setIsGlassy}
+                        accentColor={accentColor}
+                        setAccentColor={setAccentColor}
                     />
                 );
             case 'schedule':
                 return (
-                    <div className="p-4">
-                        <p className="text-gray-600 text-sm mb-4">Set up your weekly schedule template. Each day's activities will load automatically when you open the Schedule widget.</p>
+                    <div className="p-4 flex flex-col h-full overflow-hidden">
+                        <div className={`flex items-center justify-between mb-4 ${accentColor === 'rose' ? 'bg-rose-50/50 border-rose-100' : accentColor === 'blue' ? 'bg-blue-50/50 border-blue-100' : accentColor === 'purple' ? 'bg-purple-50/50 border-purple-100' : accentColor === 'emerald' ? 'bg-emerald-50/50 border-emerald-100' : accentColor === 'amber' ? 'bg-amber-50/50 border-amber-100' : 'bg-indigo-50/50 border-indigo-100'} p-3 rounded-xl border`}>
+                            <div className="flex bg-gray-100 p-1 rounded-lg">
+                                    <button
+                                        onClick={() => setScheduleSettings({ ...scheduleSettings, scheduleMode: 'weekly' })}
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${scheduleSettings.scheduleMode === 'weekly' ? `bg-white ${accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : accentColor === 'amber' ? 'text-amber-600' : 'text-indigo-600'} shadow-sm` : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        Weekly (M-F)
+                                    </button>
+                                    <button
+                                        onClick={() => setScheduleSettings({ ...scheduleSettings, scheduleMode: 'rotating' })}
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${scheduleSettings.scheduleMode === 'rotating' ? `bg-white ${accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : accentColor === 'amber' ? 'text-amber-600' : 'text-indigo-600'} shadow-sm` : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        Rotating Cycle
+                                    </button>
+                            </div>
+
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider group-hover:text-gray-600 transition-colors">Show Descriptions</span>
+                                <div
+                                    onClick={() => setScheduleSettings({ ...scheduleSettings, showDescriptions: !scheduleSettings.showDescriptions })}
+                                    className={`w-8 h-4.5 rounded-full p-0.5 transition-colors cursor-pointer ${scheduleSettings.showDescriptions ? (accentColor === 'rose' ? 'bg-rose-600' : accentColor === 'blue' ? 'bg-blue-600' : accentColor === 'purple' ? 'bg-purple-600' : accentColor === 'emerald' ? 'bg-emerald-600' : accentColor === 'amber' ? 'bg-amber-600' : 'bg-indigo-600') : 'bg-gray-300'}`}
+                                >
+                                    <div className={`w-3.5 h-3.5 bg-white rounded-full transition-transform ${scheduleSettings.showDescriptions ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                                </div>
+                            </label>
+                        </div>
+
+                        {scheduleSettings.scheduleMode === 'rotating' && (
+                            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="flex items-center gap-6">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Days in Cycle</label>
+                                        <input
+                                            type="number"
+                                            min="2"
+                                            max="31"
+                                            className="w-16 p-1.5 bg-white border border-blue-200 rounded-lg text-sm font-bold text-blue-700 focus:ring-2 focus:ring-blue-400 outline-none"
+                                            value={scheduleSettings.daysInCycle || 6}
+                                            onChange={(e) => setScheduleSettings({ ...scheduleSettings, daysInCycle: parseInt(e.target.value) || 6 })}
+                                        />
+                                    </div>
+
+                                    <div className="flex-1 flex flex-col gap-1">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Realignment (Sync Point)</label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="date"
+                                                className="flex-1 p-1.5 bg-white border border-blue-200 rounded-lg text-xs font-medium text-blue-700 focus:ring-2 focus:ring-blue-400 outline-none"
+                                                value={scheduleSettings.realignDate}
+                                                onChange={(e) => setScheduleSettings({ ...scheduleSettings, realignDate: e.target.value })}
+                                            />
+                                            <div className="flex items-center gap-1.5 bg-blue-100/50 px-2 py-1.5 rounded-lg border border-blue-200">
+                                                <span className="text-[9px] font-bold text-blue-500 uppercase">is Day</span>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={scheduleSettings.daysInCycle}
+                                                    className="w-10 bg-transparent text-sm font-bold text-blue-700 outline-none"
+                                                    value={scheduleSettings.realignDay}
+                                                    onChange={(e) => setScheduleSettings({ ...scheduleSettings, realignDay: parseInt(e.target.value) || 1 })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Day Selector */}
                         <div className="flex gap-2 mb-4 items-start">
                             <div className="flex-1 flex gap-1 overflow-x-auto pb-2 custom-scrollbar">
-                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
-                                    <button
-                                        key={day}
-                                        onClick={() => setSelectedDay(day)}
-                                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedDay === day ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                                    >
-                                        {day.slice(0, 3)}
-                                    </button>
-                                ))}
+                                {scheduleSettings.scheduleMode === 'weekly' ? (
+                                    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
+                                        <button
+                                            key={day}
+                                            onClick={() => setSelectedDay(day)}
+                                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedDay === day ? (accentColor === 'rose' ? 'bg-rose-600 text-white' : accentColor === 'blue' ? 'bg-blue-600 text-white' : accentColor === 'purple' ? 'bg-purple-600 text-white' : accentColor === 'emerald' ? 'bg-emerald-600 text-white' : accentColor === 'amber' ? 'bg-amber-600 text-white' : 'bg-indigo-600 text-white') : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                        >
+                                            {day.slice(0, 3)}
+                                        </button>
+                                    ))
+                                ) : (
+                                    Array.from({ length: scheduleSettings.daysInCycle || 6 }).map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setSelectedDay(`Day ${i+1}`)}
+                                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedDay === `Day ${i+1}` ? (accentColor === 'rose' ? 'bg-rose-600 text-white' : accentColor === 'blue' ? 'bg-blue-600 text-white' : accentColor === 'purple' ? 'bg-purple-600 text-white' : accentColor === 'emerald' ? 'bg-emerald-600 text-white' : accentColor === 'amber' ? 'bg-amber-600 text-white' : 'bg-indigo-600 text-white') : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                        >
+                                            Day {i + 1}
+                                        </button>
+                                    ))
+                                )}
                             </div>
                             <div className="relative shrink-0 pt-0.5">
                                 <button onClick={() => setShowCopyMenu(!showCopyMenu)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center gap-1"><Copy size={12} /> Copy...</button>
@@ -345,7 +546,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                                 setTimePickerTrigger(e.currentTarget);
                                                 setSettingsTimePickerIndex(settingsTimePickerIndex === index ? null : index);
                                             }}
-                                            className="w-full text-xs font-bold text-indigo-600 bg-white border border-indigo-100 px-1 py-1 rounded hover:bg-indigo-50"
+                                            className={`w-full text-xs font-bold bg-white border px-1 py-1 rounded ${accentColor === 'rose' ? 'text-rose-600 border-rose-100 hover:bg-rose-50' : accentColor === 'blue' ? 'text-blue-600 border-blue-100 hover:bg-blue-50' : accentColor === 'purple' ? 'text-purple-600 border-purple-100 hover:bg-purple-50' : accentColor === 'emerald' ? 'text-emerald-600 border-emerald-100 hover:bg-emerald-50' : accentColor === 'amber' ? 'text-amber-600 border-amber-100 hover:bg-amber-50' : 'text-indigo-600 border-indigo-100 hover:bg-indigo-50'}`}
                                         >
                                             {(() => {
                                                 const [h, m] = (item.time || '09:00').split(':');
@@ -378,7 +579,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                                         <button
                                                             key={i}
                                                             onClick={() => { updateScheduleItem(selectedDay, index, 'emoji', emoji); setSettingsEmojiPickerIndex(null); }}
-                                                            className={`text-xl p-1.5 rounded-lg hover:bg-indigo-100 transition-colors emoji ${item.emoji === emoji ? 'bg-indigo-200 ring-2 ring-indigo-400' : ''}`}
+                                                            className={`text-xl p-1.5 rounded-lg transition-colors emoji ${item.emoji === emoji ? (accentColor === 'rose' ? 'bg-rose-200 ring-rose-400' : accentColor === 'blue' ? 'bg-blue-200 ring-blue-400' : accentColor === 'purple' ? 'bg-purple-200 ring-purple-400' : accentColor === 'emerald' ? 'bg-emerald-200 ring-emerald-400' : accentColor === 'amber' ? 'bg-amber-200 ring-amber-400' : 'bg-indigo-200 ring-indigo-400') + ' ring-2' : (accentColor === 'rose' ? 'hover:bg-rose-100' : accentColor === 'blue' ? 'hover:bg-blue-100' : accentColor === 'purple' ? 'hover:bg-purple-100' : accentColor === 'emerald' ? 'hover:bg-emerald-100' : accentColor === 'amber' ? 'hover:bg-amber-100' : 'hover:bg-indigo-100')}`}
                                                         >
                                                             {emoji}
                                                         </button>
@@ -411,9 +612,15 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                             )}
                         </div>
 
-                        <div className="flex gap-2 mt-3">
-                            <button onClick={() => addScheduleItem(selectedDay)} className="flex-1 py-2 bg-indigo-100 text-indigo-700 font-bold text-sm rounded-lg hover:bg-indigo-200 flex items-center justify-center gap-1">
+                        <div className="flex gap-2 mt-3 p-1 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                            <button onClick={() => addScheduleItem(selectedDay)} className={`flex-1 py-2.5 text-white font-bold text-sm rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all active:scale-95 ${accentColor === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
                                 <Plus size={16} /> Add Activity
+                            </button>
+                            <button className="px-3 py-2 bg-white border border-gray-200 text-gray-500 font-bold text-[10px] uppercase tracking-wider rounded-lg hover:bg-gray-50 transition-colors">
+                                Get Template
+                            </button>
+                            <button className="px-3 py-2 bg-white border border-gray-200 text-gray-500 font-bold text-[10px] uppercase tracking-wider rounded-lg hover:bg-gray-50 transition-colors">
+                                Import CSV
                             </button>
                         </div>
                     </div>
@@ -426,7 +633,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                             <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6">
                                 <div className="flex items-center gap-5 mb-6">
                                     <div className="shrink-0">
-                                        <div className="w-14 h-14 rounded-full bg-white border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                                        <div className={`w-14 h-14 rounded-full bg-white border flex items-center justify-center shadow-sm ${accentColor === 'rose' ? 'border-rose-100 text-rose-600' : accentColor === 'blue' ? 'border-blue-100 text-blue-600' : accentColor === 'purple' ? 'border-purple-100 text-purple-600' : accentColor === 'emerald' ? 'border-emerald-100 text-emerald-600' : accentColor === 'amber' ? 'border-amber-100 text-amber-600' : 'border-indigo-100 text-indigo-600'}`}>
                                             <User size={28} />
                                         </div>
                                     </div>
@@ -480,7 +687,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                 </p>
                                 <button
                                     onClick={onSignIn}
-                                    className="px-8 py-4 bg-[#5c56d6] text-white font-bold text-lg rounded-2xl hover:bg-[#4a44b8] transition-all flex items-center gap-3 shadow-xl shadow-indigo-200/50 active:scale-95"
+                                    className={`px-8 py-4 text-white font-bold text-lg rounded-2xl transition-all flex items-center gap-3 shadow-xl active:scale-95 ${accentColor === 'rose' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200/50' : accentColor === 'blue' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200/50' : accentColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-200/50' : accentColor === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200/50' : accentColor === 'amber' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200/50' : 'bg-[#5c56d6] hover:bg-[#4a44b8] shadow-indigo-200/50'}`}
                                 >
                                     <Cloud size={24} /> Sign In to Sync
                                 </button>
@@ -488,7 +695,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                         )}
 
                         <div className="bg-slate-50 border border-slate-100 rounded-[2rem] p-6 flex items-center gap-4">
-                            <div className="bg-white p-2 rounded-xl shadow-sm text-indigo-500">
+                            <div className={`bg-white p-2 rounded-xl shadow-sm ${accentColor === 'rose' ? 'text-rose-500' : accentColor === 'blue' ? 'text-blue-500' : accentColor === 'purple' ? 'text-purple-500' : accentColor === 'emerald' ? 'text-emerald-500' : accentColor === 'amber' ? 'text-amber-500' : 'text-indigo-500'}`}>
                                 <Shield size={24} />
                             </div>
                             <p className="text-sm text-slate-500 font-medium leading-relaxed">
@@ -510,23 +717,15 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                         <div className="text-[10px] font-black uppercase text-slate-400 leading-tight">Save Download</div>
                                     </div>
                                 </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".json"
+                                    onChange={handleFileImport}
+                                    className="hidden"
+                                />
                                 <button
-                                    onClick={() => {
-                                        const val = prompt("Paste your backup JSON here:");
-                                        if (val) {
-                                            try {
-                                                const data = JSON.parse(val);
-                                                if (data.roster) setRoster(data.roster);
-                                                if (data.background) setBackground(data.background);
-                                                if (data.background) setBackground(data.background);
-                                                if (data.scheduleTemplate) saveScheduleTemplate(data.scheduleTemplate);
-                                                if (data.widgets && setWidgets) setWidgets(data.widgets);
-                                                alert("Data imported successfully!");
-                                            } catch (e) {
-                                                alert("Invalid JSON data.");
-                                            }
-                                        }
-                                    }}
+                                    onClick={() => fileInputRef.current?.click()}
                                     className="flex flex-col items-center gap-3 p-6 bg-slate-800 hover:bg-slate-900 rounded-3xl transition-all group shadow-lg shadow-slate-200"
                                 >
                                     <div className="p-3 bg-white/10 rounded-xl text-white group-hover:bg-white/20 transition-colors"><Upload size={24} /></div>
@@ -536,6 +735,43 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                     </div>
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Backup Reminders */}
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className={`p-1.5 rounded-lg ${backupEnabled ? (accentColor === 'rose' ? 'bg-rose-100 text-rose-600' : accentColor === 'blue' ? 'bg-blue-100 text-blue-600' : accentColor === 'purple' ? 'bg-purple-100 text-purple-600' : accentColor === 'emerald' ? 'bg-emerald-100 text-emerald-600' : accentColor === 'amber' ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600') : 'bg-gray-200 text-gray-500'}`}>
+                                        <Bell size={16} />
+                                    </div>
+                                    <span className="font-bold text-xs text-slate-700">Backup Reminders</span>
+                                </div>
+                                <button
+                                    onClick={() => setBackupEnabled(!backupEnabled)}
+                                    className={`relative w-9 h-5 rounded-full transition-colors ${backupEnabled ? (accentColor === 'rose' ? 'bg-rose-500' : accentColor === 'blue' ? 'bg-blue-500' : accentColor === 'purple' ? 'bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-500' : 'bg-indigo-500') : 'bg-gray-300'}`}
+                                >
+                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${backupEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                </button>
+                            </div>
+                            {backupEnabled && (
+                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/50">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Frequency</span>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={365}
+                                            value={backupInterval}
+                                            onChange={(e) => setBackupInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                                            className="w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none focus:border-indigo-500"
+                                        />
+                                        <span className="text-[10px] font-bold text-slate-400">days</span>
+                                    </div>
+                                </div>
+                            )}
+                            {user && cloudSyncEnabled && (
+                                <p className="text-[10px] text-slate-400 mt-2 italic">Cloud sync is active — backup reminders are automatically disabled.</p>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-2 text-[10px] font-black tracking-widest text-slate-400 uppercase justify-center mt-4">
@@ -684,19 +920,92 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                 );
             case 'feedback':
                 return (
-                    <div className="space-y-4">
-                        <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                            <h3 className="font-bold text-indigo-900">Send Feedback</h3>
-                            <p className="text-sm text-indigo-700">Found a bug? Have a request? Let us know!</p>
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className={`p-6 rounded-2xl border ${accentColor === 'rose' ? 'bg-rose-50 border-rose-100' : accentColor === 'blue' ? 'bg-blue-50 border-blue-100' : accentColor === 'purple' ? 'bg-purple-50 border-purple-100' : accentColor === 'emerald' ? 'bg-emerald-50 border-emerald-100' : accentColor === 'amber' ? 'bg-amber-50 border-amber-100' : 'bg-indigo-50 border-indigo-100'}`}>
+                            <h3 className={`font-bold text-lg ${accentColor === 'rose' ? 'text-rose-900' : accentColor === 'blue' ? 'text-blue-900' : accentColor === 'purple' ? 'text-purple-900' : accentColor === 'emerald' ? 'text-emerald-900' : accentColor === 'amber' ? 'text-amber-900' : 'text-indigo-900'}`}>Send Feedback</h3>
+                            <p className={`text-sm mt-1 ${accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : accentColor === 'amber' ? 'text-amber-600' : 'text-indigo-600'}`}>Found a bug? Have a feature request? We'd love to hear from you!</p>
                         </div>
-                        <textarea
-                            className="w-full h-32 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                            placeholder="Tell us what you think..."
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                        />
-                        <button onClick={() => { alert("Thank you for your feedback!"); setFeedback(""); }} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors">
-                            Send Feedback
+
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Name</label>
+                                    <input
+                                        type="text"
+                                        value={feedbackName}
+                                        onChange={(e) => setFeedbackName(e.target.value)}
+                                        placeholder="Your name"
+                                        className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={feedbackEmail}
+                                        onChange={(e) => setFeedbackEmail(e.target.value)}
+                                        placeholder="you@email.com"
+                                        className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Message</label>
+                                <textarea
+                                    className="w-full h-36 p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none bg-slate-50"
+                                    placeholder="Tell us what you think..."
+                                    value={feedback}
+                                    onChange={(e) => setFeedback(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {feedbackStatus && (
+                            <div className={`p-3 rounded-xl text-sm font-bold text-center ${
+                                feedbackStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                                feedbackStatus === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                'bg-slate-50 text-slate-600'
+                            }`}>
+                                {feedbackStatus === 'success' ? '✓ Thank you! Your feedback has been sent.' :
+                                 feedbackStatus === 'error' ? '✗ Something went wrong. Please try again.' : feedbackStatus}
+                            </div>
+                        )}
+
+                        <button
+                            disabled={submittingFeedback || !feedback.trim()}
+                            onClick={async () => {
+                                if (!feedback.trim()) return;
+                                setSubmittingFeedback(true);
+                                setFeedbackStatus('');
+                                try {
+                                    const response = await fetch('https://formspree.io/f/xrelyply', {
+                                        method: 'POST',
+                                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            name: feedbackName,
+                                            email: feedbackEmail,
+                                            message: feedback,
+                                            _subject: 'HomeRoom Pro Feedback'
+                                        })
+                                    });
+                                    if (response.ok) {
+                                        setFeedbackStatus('success');
+                                        setFeedback('');
+                                        setFeedbackName('');
+                                        setFeedbackEmail('');
+                                    } else {
+                                        setFeedbackStatus('error');
+                                    }
+                                } catch (e) {
+                                    setFeedbackStatus('error');
+                                } finally {
+                                    setSubmittingFeedback(false);
+                                }
+                            }}
+                            className={`w-full text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${accentColor === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                        >
+                            {submittingFeedback ? 'Sending...' : 'Send Feedback'}
                         </button>
                     </div>
                 );
@@ -718,7 +1027,7 @@ const SettingsModal = ({ isOpen, onClose, user, onSignOut, onSignIn, isSyncing, 
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm ${activeTab === tab.id
-                                    ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100 animate-shimmer-glow [--accent-glow:rgba(99,102,241,0.2)]'
+                                    ? `bg-white ${accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : 'text-indigo-600'} shadow-sm ring-1 ring-slate-100 animate-shimmer-glow [--accent-glow:rgba(99,102,241,0.2)]`
                                     : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'
                                     }`}
                             >

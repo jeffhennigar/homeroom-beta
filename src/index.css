@@ -1,6 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent-50: #eef2ff;
+  --accent-100: #e0e7ff;
+  --accent-200: #c7d2fe;
+  --accent-300: #a5b4fc;
+  --accent-400: #818cf8;
+  --accent-500: #6366f1;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+  --accent-800: #3730a3;
+  --accent-900: #312e81;
+}
+
 body {
   font-family: 'Lexend', 'Poppins', sans-serif;
   overflow: hidden;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Ensure consistent emoji rendering across all systems */
@@ -26,159 +46,52 @@ body {
   background: #94a3b8;
 }
 
-/* Premium Animations */
-@keyframes elastic-pop {
-  0% {
-    top: var(--dock-y, calc(100vh - 60px));
-    left: var(--dock-x, 50%);
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
-  }
-
-  100% {
-    /* No top/left here, so it reverts to style's position */
-    transform: translate(0px, 0px) scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes shrink-to-dock {
-  0% {
-    /* Uses style's top/left */
-    transform: translate(0px, 0px) scale(1);
-    opacity: 1;
-  }
-
-  100% {
-    top: var(--dock-y, calc(100vh - 60px));
-    left: var(--dock-x, 50%);
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
-  }
-}
-
-@keyframes shrink-out {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  100% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-}
-
-@keyframes float-bob {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes wiggle-slant {
-
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-
-  25% {
-    transform: rotate(-3deg) scale(1.05);
-  }
-
-  75% {
-    transform: rotate(3deg) scale(1.05);
-  }
-}
-
-@keyframes shimmer-glow {
-  0% {
-    box-shadow: 0 0 0px var(--accent-glow, rgba(99, 102, 241, 0));
-  }
-
-  50% {
-    box-shadow: 0 0 15px var(--accent-glow, rgba(99, 102, 241, 0.4));
-  }
-
-  100% {
-    box-shadow: 0 0 0px var(--accent-glow, rgba(99, 102, 241, 0));
-  }
-}
-
-.animate-elastic {
-  animation: elastic-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.animate-shrink {
-  animation: shrink-out 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.animate-float {
-  animation: float-bob 3s ease-in-out infinite;
-}
-
-.animate-wiggle {
-  animation: wiggle-slant 0.4s ease-in-out;
-}
-
-.animate-shimmer-glow {
-  animation: shimmer-glow 2s ease-in-out infinite;
-}
-
-@keyframes slide-manager-grow {
-  0% {
-    transform: scale(0.3);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.animate-slide-manager {
-  animation: slide-manager-grow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  transform-origin: bottom right;
-}
-
 /* Wobble animation for dock edit mode */
 @keyframes wobble {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  25% {
-    transform: rotate(-2deg);
-  }
-
-  75% {
-    transform: rotate(2deg);
-  }
-
-  100% {
-    transform: rotate(0deg);
-  }
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+  100% { transform: rotate(0deg); }
 }
 
 .animate-wobble {
-  animation: wobble 0.3s infinite linear;
+  animation: wobble 0.2s infinite linear;
+}
+
+/* Premium Splash Screen Animations */
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes halo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-10px) rotate(-3deg); }
+}
+
+.bg-premium-flow {
+  background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #0f172a);
+  background-size: 400% 400%;
+  animation: gradient-flow 15s ease infinite;
+}
+
+.glass-tile {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 /* Flip Clock Animations */
 @keyframes flip-down {
-  0% {
-    transform: rotateX(0deg);
-  }
-
-  100% {
-    transform: rotateX(-180deg);
-  }
+  0% { transform: rotateX(0deg); }
+  100% { transform: rotateX(-180deg); }
 }
 
 .flip-card {
@@ -209,4 +122,224 @@ body {
 
 [contenteditable] li {
   margin: 0.25rem 0;
+}
+
+/* Premium sync: wiggle-slant for premium buttons */
+@keyframes wiggle-slant {
+  0%, 100% { transform: rotate(-3deg) scale(1.1); }
+  50% { transform: rotate(3deg) scale(1.1); }
+}
+
+.animate-wiggle {
+  display: inline-block;
+  animation: wiggle-slant 0.25s ease-in-out infinite;
+}
+
+/* Premium sync: float-bob for dock icons */
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: float-bob 2s ease-in-out infinite;
+}
+
+/* Premium sync: shrink-out for closing components */
+@keyframes shrink-out {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+@keyframes shrink-to-dock {
+  0% { transform: translate(0px, 0px) scale(1); opacity: 1; }
+  100% {
+    top: var(--dock-y, calc(100vh - 60px));
+    left: var(--dock-x, 50%);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+}
+
+.animate-minimize {
+  animation: shrink-to-dock 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-shrink-out {
+  animation: shrink-out 0.2s ease-in forwards;
+}
+
+@keyframes slide-manager-grow {
+  0% { opacity: 0; transform: scale(0.3) translate(50px, 50px); filter: blur(10px); }
+  100% { opacity: 1; transform: scale(1) translate(0, 0); filter: blur(0); }
+}
+
+.animate-slide-manager {
+  animation: slide-manager-grow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes slide-manager-shrink {
+  0% { opacity: 1; transform: scale(1) translate(0, 0); filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.3) translate(50px, 50px); filter: blur(10px); }
+}
+
+.animate-slide-manager-close {
+  animation: slide-manager-shrink 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Premium sync: elastic-pop for widget launch */
+@keyframes elastic-pop {
+  0% {
+    top: var(--dock-y, calc(100vh - 60px));
+    left: var(--dock-x, 50%);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-elastic {
+  animation: elastic-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Overly Premium: Spring Kinetic Transitions */
+@keyframes spring-in {
+  0% { transform: scale(0.9) translateY(20px); opacity: 0; }
+  70% { transform: scale(1.02) translateY(-5px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.animate-spring-in {
+  animation: spring-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Enhanced Frosted Glass */
+.glass-premium {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.dock-item-premium:hover {
+  transform: scale(1.04) translateY(-2px);
+}
+
+.dock-reflection {
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
+  transform: scaleY(-1) translateY(-10px);
+  filter: blur(2px);
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* Tactile Buttons */
+.btn-tactile:active {
+  transform: scale(0.96);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dynamic Widget Borders */
+.widget-glow-hover:hover {
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.2), 0 0 40px rgba(79, 70, 229, 0.1);
+  border-color: rgba(79, 70, 229, 0.4) !important;
+}
+
+.widget-selected-premium {
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.4), 0 0 30px rgba(79, 70, 229, 0.2) !important;
+  border-color: #4f46e5 !important;
+}
+
+/* Slide Transition Animations (Film Strip Model) */
+@keyframes slide-out-to-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100vw); }
+}
+
+@keyframes slide-in-from-right {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-out-to-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100vw); }
+}
+
+@keyframes slide-in-from-left {
+  from { transform: translateX(-100vw); }
+  to { transform: translateX(0); }
+}
+
+.slide-exit-left {
+  animation: slide-out-to-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.slide-enter-right {
+  animation: slide-in-from-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.slide-exit-right {
+  animation: slide-out-to-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.slide-enter-left {
+  animation: slide-in-from-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes drawer-popup-in {
+  0% { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.9) rotateX(-15deg); }
+  70% { transform: translateX(-50%) translateY(-2px) scale(1.02) rotateX(2deg); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) rotateX(0deg); }
+}
+
+@keyframes drawer-popup-out {
+  0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.95); }
+}
+
+.animate-drawer-popup {
+  animation: drawer-popup-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: bottom center;
+  perspective: 1000px;
+}
+
+.animate-drawer-popup-out {
+  animation: drawer-popup-out 0.2s ease-in forwards;
+  transform-origin: bottom center;
+}
+
+.dock-animate-hover {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.dock-item-premium:hover .dock-icon-wrapper {
+  transform: translateY(-4px) scale(1.04);
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.1));
+}
+
+.dock-reflection {
+  transform: scaleY(-1) translateY(8px);
+  mask-image: linear-gradient(to bottom, transparent 40%, rgba(255, 255, 255, 0.15) 100%);
+  opacity: 0.3;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes countdownScroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
 }

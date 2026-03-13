@@ -3,7 +3,7 @@ import { Settings, Mic, X } from 'lucide-react';
 
 import { WidgetProps } from '../../types';
 
-const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
+const TrafficLightWidget: React.FC<WidgetProps & { accentColor?: string }> = ({ widget, updateData, accentColor = 'indigo' }) => {
     const { activeLight, isListening = false, sensitivity = 50, threshold = 80, showSettings = false } = widget.data;
     const audioContextRef = useRef(null);
     const analyserRef = useRef(null);
@@ -127,7 +127,7 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
                 <div className="space-y-4 flex-1">
                     <div>
                         <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Sensitivity ({sensitivity}%)</label>
-                        <input type="range" min="1" max="100" value={sensitivity} onChange={e => updateData(widget.id, { sensitivity: Number(e.target.value) })} className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none" />
+                        <input type="range" min="1" max="100" value={sensitivity} onChange={e => updateData(widget.id, { sensitivity: Number(e.target.value) })} className={`w-full h-1 bg-gray-200 rounded-lg appearance-none ${accentColor === 'rose' ? 'accent-rose-500' : accentColor === 'blue' ? 'accent-blue-500' : accentColor === 'purple' ? 'accent-purple-500' : accentColor === 'emerald' ? 'accent-emerald-500' : accentColor === 'amber' ? 'accent-amber-500' : 'accent-indigo-500'}`} />
                     </div>
                     <div>
                         <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Max Volume ({threshold}%)</label>
@@ -147,7 +147,7 @@ const TrafficLightWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
             <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <button
                     onClick={() => updateData(widget.id, { showSettings: true })}
-                    className="p-1.5 bg-gray-100 text-gray-400 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+                    className={`p-1.5 bg-gray-100 text-gray-400 rounded-full transition-colors ${accentColor === 'rose' ? 'hover:text-rose-600 hover:bg-rose-50' : accentColor === 'blue' ? 'hover:text-blue-600 hover:bg-blue-50' : accentColor === 'purple' ? 'hover:text-purple-600 hover:bg-purple-50' : accentColor === 'emerald' ? 'hover:text-emerald-600 hover:bg-emerald-50' : accentColor === 'amber' ? 'hover:text-amber-600 hover:bg-amber-50' : 'hover:text-indigo-600 hover:bg-indigo-50'}`}
                     title="Settings"
                 >
                     <Settings size={14} />

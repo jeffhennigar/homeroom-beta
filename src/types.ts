@@ -18,7 +18,7 @@ export type WidgetType =
   | 'TRANSLATOR'
   | 'CLOCK';
 
-export type ClockStyle = 'standard' | 'analog' | 'bighour' | 'modern' | 'retro';
+export type ClockStyle = 'standard' | 'analog' | 'modern-analog' | 'bighour' | 'modern' | 'retro';
 
 export interface Position {
   x: number;

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Timer, Shuffle, Users, Armchair, Type, Camera, Dices, BarChart2,
     Edit3, Calendar, Youtube, Share2, Palette, Settings, Plus, RotateCw,
-    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown, ChevronUp, LayoutGrid, Gamepad2
+    Info, Calculator, Clock, Volume2, Ruler, ChevronLeft, ChevronRight, Unlock, Lock, MoreHorizontal, ChevronDown, ChevronUp, LayoutGrid, Gamepad2,
+    StickyNote, Lightbulb, Cloud, Columns, Undo2, Copy, Trash2, ArrowRightSquare, CircleDot, AlertTriangle, X as XIcon
 } from 'lucide-react';
 
 // Components
@@ -15,6 +16,7 @@ import TextWidget from './components/widgets/TextWidget';
 import TrafficLightWidget from './components/widgets/TrafficLightWidget';
 import VoteWidget from './components/widgets/VoteWidget';
 import WhiteboardWidget from './components/widgets/WhiteboardWidget';
+import DrawingWidget from './components/widgets/DrawingWidget';
 import ScheduleWidget from './components/widgets/ScheduleWidget';
 import QRCodeWidget from './components/widgets/QRCodeWidget';
 import EmbedWidget from './components/widgets/EmbedWidget';
@@ -26,26 +28,26 @@ import PolypadWidget from './components/widgets/PolypadWidget';
 import CalendarWidget from './components/widgets/CalendarWidget';
 import SettingsModal from './components/settings/SettingsModal';
 import SlideManager from './components/slides/SlideManager';
-import OnboardingModal from './components/modals/OnboardingModal'; // Imported Modal
+import OnboardingModal from './components/modals/OnboardingModal';
+import ClockDisplay from './components/ClockDisplay';
+import SparkWidget from './components/widgets/SparkWidget';
+import SortWidget from './components/widgets/SortWidget';
+import MarbleJarWidget from './components/widgets/MarbleJarWidget';
+import WeatherWidget from './components/widgets/WeatherWidget';
+import SimpleTextWidget from './components/widgets/SimpleTextWidget';
 import { supabase } from './services/supabaseClient';
 import { syncManager } from './services/SyncManager';
 import { dataService } from './services/dataService';
+import { Widget, Student } from './types';
+import { 
+    INIT_DOCK_ORDER, 
+    BACKGROUNDS, 
+    CLOCK_STYLES, 
+    WIDGET_SIZES, 
+    THEME_COLORS,
+    DEFAULT_NAMES
+} from './constants';
 
-
-// ... (rest of imports)
-
-// ...
-
-
-
-// ...
-
-// In renderDockItem (onClick logic) needs to be updated too, but addWidget check covers the main logic? 
-// No, the onClick calls addWidget. 
-// But wait, renderDockItem needs to be defined or I need to find where it is used.
-// In the App.tsx I wrote previously, I used specific Dock rendering logic in the return statement.
-// Let's check where the Dock logic is.
-// I'll update the loop map.
 
 // Icons for Dock
 const TrafficLightIcon = () => (
@@ -58,76 +60,58 @@ const TrafficLightIcon = () => (
 );
 
 const DOCK_LABELS = {
-    TIMER: { label: 'Timer', icon: <Timer /> },
-    RANDOMIZER: { label: 'Random', icon: <Shuffle /> },
-    GROUP_MAKER: { label: 'Groups', icon: <Users /> },
-    SEAT_PICKER: { label: 'Seats', icon: <Armchair /> },
-    TEXT: { label: 'Notes', icon: <Type /> },
+    TIMER: { label: 'Timers', icon: <Timer size={24} /> },
+    CLOCK: { label: 'Clock', icon: <Clock size={24} /> },
+    RANDOMIZER: { label: 'Random', icon: <Shuffle size={24} /> },
+    GROUP_MAKER: { label: 'Groups', icon: <Users size={24} /> },
+    SEAT_PICKER: { label: 'Seats', icon: <Armchair size={24} /> },
+    TEXT: { label: 'Notes', icon: <StickyNote size={24} /> },
+    OVERLAY_TEXT: { label: 'Text', icon: <Type size={24} /> },
     TRAFFIC: { label: 'Noise', icon: <TrafficLightIcon /> },
-    QR: { label: 'QR Code', icon: <Share2 /> },
-    WEBCAM: { label: 'Cam', icon: <Camera /> },
-    DICE: { label: 'Dice', icon: <Dices /> },
-    VOTE: { label: 'Poll', icon: <BarChart2 /> },
-    WHITEBOARD: { label: 'Draw', icon: <Edit3 /> },
-    SCHEDULE: { label: 'Schedule', icon: <Calendar /> },
-    EMBED: { label: 'Embed', icon: <Youtube /> },
-    CALCULATOR: { label: 'Calc', icon: <Calculator /> },
-    COUNTDOWN: { label: 'Countdown', icon: <Clock /> },
-    SOUNDBOARD: { label: 'Sounds', icon: <Volume2 /> },
-    POLYPAD: { label: 'Polypad', icon: <Ruler /> },
-    CALENDAR: { label: 'Calendar', icon: <Calendar /> },
-    GAMES: { label: 'Games', icon: <Gamepad2 /> }
+    QR: { label: 'Exit Ticket', icon: <Share2 size={24} /> },
+    WEBCAM: { label: 'Cam', icon: <Camera size={24} /> },
+    DICE: { label: 'Dice', icon: <Dices size={24} /> },
+    VOTE: { label: 'Poll', icon: <BarChart2 size={24} /> },
+    WHITEBOARD: { label: 'Drawing', icon: <Edit3 size={24} /> },
+    DRAWING: { label: 'Drawing', icon: <Edit3 size={24} /> }, // Alias for parity
+    SCHEDULE: { label: 'Schedule', icon: <Calendar size={24} /> },
+    EMBED: { label: 'Embed', icon: <Youtube size={24} /> },
+    CALCULATOR: { label: 'Calc', icon: <Calculator size={24} /> },
+    SPARK: { label: 'Spark', icon: <Lightbulb size={24} /> },
+    WEATHER: { label: 'Weather', icon: <Cloud size={24} /> },
+    SORT: { label: 'Sort', icon: <Columns size={24} /> },
+    COUNTDOWN: { label: 'Countdown', icon: <Clock size={24} /> },
+    SOUNDBOARD: { label: 'Sounds', icon: <Volume2 size={24} /> },
+    POLYPAD: { label: 'Polypad', icon: <Ruler size={24} /> },
+    GAMES: { label: 'Games', icon: <Gamepad2 size={24} /> },
+    MARBLE_JAR: { label: 'Reward', icon: <CircleDot size={24} /> },
+    CALENDAR: { label: 'Calendar', icon: <Calendar size={24} /> }
 };
 
-const DEFAULT_NAMES = ["Student 1", "Student 2", "Student 3", "Student 4", "Student 5"];
 
-const INIT_DOCK_ORDER = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD', 'GAMES'];
 
-const BACKGROUNDS = [
-    { id: 'default', name: 'Original', type: 'preset', preview: 'bg-gradient-to-br from-blue-200 to-orange-200', style: {}, textColor: 'text-slate-800' },
-    { id: 'forest', name: 'Forest', type: 'image', src: 'https://images.pexels.com/photos/1179229/pexels-photo-1179229.jpeg?auto=compress&cs=tinysrgb&w=1920', textColor: 'text-white' },
-    { id: 'ocean', name: 'Ocean', type: 'image', src: 'https://images.pexels.com/photos/1032650/pexels-photo-1032650.jpeg?auto=compress&cs=tinysrgb&w=1920', textColor: 'text-slate-800' },
-    { id: 'sunset', name: 'Sunset', type: 'image', src: 'https://images.pexels.com/photos/36717/amazing-animal-beautiful-beautifull.jpg?auto=compress&cs=tinysrgb&w=1920', textColor: 'text-white' },
-    { id: 'galaxy', name: 'Galaxy', type: 'image', src: 'https://images.pexels.com/photos/956981/milky-way-starry-sky-night-sky-star-956981.jpeg?auto=compress&cs=tinysrgb&w=1920', textColor: 'text-white' },
-    { id: 'puppy', name: 'Puppy', type: 'image', src: 'https://images.pexels.com/photos/1805164/pexels-photo-1805164.jpeg?auto=compress&cs=tinysrgb&w=1920', textColor: 'text-white' },
-    { id: 'kitten', name: 'Kitten', type: 'image', src: 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg?auto=compress&cs=tinysrgb&w=1920', textColor: 'text-white' },
-    { id: 'aurora', name: 'Aurora', type: 'image', src: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=1920&q=80', textColor: 'text-white' },
-];
+const OriginalBackground = () => (
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style={{ stopColor: "#fb923c", stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: "#ea580c", stopOpacity: 1 }} />
+                </linearGradient>
+                <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{ stopColor: "#3b82f6", stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: "#60a5fa", stopOpacity: 1 }} />
+                </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="#dbeafe" />
+            <path d="M1920 0V900C1400 900 1000 400 500 0H1920Z" fill="url(#gradOrange)" opacity="0.9" />
+            <path d="M1920 0V700C1600 700 1300 300 900 0H1920Z" fill="#fed7aa" opacity="0.5" />
+            <path d="M0 1080V300C500 300 900 800 1600 1080H0Z" fill="url(#gradBlue)" opacity="0.9" />
+            <path d="M0 1080V500C300 500 700 900 1200 1080H0Z" fill="#93c5fd" opacity="0.5" />
+        </svg>
+    </div>
+);
 
-const WIDGET_SIZES = {
-    TIMER: { width: 280, height: 340 },
-    RANDOMIZER: { width: 250, height: 290 },
-    GROUP_MAKER: { width: 600, height: 400 },
-    SEAT_PICKER: { width: 900, height: 600 },
-    TEXT: { width: 340, height: 260 },
-    WEBCAM: { width: 320, height: 240 },
-    DICE: { width: 300, height: 320 },
-    TRAFFIC: { width: 220, height: 320 },
-    QR: { width: 250, height: 280 },
-    VOTE: { width: 400, height: 350 },
-    WHITEBOARD: { width: 500, height: 400 },
-    SCHEDULE: { width: 380, height: 500 },
-    EMBED: { width: 480, height: 360 },
-    CALCULATOR: { width: 280, height: 380 },
-    COUNTDOWN: { width: 280, height: 280 },
-    SOUNDBOARD: { width: 440, height: 500 },
-    POLYPAD: { width: 800, height: 600 },
-    CALENDAR: { width: 340, height: 290 },
-    GAMES: { width: 450, height: 550 }
-};
-
-const THEME_COLORS: Record<string, any> = {
-    indigo: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
-    blue: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
-    emerald: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 500: '#10b981', 600: '#059669', 700: '#047857' },
-    teal: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
-    orange: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' },
-    red: { 50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
-    pink: { 50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 500: '#ec4899', 600: '#db2777', 700: '#be185d' },
-    purple: { 50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce' },
-    amber: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 500: '#f59e0b', 600: '#d97706', 700: '#b45309' },
-    slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 500: '#64748b', 600: '#475569', 700: '#334155' }
-};
 
 const App = () => {
     const dockClickLockRef = useRef(false);
@@ -168,9 +152,17 @@ const App = () => {
             const raw = localStorage.getItem('homeroom_schedule_settings');
             const data = raw ? JSON.parse(raw) : null;
             const settings = (data && typeof data === 'object' && 'settings' in data) ? data.settings : (data || {});
-            return { scheduleMode: 'weekly', dayLabels: [], ...settings };
+            return { 
+                scheduleMode: 'weekly', 
+                dayLabels: [], 
+                daysInCycle: 6,
+                realignDate: new Date().toISOString().split('T')[0],
+                realignDay: 1,
+                showDescriptions: true,
+                ...settings 
+            };
         }
-        catch { return { scheduleMode: 'weekly', dayLabels: [] }; }
+        catch { return { scheduleMode: 'weekly', dayLabels: [], daysInCycle: 6, realignDate: new Date().toISOString().split('T')[0], realignDay: 1, showDescriptions: true }; }
     });
 
     // Computed current state
@@ -211,7 +203,7 @@ const App = () => {
             const data = raw ? JSON.parse(raw) : null;
             const parsed = (data && typeof data === 'object' && 'items' in data) ? data.items : data;
 
-            const mainDefaults = ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT'];
+            const mainDefaults = ['TIMER', 'CLOCK', 'OVERLAY_TEXT', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'CALENDAR'];
             const drawerDefaults = INIT_DOCK_ORDER.filter(id => !mainDefaults.includes(id));
 
             if (parsed && parsed.main && parsed.drawer) {
@@ -219,8 +211,17 @@ const App = () => {
                 const cleanedMain = parsed.main.map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
                 const cleanedDrawer = parsed.drawer.map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
                 const currentIds = [...cleanedMain, ...cleanedDrawer];
-                const missing = INIT_DOCK_ORDER.filter(t => !currentIds.includes(t));
-                return { main: cleanedMain, drawer: [...cleanedDrawer, ...missing] };
+                
+                // FORCE: Add CLOCK and OVERLAY_TEXT to MAIN if they are completely missing
+                const forceMain = [];
+                if (!currentIds.includes('CLOCK')) forceMain.push('CLOCK');
+                if (!currentIds.includes('OVERLAY_TEXT')) forceMain.push('OVERLAY_TEXT');
+
+                const missing = INIT_DOCK_ORDER.filter(t => !currentIds.includes(t) && !forceMain.includes(t));
+                return { 
+                    main: [...cleanedMain, ...forceMain], 
+                    drawer: [...cleanedDrawer, ...missing] 
+                };
             }
 
             if (Array.isArray(parsed)) {
@@ -237,8 +238,8 @@ const App = () => {
             return { main: mainDefaults, drawer: drawerDefaults };
         } catch {
             return {
-                main: ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT'],
-                drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD', 'CALENDAR', 'GAMES']
+                main: ['TIMER', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'CALENDAR'],
+                drawer: ['TRAFFIC', 'QR', 'WEBCAM', 'DICE', 'VOTE', 'WHITEBOARD', 'EMBED', 'CALCULATOR', 'COUNTDOWN', 'SOUNDBOARD', 'POLYPAD', 'GAMES']
             };
         }
     });
@@ -247,13 +248,32 @@ const App = () => {
     const [allSlides, setAllSlides] = useState<any[]>(() => {
         try {
             const raw = localStorage.getItem('homeroom_all_slides');
+            let slidesData: any[] = [[]];
             if (raw) {
                 const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) return parsed;
-                if (parsed && typeof parsed === 'object' && 'slides' in parsed) return parsed.slides;
+                if (Array.isArray(parsed)) slidesData = parsed;
+                else if (parsed && typeof parsed === 'object' && 'slides' in parsed) slidesData = parsed.slides;
             }
-        } catch (e) { }
-        return [[]];
+            
+            // Ensure Gallery Clock exists on Slide 0
+            if (slidesData.length > 0 && Array.isArray(slidesData[0])) {
+                const hasClock = slidesData[0].some((w: any) => w.type === 'CLOCK');
+                if (!hasClock) {
+                    const galleryClock = {
+                        id: 'gallery-clock-' + Date.now(),
+                        type: 'CLOCK',
+                        x: 0,
+                        y: 0,
+                        width: 400,
+                        height: 200,
+                        data: { style: 'standard', fontSize: 20, isGlassy: 'clear' },
+                        zIndex: 1
+                    };
+                    slidesData[0] = [galleryClock, ...slidesData[0]];
+                }
+            }
+            return slidesData;
+        } catch (e) { return [[]]; }
     }); // Array of widget arrays
     const widgetsSlideIndexRef = useRef(0);
     const [closingWidgetId, setClosingWidgetId] = useState(null);
@@ -279,6 +299,34 @@ const App = () => {
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
     const [lastSyncError, setLastSyncError] = useState<string | null>(null);
 
+    // Feature Toggles (Pro Parity)
+    const [showClockDate, setShowClockDate] = useState(() => localStorage.getItem('homeroom_show_clock_date') !== 'false');
+    const [is24Hour, setIs24Hour] = useState(() => localStorage.getItem('homeroom_24hour') === 'true');
+    const [isGlassy, setIsGlassy] = useState(() => localStorage.getItem('homeroom_glassy') || 'glass');
+
+    useEffect(() => { localStorage.setItem('homeroom_show_clock_date', String(showClockDate)); }, [showClockDate]);
+    useEffect(() => { localStorage.setItem('homeroom_24hour', String(is24Hour)); }, [is24Hour]);
+    useEffect(() => { localStorage.setItem('homeroom_glassy', isGlassy); }, [isGlassy]);
+
+    // Backup Reminder Toast
+    const [showBackupReminder, setShowBackupReminder] = useState(false);
+    const [backupDaysOverdue, setBackupDaysOverdue] = useState(0);
+
+    useEffect(() => {
+        try {
+            const enabled = JSON.parse(localStorage.getItem('homeroom_backup_enabled') || 'false');
+            if (!enabled) return;
+            const interval = parseInt(localStorage.getItem('homeroom_backup_interval') || '7');
+            const lastBackup = localStorage.getItem('homeroom_last_backup');
+            const lastDate = lastBackup ? new Date(lastBackup) : null;
+            const daysSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24)) : 999;
+            if (daysSince >= interval) {
+                setBackupDaysOverdue(daysSince);
+                setShowBackupReminder(true);
+            }
+        } catch (e) { /* ignore */ }
+    }, []);
+
     const [showMoreDrawer, setShowMoreDrawer] = useState(false);
     const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -290,6 +338,33 @@ const App = () => {
         profile: 'disconnected',
         rosters: 'disconnected'
     });
+    const [history, setHistory] = useState<any[]>([]);
+    const [redoStack, setRedoStack] = useState<any[]>([]);
+
+    const [sparkGrade, setSparkGrade] = useState(() => localStorage.getItem('homeroom_spark_grade') || '3rd Grade');
+    const [studentName, setStudentName] = useState('');
+
+    const addToHistory = () => {
+        setHistory(prev => [...prev.slice(-19), widgets]);
+        setRedoStack([]);
+    };
+
+    const handleUndo = useCallback(() => {
+        if (history.length === 0) return;
+        const previous = history[history.length - 1];
+        setRedoStack(prev => [...prev, widgets]);
+        setWidgets(previous);
+        setHistory(prev => prev.slice(0, -1));
+    }, [history, widgets]);
+
+    const handleRedo = useCallback(() => {
+        if (redoStack.length === 0) return;
+        const next = redoStack[redoStack.length - 1];
+        setHistory(prev => [...prev, widgets]);
+        setWidgets(next);
+        setRedoStack(prev => prev.slice(0, -1));
+    }, [redoStack, widgets]);
+
 
     const addDebugLog = (msg: string, type: 'info' | 'error' | 'success' = 'info') => {
         setDebugLog(prev => [{
@@ -331,10 +406,17 @@ const App = () => {
     // Access Control Gating
     useEffect(() => {
         const checkAccess = async () => {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
             try {
                 const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
 
                 if (!authUser || userError) {
+                    if (isLocal) {
+                        console.log('No user session, but on localhost. Bypassing redirect.');
+                        setIsCheckingPro(false);
+                        return;
+                    }
                     console.log('No user session found, redirecting to signin');
                     window.location.href = 'https://ourhomeroom.app/signin';
                     return;
@@ -349,7 +431,7 @@ const App = () => {
                     .eq('id', authUser.id)
                     .single();
 
-                if (profileError || profile?.pro_status !== 'pro') {
+                if ((profileError || profile?.pro_status !== 'pro') && !isLocal) {
                     console.log('Access denied: Basic or missing profile, redirecting to free');
                     window.location.href = 'https://free.ourhomeroom.app';
                     return;
@@ -363,11 +445,35 @@ const App = () => {
                 setIsCheckingPro(false);
             } catch (err) {
                 console.error('Core auth error:', err);
-                window.location.href = 'https://ourhomeroom.app/signin';
+                if (!isLocal) {
+                    window.location.href = 'https://ourhomeroom.app/signin';
+                } else {
+                    setIsCheckingPro(false);
+                }
             }
         };
 
         checkAccess();
+
+        // Reactive auth state listener (cross-tab login, token refresh, sign-out)
+        let subscription: { unsubscribe: () => void } | null = null;
+        try {
+            const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+                const newUser = session?.user ?? null;
+                setUser(newUser);
+                if (!newUser) {
+                    // User signed out — clear sync state
+                    cloudLoaded.current = false;
+                    savingRef.current = false;
+                    lastSyncedRef.current = { profile: null, slides: {}, rosters: {} };
+                }
+            });
+            subscription = data?.subscription ?? null;
+        } catch (e) {
+            console.warn('onAuthStateChange setup failed:', e);
+        }
+
+        return () => { subscription?.unsubscribe(); };
     }, []);
 
     const handleSignOut = async () => {
@@ -771,15 +877,34 @@ const App = () => {
         return () => { supabase.removeChannel(rosterChannel); };
     }, [user, activeRosterId]);
 
-
     // Onboarding
     const [showOnboarding, setShowOnboarding] = useState(false);
+
+    // Onboarding trigger improved
     useEffect(() => {
-        // Simple check if roster is default
-        const isDefault = allRosters.length === 1 && allRosters[0].id === 'default' && allRosters[0].roster.length === 0;
-        // Or deeper check, for now simple:
-        if (!localStorage.getItem('homeroom_onboarded')) setShowOnboarding(true);
-    }, []);
+        if (isCheckingPro || isSyncing || !cloudLoaded.current) return;
+
+        // Only show onboarding if NO data AND NO widgets
+        const hasData = allRosters.length > 0 && allRosters.some(r => r.roster && r.roster.length > 0);
+        const hasWidgets = allSlides.some(s => s && s.length > 0);
+        
+        if (!hasData && !hasWidgets && !localStorage.getItem('homeroom_onboarded')) {
+            setShowOnboarding(true);
+        } else {
+            setShowOnboarding(false);
+        }
+    }, [isCheckingPro, isSyncing, allRosters, allSlides]);
+
+    // Safety Net: Force Roster Sync if mismatch detected
+    useEffect(() => {
+        if (cloudLoaded.current && activeRosterId) {
+            const r = allRosters.find(rr => rr.id === activeRosterId);
+            if (r && r.roster?.length !== roster.length) {
+                console.log("Safety Net: Roster mismatch detected. Syncing view.");
+                setRoster(Array.isArray(r.roster) ? r.roster : []);
+            }
+        }
+    }, [activeRosterId, allRosters]);
 
     // Persist Effects (with timestamps for local-first sync)
     useEffect(() => {
@@ -921,24 +1046,53 @@ const App = () => {
         }
     };
 
-    const addWidget = (type) => {
+    const addWidget = (type, extraData = {}) => {
         if (isDockMinimized) return;
         const id = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
-        const defaults = WIDGET_SIZES[type] || { width: 300, height: 300 };
+        const size = WIDGET_SIZES[type] || { width: 400, height: 300 };
 
         // Center logic (use latest available window metrics)
-        const x = Math.max(0, window.innerWidth / 2 - defaults.width / 2 + (Math.random() * 40 - 20));
-        let y = Math.max(0, window.innerHeight / 2 - defaults.height / 2 + (Math.random() * 40 - 20));
+        let x = Math.max(0, window.innerWidth / 2 - size.width / 2 + (Math.random() * 40 - 20));
+        let y = Math.max(0, window.innerHeight / 2 - size.height / 2 + (Math.random() * 40 - 20));
 
-        if (type === 'DRAWING') y -= 80;
-        if (type === 'CALCULATOR') y -= 60;
-        if (type === 'COUNTDOWN') y -= 50;
-        if (type === 'SPARK') y -= 40;
+        // Refined positioning for specific widgets
+        if (type === 'RANDOMIZER' || type === 'GROUP_MAKER') {
+            x = Math.round((window.innerWidth - size.width) / 2);
+            y = Math.round((window.innerHeight - size.height) / 2 - 50);
+        } else {
+            if (type === 'SEAT_PICKER') { y = 30; x += 60; }
+            if (type === 'QR') { y = 20; x = (window.innerWidth / 2) - (size.width / 2); }
+            if (type === 'DRAWING') y -= 80;
+            if (type === 'CALCULATOR') y -= 60;
+            if (type === 'COUNTDOWN') y -= 50;
+            if (type === 'SPARK') y -= 40;
+            if (type === 'WEBCAM') {
+                y = (window.innerHeight / 2) - (size.height / 2) - 100;
+                x = (window.innerWidth / 2) - (size.width / 2);
+            }
+        }
+
+        let data: any = { fontSize: 16 };
+        if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual', fontSize: 14 };
+        if (type === 'CLOCK') data = { ...data, style: 'standard', isGlassy: 'clear', fontSize: 20 };
+        if (type === 'RANDOMIZER') data = { ...data, student: null, fontSize: 20 };
+        if (type === 'GROUP_MAKER') data = { ...data, groupCount: 4, groups: [] };
+        if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [], fontSize: 12 };
+        if (type === 'OVERLAY_TEXT') data = { ...data, fontSize: 32, fontScale: 3, hasShadow: true, isGlassy: 'clear' };
+        if (type === 'WHITEBOARD') data = { ...data, color: '#000000', brushSize: 5, tool: 'pen' };
+        if (type === 'MARBLE_JAR') data = { ...data, title: 'Classroom Goal', marbles: 0, goalCount: 50, theme: 'classic', jarColor: 'standard' };
+        if (type === 'SPARK') data = { ...data, prompt: '', result: null };
+        if (type === 'WEATHER') data = { ...data, city: 'London' };
+        if (type === 'SORT') data = { ...data, categories: [], items: [] };
+        if (type === 'CALENDAR' || type === 'SCHEDULE') data = { ...data, isGlassy: 'clear' };
+
+        data = { ...data, ...extraData };
 
         setWidgets(prev => {
             const existingCount = prev.filter(w => w.type === type).length;
             const title = existingCount > 0 ? `${DOCK_LABELS[type]?.label || type} ${existingCount + 1}` : undefined;
-            const newWidget = { id, type, x, y, width: defaults.width, height: defaults.height, data: title ? { title } : {} };
+            if (title) data.title = title;
+            const newWidget = { id, type, x, y, width: size.width, height: size.height, data, zIndex: maxZ + 1 };
             return [...prev, newWidget];
         });
 
@@ -976,6 +1130,52 @@ const App = () => {
         }
         setWidgets(prev => prev.map(w => w.id === id ? { ...w, data: { ...w.data, isMinimized: !w.data?.isMinimized } } : w));
     }, [widgets]);
+
+    const handleDockDragStart = (e, type) => {
+        if (isLocked) {
+            e.preventDefault();
+            return;
+        }
+        e.dataTransfer.setData('text/plain', type);
+    };
+
+    const handleDockDrop = (e, targetType, location = 'main') => {
+        e.preventDefault();
+        if (isLocked) return;
+
+        const sourceType = e.dataTransfer.getData('text/plain');
+        if (!sourceType || sourceType === targetType) return;
+
+        setDockOrder(prev => {
+            const next = { ...prev };
+            // Find where it came from
+            const fromMain = prev.main.includes(sourceType);
+            const fromDrawer = prev.drawer.includes(sourceType);
+
+            // Remove from source arrays
+            if (fromMain) next.main = prev.main.filter(t => t !== sourceType);
+            if (fromDrawer) next.drawer = prev.drawer.filter(t => t !== sourceType);
+
+            // Insert at target position
+            if (location === 'main') {
+                const targetIdx = next.main.indexOf(targetType);
+                if (targetIdx === -1) {
+                    next.main.push(sourceType);
+                } else {
+                    next.main.splice(targetIdx, 0, sourceType);
+                }
+            } else {
+                const targetIdx = next.drawer.indexOf(targetType);
+                if (targetIdx === -1) {
+                    next.drawer.push(sourceType);
+                } else {
+                    next.drawer.splice(targetIdx, 0, sourceType);
+                }
+            }
+
+            return next;
+        });
+    };
 
     const handleDockClick = (id, location = 'main', e = null) => {
         if (isDockMinimized) return;
@@ -1044,8 +1244,76 @@ const App = () => {
         });
     };
 
+    const nextSlide = () => {
+        if (currentSlideIndex < allSlides.length - 1) {
+            setCurrentSlideIndex(prev => prev + 1);
+        } else {
+            // Add new slide
+            addToHistory();
+            const newSlides = [...allSlides, []];
+            setAllSlides(newSlides);
+            setCurrentSlideIndex(newSlides.length - 1);
+        }
+    };
+
+    const prevSlide = () => {
+        setCurrentSlideIndex(prev => Math.max(0, prev - 1));
+    };
+
+    const duplicateCurrentSlide = () => {
+        addToHistory();
+        const newSlide = JSON.parse(JSON.stringify(widgets)).map(w => ({ ...w, id: Date.now().toString() + Math.random().toString(36).substr(2, 5) }));
+        const newSlides = [...allSlides];
+        const newIndex = currentSlideIndex + 1;
+        newSlides.splice(newIndex, 0, newSlide);
+        setAllSlides(newSlides);
+
+        setSlideBackgrounds(prev => {
+            const next = { ...prev };
+            Object.keys(next).map(Number).sort((a, b) => b - a).forEach(k => {
+                if (k > currentSlideIndex) {
+                    next[k + 1] = next[k];
+                    delete next[k];
+                }
+            });
+            if (prev[currentSlideIndex]) {
+                next[newIndex] = prev[currentSlideIndex];
+            }
+            return next;
+        });
+
+        setCurrentSlideIndex(newIndex);
+    };
+
+    const deleteCurrentSlide = () => {
+        if (allSlides.length <= 1) return;
+        if (!window.confirm("Delete this page and all its tools?")) return;
+        addToHistory();
+        const newSlides = allSlides.filter((_, i) => i !== currentSlideIndex);
+        setAllSlides(newSlides);
+        setSlideBackgrounds(prev => {
+            const next = { ...prev };
+            delete next[currentSlideIndex];
+            Object.keys(next).map(Number).sort((a, b) => a - b).forEach(k => {
+                if (k > currentSlideIndex) {
+                    next[k - 1] = next[k];
+                    delete next[k];
+                }
+            });
+            return next;
+        });
+        setCurrentSlideIndex(prev => Math.max(0, prev - 1));
+    };
+
+
     const updateRoster = (newRoster) => setRoster(newRoster);
-    const handleUpdateRoster = (newRoster) => setRoster(newRoster); // Renamed for consistency with provided snippet
+    const handleUpdateRoster = (newRoster: Student[], targetRosterId?: string) => {
+        const targetId = targetRosterId || activeRosterId;
+        setAllRosters(prev => prev.map(r => r.id === targetId ? { ...r, roster: newRoster } : r));
+        if (targetId === activeRosterId) {
+            setRoster(newRoster);
+        }
+    };
 
     // Background Styles
     const activeBg = slideBackgrounds[currentSlideIndex] || background;
@@ -1082,14 +1350,33 @@ const App = () => {
     }
 
     return (
-        <div className={`w-screen h-screen overflow-hidden relative ${activeBg.preview || ''}`} style={bgStyle}>
+        <div className={`w-screen h-screen overflow-hidden relative ${activeBg.type === 'image' || activeBg.type === 'custom' ? '' : (activeBg.preview || '')}`} style={bgStyle}>
+            {activeBg.id === 'default' && <OriginalBackground />}
 
-            {/* Grid Overlay */}
-            {showGrid && (
-                <div className="absolute inset-0 pointer-events-none z-0"
-                    style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}
-                />
+            {/* Backup Reminder Toast */}
+            {showBackupReminder && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[99999] animate-in slide-in-from-top duration-500">
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 shadow-xl flex items-center gap-3 max-w-lg">
+                        <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+                        <div className="flex-1">
+                            <p className="text-sm font-bold text-amber-900">
+                                {backupDaysOverdue > 30 ? "It's been a while" : `It's been ${backupDaysOverdue} day${backupDaysOverdue !== 1 ? 's' : ''}`} since your last backup.
+                            </p>
+                            <p className="text-xs text-amber-700 mt-0.5">Export your data from Settings → Account to keep it safe.</p>
+                        </div>
+                        <button onClick={() => setShowBackupReminder(false)} className="p-1 hover:bg-amber-100 rounded-lg text-amber-500 transition-colors">
+                            <XIcon size={14} />
+                        </button>
+                    </div>
+                </div>
             )}
+
+
+            {/* Spotlight Overlay */}
+            <div 
+                className={`fixed inset-0 bg-slate-950/80 backdrop-blur-[3px] transition-all duration-700 ease-in-out pointer-events-none ${widgets.some(w => w.data?.isSpotlighted) ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`}
+                style={{ zIndex: 19000 }}
+            />
 
             {/* Widgets Layer */}
             {widgets.map(w => (
@@ -1101,7 +1388,7 @@ const App = () => {
                     icon={DOCK_LABELS[w.type]?.icon}
                     position={{ x: w.x, y: w.y }}
                     size={{ width: w.width, height: w.height }}
-                    zIndex={zIndices[w.id] || 10}
+                    zIndex={w.data?.isSpotlighted ? 20000 + (zIndices[w.id] || 0) : (zIndices[w.id] || 10)}
                     onUpdate={updateWidgetLayout}
                     onFocus={() => bringToFront(w.id)}
                     onRemove={removeWidget}
@@ -1116,18 +1403,43 @@ const App = () => {
                     widgetType={w.type}
                     locked={isLocked || w.data?.locked}
                     closingWidgetId={closingWidgetId}
-                    chromeless={['OVERLAY_TEXT', 'CLOCK', 'CALENDAR', 'WEATHER'].includes(w.type)}
+                    chromeless={['WEATHER'].includes(w.type)}
                     isSelected={zIndices[w.id] === maxZ}
                     {...w.data} // Pass minimized/transparent etc.
+                    accentColor={accentColor}
+                    showGrid={showGrid}
                 >
                     {(() => {
                         const extraProps = {
                             accentColor,
                             theme: THEME_COLORS[accentColor] || THEME_COLORS.indigo,
-                            textColor: background?.textColor || 'text-slate-800'
+                            textColor: background?.textColor || 'text-slate-800',
+                            sparkGrade,
+                            setSparkGrade: (g: string) => { setSparkGrade(g); localStorage.setItem('homeroom_spark_grade', g); },
+                            studentName,
+                            setStudentName,
+                            geminiApiKey: localStorage.getItem('homeroom_gemini_api_key') || '',
+                            setGeminiApiKey: (k: string) => localStorage.setItem('homeroom_gemini_api_key', k)
                         };
-                        const props = { widget: w, updateData: (data) => updateWidgetData(w.id, data), updateSize: (sz) => updateWidgetLayout(w.id, sz), roster, onUpdateRoster: handleUpdateRoster, allRosters, activeRosterId, extraProps };
+                        const props = { 
+                            widget: w, 
+                            updateData: (arg1: any, arg2?: any) => {
+                                if (arg2 !== undefined) updateWidgetData(arg1, arg2);
+                                else updateWidgetData(w.id, arg1);
+                            },
+                            updateSize: (sz: any) => updateWidgetLayout(w.id, sz), 
+                            roster, 
+                            onUpdateRoster: handleUpdateRoster, 
+                            onSelectRoster: (id: string) => setActiveRosterId(id), 
+                            allRosters, 
+                            activeRosterId, 
+                            extraProps, 
+                            accentColor,
+                            user 
+                        };
                         switch (w.type) {
+                            case 'SPARK': return <SparkWidget {...props} />;
+                            case 'SORT': return <SortWidget {...props} />;
                             case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
                             case 'TIMER': return <TimerWidget {...props} />;
                             // case 'STOPWATCH': return <StopwatchWidget {...props} />;
@@ -1138,36 +1450,50 @@ const App = () => {
                             case 'TEXT': return <TextWidget {...props} />;
                             case 'TRAFFIC': return <TrafficLightWidget {...props} />;
                             case 'VOTE': return <VoteWidget {...props} />;
-                            case 'WHITEBOARD': return <WhiteboardWidget {...props} />;
+                            case 'DRAWING':
+                            case 'WHITEBOARD': return <DrawingWidget {...props} />;
                             case 'SCHEDULE': return <ScheduleWidget {...props}
                                 scheduleTemplate={scheduleTemplate} setScheduleTemplate={setScheduleTemplate}
                                 scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides}
                                 scheduleSettings={scheduleSettings} setScheduleSettings={setScheduleSettings}
                                 onOpenSettings={() => setShowSettings(true)} />;
                             case 'QR': return <QRCodeWidget {...props} />;
+                            case 'CLOCK': 
+                                return (
+                                    <div className="flex h-full items-center justify-center p-8 overflow-hidden">
+                                        <ClockDisplay 
+                                            style={w.data.style || 'standard'} 
+                                            textColor={extraProps.textColor}
+                                            onSettingsClick={() => setShowSettings(true)}
+                                        />
+                                    </div>
+                                );
                             case 'YOUTUBE': // Legacy support
                             case 'EMBED': return <EmbedWidget {...props} />;
                             case 'CALCULATOR': return <CalculatorWidget {...props} />;
                             case 'GAMES': return <GamesWidget {...props} />;
+                            case 'MARBLE_JAR': return <MarbleJarWidget {...props} />;
+                            case 'WEATHER': return <WeatherWidget {...props} />;
                             case 'COUNTDOWN': return <CountdownWidget {...props} />;
                             case 'POLYPAD': return <PolypadWidget {...props} />;
+                            case 'OVERLAY_TEXT': return <SimpleTextWidget {...props} />;
                             case 'CALENDAR': return <CalendarWidget {...props} textColor={extraProps.textColor} />;
                             case 'RANDOMIZER': // Random student picker
                                 return (
                                     <div className="flex flex-col h-full bg-white p-4 items-center justify-center text-center">
                                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Random Student</h3>
                                         <div className="flex-1 flex items-center justify-center w-full">
-                                            <div className="text-3xl font-black text-indigo-600 animate-in zoom-in duration-300 border-2 border-indigo-100 rounded-2xl p-6 shadow-sm bg-indigo-50/50">
+                                            <div className={`text-3xl font-black ${accentColor === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50/50' : accentColor === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50/50' : accentColor === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50/50' : accentColor === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50/50' : accentColor === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50/50' : 'text-indigo-600 border-indigo-100 bg-indigo-50/50'} animate-in zoom-in duration-300 border-2 rounded-2xl p-6 shadow-sm`}>
                                                 {w.data.student || "Ready?"}
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => {
-                                                const active = roster.filter(s => s.active);
+                                                const active = roster.filter((s: Student) => s.active);
                                                 const rand = active[Math.floor(Math.random() * active.length)];
                                                 updateWidgetData(w.id, { student: rand?.name || "No Students" });
                                             }}
-                                            className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2"
+                                            className={`mt-4 ${accentColor === 'rose' ? 'bg-rose-600 shadow-rose-200 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 shadow-blue-200 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 shadow-purple-200 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 shadow-amber-200 hover:bg-amber-700' : 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700'} text-white px-6 py-2 rounded-xl font-bold shadow-lg active:scale-95 transition-all flex items-center gap-2`}
                                         >
                                             <Shuffle size={18} /> Pick Random
                                         </button>
@@ -1209,66 +1535,7 @@ const App = () => {
                 </DraggableResizable>
             ))}
 
-            {/* Top Bar: Slide Switcher & Lock */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-3">
-                {/* Slide Switcher */}
-                <div className="bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl p-1.5 flex items-center gap-1 ring-1 ring-black/5">
-                    <button
-                        onClick={() => setCurrentSlideIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentSlideIndex === 0}
-                        className={`p-1.5 hover:bg-slate-100 rounded-xl transition-all disabled:opacity-30 disabled:hover:bg-transparent ${background.textColor === 'text-white' ? 'text-slate-800' : 'text-slate-500'}`}
-                    >
-                        <ChevronLeft size={18} />
-                    </button>
-                    <div className="px-3 py-1 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center gap-2">
-                        <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">Dashboard {currentSlideIndex + 1}</span>
-                        <button
-                            onClick={() => setShowSlideManager(!showSlideManager)}
-                            className={`p-1 hover:bg-indigo-100 rounded-md transition-all ${showSlideManager ? 'text-indigo-600 bg-indigo-100' : 'text-indigo-400'}`}
-                            data-slide-manager-trigger="true"
-                        >
-                            <LayoutGrid size={14} />
-                        </button>
-                    </div>
-                    <button
-                        onClick={() => {
-                            if (currentSlideIndex < SLIDE_LIMIT - 1) {
-                                setCurrentSlideIndex(prev => prev + 1);
-                            } else {
-                                alert(`Pro Plan Limit: You have reached the maximum of ${SLIDE_LIMIT} dashboards.`);
-                            }
-                        }}
-                        className={`p-1.5 hover:bg-slate-100 rounded-xl transition-all ${background.textColor === 'text-white' ? 'text-slate-800' : 'text-slate-500'}`}
-                    >
-                        <ChevronRight size={18} />
-                    </button>
-                </div>
-
-                {/* Slide Manager Window */}
-                <SlideManager
-                    isOpen={showSlideManager}
-                    onClose={() => setShowSlideManager(false)}
-                    slides={allSlides}
-                    currentSlideIndex={currentSlideIndex}
-                    onSelectSlide={(idx) => {
-                        setCurrentSlideIndex(idx);
-                        setShowSlideManager(false);
-                    }}
-                    onAddSlide={handleAddSlide}
-                    onReorderSlides={handleReorderSlides}
-                    backgrounds={slideBackgrounds}
-                    globalBackground={background}
-                />
-
-                {/* Lock Toggle */}
-                <button
-                    onClick={() => setIsLocked(!isLocked)}
-                    className={`h-11 px-4 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all border shadow-lg ${isLocked ? 'bg-amber-100/90 text-amber-700 border-amber-200 backdrop-blur-sm' : `bg-white/80 backdrop-blur-xl border-white/40 hover:border-indigo-300 ${background.textColor === 'text-white' ? 'text-slate-800' : 'text-slate-600'}`}`}
-                >
-                    {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
-                    {isLocked ? 'Dashboard Locked' : 'Unlocked'}
-                </button>
-            </div>
+            {/* Removed Top Bar Slide Switcher for Parity */}
 
             {/* Dock */}
             <div
@@ -1276,12 +1543,9 @@ const App = () => {
             >
                 <div className={`transition-all duration-300 ease-in-out origin-bottom pointer-events-auto ${isDockMinimized ? 'translate-y-12 opacity-0 scale-50 pointer-events-none invisible' : 'translate-y-0 opacity-100 scale-100 visible'}`}>
                     <div
-                        className="backdrop-blur-2xl shadow-2xl rounded-2xl flex items-center p-2 gap-1 transition-all duration-300 hover:scale-[1.02] ring-1 ring-white/50 relative"
+                        className="backdrop-blur-3xl shadow-2xl rounded-[1.5rem] flex items-center p-1 gap-0.5 transition-all duration-300 hover:scale-[1.01] ring-1 ring-white/30 relative bg-white/20 backdrop-saturate-150"
                         onPointerDown={(e) => e.stopPropagation()}
                     >
-                        <div className="absolute inset-0 bg-white/10 rounded-2xl overflow-hidden -z-10 border border-white/20">
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-white/5 pointer-events-none" />
-                        </div>
                         {dockOrder.main.map((type: string) => {
                             const activeInstances = widgets.filter(w => w.type === type);
                             const isActive = activeInstances.length > 0;
@@ -1292,26 +1556,34 @@ const App = () => {
                                     key={type}
                                     data-dock-type={type}
                                     onClick={(e) => handleDockClick(type, 'main', e)}
-                                    draggable={!isDockMinimized}
-                                    onDragStart={(e) => { e.currentTarget.classList.add('scale-105'); }}
-                                    onDragEnd={(e) => { e.currentTarget.classList.remove('scale-105'); }}
-                                    className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background?.textColor || 'text-slate-800'}`}
+                                    draggable={!isDockMinimized && !isLocked}
+                                    onDragStart={(e) => handleDockDragStart(e, type)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={(e) => handleDockDrop(e, type, 'main')}
+                                    className={`p-1.5 rounded-[1rem] transition-all relative group flex flex-col items-center gap-0.5 z-10 hover:bg-white/30 ${background?.textColor || 'text-slate-800'} ${!isLocked ? 'animate-wobble ring-2 ring-white/50 bg-white/10 shadow-lg' : ''}`}
                                     title={DOCK_LABELS[type].label}
                                 >
-                                    <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
+                                    <div className={`w-9 h-9 flex items-center justify-center transition-all duration-300 dock-icon-wrapper group-hover:-translate-y-1 rounded-xl ${isMinimizedStatus ? (accentColor === 'rose' ? 'bg-rose-100/50 text-rose-600' : accentColor === 'blue' ? 'bg-blue-100/50 text-blue-600' : accentColor === 'purple' ? 'bg-purple-100/50 text-purple-600' : accentColor === 'emerald' ? 'bg-emerald-100/50 text-emerald-600' : accentColor === 'amber' ? 'bg-amber-100/50 text-amber-600' : 'bg-indigo-100/50 text-indigo-600') + ' shadow-inner' : (background.textColor === 'text-white' ? 'bg-white/10' : 'bg-slate-800/5')}`}>
                                         {DOCK_LABELS[type].icon}
+                                        {activeInstances.length > 1 && (
+                                            <div className={`absolute -top-1 -right-1 ${accentColor === 'rose' ? 'bg-rose-600' : accentColor === 'blue' ? 'bg-blue-600' : accentColor === 'purple' ? 'bg-purple-600' : accentColor === 'emerald' ? 'bg-emerald-600' : accentColor === 'amber' ? 'bg-amber-600' : 'bg-indigo-600'} text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20`}>
+                                                {activeInstances.length}
+                                            </div>
+                                        )}
                                     </div>
-                                    <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
+                                    <span className="text-[8px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 absolute -bottom-5 bg-slate-900 text-white px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap pointer-events-none transition-all transform translate-y-2 group-hover:translate-y-0">
                                         {DOCK_LABELS[type].label}
                                     </span>
-                                    {activeInstances.length > 1 && (
-                                        <div className="absolute top-2 right-2 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/50 animate-in zoom-in duration-300">
-                                            {activeInstances.length}
-                                        </div>
-                                    )}
                                     {isActive && (
-                                        <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : (background?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-600')}`} />
+                                        <div className={`mt-0.5 w-[2px] h-[2px] rounded-full transition-all ${isMinimizedStatus ? (accentColor === 'rose' ? 'bg-rose-500' : accentColor === 'blue' ? 'bg-blue-500' : accentColor === 'purple' ? 'bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-500' : 'bg-indigo-500') : (background.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-400')}`} />
                                     )}
+
+                                    {/* Reflection */}
+                                    <div className="absolute top-full left-0 right-0 flex flex-col items-center pointer-events-none -mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                        <div className="w-9 h-9 flex items-center justify-center dock-reflection scale-y-[-1] blur-[1px] opacity-20">
+                                            {DOCK_LABELS[type].icon}
+                                        </div>
+                                    </div>
                                 </button>
                             );
                         })}
@@ -1323,13 +1595,25 @@ const App = () => {
                             <button
                                 onClick={() => setShowMoreDrawer(!showMoreDrawer)}
                                 data-dock-more="true"
-                                className={`p-3 rounded-xl transition-all relative group flex flex-col items-center gap-1 z-10 hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => handleDockDrop(e, 'LAST', 'drawer')}
+                                className={`p-1.5 rounded-[1rem] transition-all relative group flex flex-col items-center gap-0.5 z-10 hover:bg-white/30 ${background.textColor || 'text-slate-800'}`}
                                 title="More Tools"
                             >
-                                <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:-translate-y-0.5">
-                                    {showMoreDrawer ? <ChevronDown size={24} /> : <MoreHorizontal size={24} />}
+                                <div className="w-9 h-9 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-1 rounded-xl bg-slate-800/5">
+                                    <div className={`relative w-6 h-6 flex items-center justify-center transition-all duration-500 ${showMoreDrawer ? 'rotate-90 animate-wobble' : 'rotate-0'}`}>
+                                        <div className={`flex gap-1.5 transition-all duration-500 flex-row`}>
+                                            {[0, 1, 2].map((i) => (
+                                                <div 
+                                                    key={i} 
+                                                    className={`w-1.5 h-1.5 rounded-full bg-current shadow-sm transition-all duration-500 ${showMoreDrawer ? 'scale-110' : 'group-hover:animate-bounce'}`}
+                                                    style={{ transitionDelay: `${i * 100}ms` }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="text-[9px] font-bold opacity-0 group-hover:opacity-100 absolute -bottom-4 bg-gray-800 text-white px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none transition-opacity">
+                                <span className="text-[8px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 absolute -bottom-5 bg-slate-900 text-white px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap pointer-events-none transition-all transform translate-y-2 group-hover:translate-y-0">
                                     More
                                 </span>
                             </button>
@@ -1345,20 +1629,24 @@ const App = () => {
                                             <button
                                                 key={type}
                                                 data-dock-type={type}
+                                                draggable={!isLocked}
+                                                onDragStart={(e) => handleDockDragStart(e, type)}
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => handleDockDrop(e, type, 'drawer')}
                                                 onClick={(e) => handleDockClick(type, 'drawer', e)}
-                                                className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative text-slate-600 hover:bg-indigo-50 hover:text-indigo-600`}
+                                                className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative text-slate-600 ${!isLocked ? 'animate-wobble ring-2 ring-indigo-500/30 shadow-lg' : ''} ${accentColor === 'rose' ? 'hover:bg-rose-50 hover:text-rose-600' : accentColor === 'blue' ? 'hover:bg-blue-50 hover:text-blue-600' : accentColor === 'purple' ? 'hover:bg-purple-50 hover:text-purple-600' : accentColor === 'emerald' ? 'hover:bg-emerald-50 hover:text-emerald-600' : accentColor === 'amber' ? 'hover:bg-amber-50 hover:text-amber-600' : 'hover:bg-indigo-50 hover:text-indigo-600'}`}
                                             >
                                                 <div className="relative">
                                                     {DOCK_LABELS[type].icon}
                                                 </div>
                                                 <span className="text-[10px] font-bold">{DOCK_LABELS[type].label}</span>
                                                 {activeInstances.length > 1 && (
-                                                    <div className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20">
+                                                    <div className={`absolute -top-1 -right-1 ${accentColor === 'rose' ? 'bg-rose-600' : accentColor === 'blue' ? 'bg-blue-600' : accentColor === 'purple' ? 'bg-purple-600' : accentColor === 'emerald' ? 'bg-emerald-600' : accentColor === 'amber' ? 'bg-amber-600' : 'bg-indigo-600'} text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20`}>
                                                         {activeInstances.length}
                                                     </div>
                                                 )}
                                                 {isActive && (
-                                                    <div className={`mt-0.5 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? 'bg-indigo-500' : 'bg-slate-400'}`} />
+                                                    <div className={`mt-0.5 w-[4px] h-[4px] rounded-full transition-all ${isMinimizedStatus ? (accentColor === 'rose' ? 'bg-rose-500' : accentColor === 'blue' ? 'bg-blue-500' : accentColor === 'purple' ? 'bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-500' : 'bg-indigo-500') : 'bg-slate-400'}`} />
                                                 )}
                                             </button>
                                         );
@@ -1367,11 +1655,22 @@ const App = () => {
                             )}
                         </div>
 
-                        <div className="w-px h-8 bg-slate-400/40 mx-2" />
+                        <div className="w-px h-6 bg-slate-400/40 mx-2" />
 
-                        <div className="flex flex-col gap-1">
-                            <button onClick={() => setShowSettings(true)} className={`p-2 rounded-lg hover:bg-white/40 ${background.textColor || 'text-slate-800'}`}><Settings size={20} /></button>
-                        </div>
+                        <button
+                            onClick={() => setIsLocked(!isLocked)}
+                            className={`p-1.5 rounded-[1rem] transition-all relative group flex flex-col items-center gap-0.5 z-10 hover:bg-white/30 ${isLocked ? (accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : accentColor === 'amber' ? 'text-amber-600' : 'text-indigo-600') + ' font-bold' : (background.textColor === 'text-white' ? 'text-white' : 'text-slate-800')}`}
+                            title={isLocked ? "Unlock Widgets" : "Lock Widgets"}
+                        >
+                            <div className={`w-9 h-9 flex items-center justify-center transition-all duration-300 group-hover:-translate-y-1 rounded-xl ${isLocked ? (accentColor === 'rose' ? 'bg-rose-100/50' : accentColor === 'blue' ? 'bg-blue-100/50' : accentColor === 'purple' ? 'bg-purple-100/50' : accentColor === 'emerald' ? 'bg-emerald-100/50' : accentColor === 'amber' ? 'bg-amber-100/50' : 'bg-indigo-100/50') : 'bg-slate-800/5'}`}>
+                                {isLocked ? <Lock size={20} /> : <Unlock size={20} />}
+                            </div>
+                            <span className="text-[8px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 absolute -bottom-5 bg-slate-900 text-white px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap pointer-events-none transition-all transform translate-y-2 group-hover:translate-y-0">
+                                {isLocked ? 'Locked' : 'Unlocked'}
+                            </span>
+                        </button>
+
+
                     </div>
                 </div>
 
@@ -1395,6 +1694,97 @@ const App = () => {
                     onSaveRoster={updateRoster}
                 />
             )}
+
+
+            {/* Top Right - Settings Gear */}
+            <button
+                onClick={() => setShowSettings(true)}
+                className={`absolute top-10 right-12 z-50 p-4 rounded-full transition-all duration-500 hover:rotate-90 active:scale-95 group shadow-lg backdrop-blur-md border border-white/20 hover:shadow-2xl ${activeBg.textColor || 'text-slate-800'} ${activeBg.textColor === 'text-white' ? 'bg-white/10 hover:bg-white/20' : 'bg-slate-800/5 hover:bg-slate-800/10'}`}
+                title="Settings"
+            >
+                <Settings size={28} className="drop-shadow-sm" />
+            </button>
+
+
+            {/* Bottom Right - Page & Undo Controls */}
+            <div className={`absolute bottom-8 right-10 z-[60] flex items-center pointer-events-none transition-opacity duration-500`}>
+                <div className="flex items-center gap-2 p-1 px-2.5 bg-white/20 backdrop-blur-3xl backdrop-saturate-150 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-white/40 pointer-events-auto group/cluster hover:bg-white/30 transition-all">
+                    
+                    {/* Undo Control */}
+                    <button
+                        onClick={handleUndo}
+                        disabled={history.length === 0}
+                        className={`p-2 rounded-xl transition-all duration-200 active:scale-90 group/btn
+                        ${history.length === 0 ? 'opacity-20 grayscale cursor-not-allowed' : (accentColor === 'rose' ? 'hover:bg-rose-50 text-rose-600' : accentColor === 'blue' ? 'hover:bg-blue-50 text-blue-600' : accentColor === 'purple' ? 'hover:bg-purple-50 text-purple-600' : accentColor === 'emerald' ? 'hover:bg-emerald-50 text-emerald-600' : accentColor === 'amber' ? 'hover:bg-amber-50 text-amber-600' : 'hover:bg-indigo-50 text-indigo-600')}`}
+                        title="Undo (Ctrl+Z)"
+                    >
+                        <Undo2 size={18} className="group-hover/btn:-rotate-45 transition-transform" />
+                    </button>
+
+
+                    <div className="w-px h-6 bg-slate-200/50 mx-1" />
+
+                    {/* Page Navigation */}
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            onClick={prevSlide}
+                            disabled={currentSlideIndex === 0}
+                            className={`p-2 rounded-xl transition-all ${currentSlideIndex === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 text-slate-600'}`}
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        
+                        <div className="flex flex-col items-center min-w-[2.5rem]">
+                            <span className="text-xs font-black text-slate-800 leading-none">
+                                {currentSlideIndex + 1}<span className="text-slate-300 font-bold mx-0.5">/</span>{allSlides.length}
+                            </span>
+                        </div>
+
+                        <button
+                            onClick={nextSlide}
+                            className="p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-all font-bold"
+                        >
+                            {currentSlideIndex === allSlides.length - 1 ? <Plus size={20} className={accentColor === 'rose' ? 'text-rose-600' : accentColor === 'blue' ? 'text-blue-600' : accentColor === 'purple' ? 'text-purple-600' : accentColor === 'emerald' ? 'text-emerald-600' : accentColor === 'amber' ? 'text-amber-600' : 'text-indigo-600'} /> : <ChevronRight size={20} />}
+                        </button>
+                    </div>
+
+                    <div className="w-px h-6 bg-slate-200/50 mx-1" />
+
+                    {/* Pro Actions */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={duplicateCurrentSlide}
+                            className={`p-2 text-slate-400 ${accentColor === 'rose' ? 'hover:text-rose-600 hover:bg-rose-50' : accentColor === 'blue' ? 'hover:text-blue-600 hover:bg-blue-50' : accentColor === 'purple' ? 'hover:text-purple-600 hover:bg-purple-50' : accentColor === 'emerald' ? 'hover:text-emerald-600 hover:bg-emerald-50' : accentColor === 'amber' ? 'hover:text-amber-600 hover:bg-amber-50' : 'hover:text-indigo-600 hover:bg-indigo-50'} rounded-xl transition-all group/dup`}
+                            title="Duplicate Page"
+                        >
+                            <Copy size={16} className="group-hover/dup:scale-110 transition-transform" />
+                        </button>
+
+                        <button
+                            onClick={deleteCurrentSlide}
+                            disabled={allSlides.length <= 1}
+                            className={`p-2 rounded-xl transition-all ${allSlides.length <= 1 ? 'opacity-20 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                            title="Delete Page"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+
+                    </div>
+
+                    <div className="w-px h-6 bg-slate-200/50 mx-1" />
+
+                    {/* Slide Manager Trigger */}
+                    <button
+                        onClick={() => setShowSlideManager(true)}
+                        className={`p-2 ${accentColor === 'rose' ? 'bg-rose-600 shadow-rose-200 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 shadow-blue-200 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 shadow-purple-200 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 shadow-amber-200 hover:bg-amber-700' : 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700'} text-white rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center min-w-[3rem]`}
+                        title="View All Pages"
+                    >
+                        <LayoutGrid size={18} />
+                    </button>
+
+                </div>
+            </div>
+
 
             {/* Settings Modal */}
             <SettingsModal
@@ -1432,8 +1822,8 @@ const App = () => {
                 setAllRosters={setAllRosters}
                 activeRosterId={activeRosterId}
                 setActiveRosterId={setActiveRosterId}
-                activeScheduleDays={{}}
-                saveScheduleTemplate={() => { }}
+                activeScheduleDays={scheduleTemplate}
+                saveScheduleTemplate={setScheduleTemplate}
                 widgets={widgets}
                 setWidgets={setWidgets}
                 textColor={background.textColor}
@@ -1441,6 +1831,17 @@ const App = () => {
                 debugLog={debugLog}
                 channelStatus={channelStatus}
                 onHardRefresh={handleHardRefresh}
+                // Pro States
+                showClockDate={showClockDate}
+                setShowClockDate={setShowClockDate}
+                is24Hour={is24Hour}
+                setIs24Hour={setIs24Hour}
+                isGlassy={isGlassy}
+                setIsGlassy={setIsGlassy}
+                accentColor={accentColor}
+                setAccentColor={setAccentColor}
+                scheduleSettings={scheduleSettings}
+                setScheduleSettings={setScheduleSettings}
             />
         </div>
     );

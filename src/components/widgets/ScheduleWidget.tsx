@@ -32,14 +32,41 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
     scheduleOverrides,
     setScheduleOverrides,
     scheduleSettings,
-    setScheduleSettings
+    setScheduleSettings,
+    accentColor = 'indigo'
 }) => {
     const { fontSize = 14 } = widget.data;
     const [dragIndex, setDragIndex] = useState(null);
     const [emojiPickerIndex, setEmojiPickerIndex] = useState(null);
     const today = DAYS_OF_WEEK[new Date().getDay()];
-    // Use the template from props directly
-    const scheduleData = scheduleTemplate[today] || [];
+    
+    // Calculate Cycle Day for Rotating Mode
+    const getCycleDay = () => {
+        if (!scheduleSettings || scheduleSettings.scheduleMode !== 'rotating') return null;
+        const { realignDate, realignDay, daysInCycle } = scheduleSettings;
+        if (!realignDate) return null;
+
+        const start = new Date(realignDate);
+        start.setHours(0, 0, 0, 0);
+        const current = new Date();
+        current.setHours(0, 0, 0, 0);
+
+        const diffTime = current.getTime() - start.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Only count weekdays (Mon-Fri) if that's the school policy, 
+        // but typically rotating cycles in school count school days.
+        // For simplicity, we'll follow the exact logic from the production site 
+        // which usually counts calendar days since realignment.
+        // If the user wants only weekdays, we can refine this later.
+        
+        const cycleIndex = (diffDays + (realignDay - 1)) % daysInCycle;
+        const normalizedIndex = cycleIndex < 0 ? (cycleIndex + daysInCycle) : cycleIndex;
+        return `Day ${normalizedIndex + 1}`;
+    };
+
+    const currentScheduleDay = scheduleSettings?.scheduleMode === 'rotating' ? getCycleDay() : today;
+    const scheduleData = scheduleTemplate[currentScheduleDay] || [];
 
     // Responsive scaling state
     const containerRef = useRef<HTMLDivElement>(null);
@@ -95,7 +122,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
     };
 
     const saveScheduleData = (newItems: any) => {
-        setScheduleTemplate((prev: any) => ({ ...prev, [today]: newItems }));
+        setScheduleTemplate((prev: any) => ({ ...prev, [currentScheduleDay]: newItems }));
     };
     const updateItem = (index, field, value) => { const newItems = [...scheduleData]; newItems[index] = { ...newItems[index], [field]: value }; saveScheduleData(newItems); };
     const addItem = () => { const newItem = { id: Date.now().toString(), time: '09:00', emoji: '\u{1F4DA}', title: 'New Activity', description: '' }; const newItems = [...scheduleData, newItem].sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)); saveScheduleData(newItems); };
@@ -126,18 +153,33 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
     const iconSize = Math.max(12, s(16));
     const borderRadius = s(8);
 
+    const isGlassy = widget.data?.isGlassy || 'solid';
+    const bgClass = isGlassy === 'clear' 
+        ? 'bg-transparent' 
+        : isGlassy === 'glass'
+        ? 'bg-white/10 backdrop-blur-md'
+        : `bg-gradient-to-br ${accentColor === 'rose' ? 'from-rose-50 to-pink-50' : accentColor === 'blue' ? 'from-blue-50 to-cyan-50' : accentColor === 'purple' ? 'from-purple-50 to-fuchsia-50' : accentColor === 'emerald' ? 'from-emerald-50 to-teal-50' : accentColor === 'amber' ? 'from-amber-50 to-yellow-50' : 'from-indigo-50 to-purple-50'}`;
+
+    const headerBgClass = isGlassy === 'clear'
+        ? 'bg-transparent border-white/20'
+        : 'bg-white/80 backdrop-blur border-b';
+
+    const headerTextClass = isGlassy === 'clear'
+        ? 'text-white'
+        : `${accentColor === 'rose' ? 'text-rose-800' : accentColor === 'blue' ? 'text-blue-800' : accentColor === 'purple' ? 'text-purple-800' : accentColor === 'emerald' ? 'text-emerald-800' : accentColor === 'amber' ? 'text-amber-800' : 'text-indigo-800'}`;
+
     return (
-        <div ref={containerRef} className="flex flex-col h-full bg-gradient-to-br from-indigo-50 to-purple-50">
+        <div ref={containerRef} className={`flex flex-col h-full ${bgClass}`}>
             <div
-                className="bg-white/80 backdrop-blur border-b flex items-center justify-between shrink-0"
+                className={`${headerBgClass} flex items-center justify-between shrink-0`}
                 style={{ height: headerH, paddingLeft: s(10), paddingRight: s(10) }}
             >
-                <h3 className="font-bold text-indigo-800 flex items-center" style={{ fontSize: headerFontSize, gap: s(6) }}>
-                    <Calendar size={iconSize} /> {today}'s Schedule
+                <h3 className={`font-bold flex items-center ${headerTextClass}`} style={{ fontSize: headerFontSize, gap: s(6) }}>
+                    <Calendar size={iconSize} /> {currentScheduleDay}'s Schedule
                 </h3>
                 <div className="flex" style={{ gap: s(4) }}>
-                    <button onClick={addItem} className="text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors" style={{ padding: s(4) }} title="Add activity"><Plus size={iconSize} /></button>
-                    <button onClick={onOpenSettings} className="text-gray-400 hover:bg-gray-100 rounded-lg transition-colors" style={{ padding: s(4) }} title="Schedule settings"><Settings size={iconSize} /></button>
+                    <button onClick={addItem} className={`${isGlassy === 'clear' ? 'text-white/80 hover:bg-white/10' : accentColor === 'rose' ? 'text-rose-600 hover:bg-rose-100' : accentColor === 'blue' ? 'text-blue-600 hover:bg-blue-100' : accentColor === 'purple' ? 'text-purple-600 hover:bg-purple-100' : accentColor === 'emerald' ? 'text-emerald-600 hover:bg-emerald-100' : accentColor === 'amber' ? 'text-amber-600 hover:bg-amber-100' : 'text-indigo-600 hover:bg-indigo-100'} rounded-lg transition-colors`} style={{ padding: s(4) }} title="Add activity"><Plus size={iconSize} /></button>
+                    <button onClick={onOpenSettings} className={`${isGlassy === 'clear' ? 'text-white/60 hover:bg-white/10' : 'text-gray-400 hover:bg-gray-100'} rounded-lg transition-colors`} style={{ padding: s(4) }} title="Schedule settings"><Settings size={iconSize} /></button>
                 </div>
             </div>
             <div
@@ -146,9 +188,9 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
             >
                 {scheduleData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center" style={{ padding: s(16) }}>
-                        <Calendar size={s(40)} className="text-indigo-200" style={{ marginBottom: s(12) }} />
-                        <p className="text-indigo-400 font-medium" style={{ fontSize: s(13), marginBottom: s(8) }}>No schedule items yet</p>
-                        <button onClick={addItem} className="bg-indigo-600 text-white font-bold hover:bg-indigo-700 flex items-center" style={{ padding: `${s(6)}px ${s(12)}px`, fontSize: s(11), borderRadius: s(8), gap: s(4) }}><Plus size={s(14)} /> Add Activity</button>
+                        <Calendar size={s(40)} className={`${accentColor === 'rose' ? 'text-rose-200' : accentColor === 'blue' ? 'text-blue-200' : accentColor === 'purple' ? 'text-purple-200' : accentColor === 'emerald' ? 'text-emerald-200' : accentColor === 'amber' ? 'text-amber-200' : 'text-indigo-200'}`} style={{ marginBottom: s(12) }} />
+                        <p className={`font-medium ${accentColor === 'rose' ? 'text-rose-400' : accentColor === 'blue' ? 'text-blue-400' : accentColor === 'purple' ? 'text-purple-400' : accentColor === 'emerald' ? 'text-emerald-400' : accentColor === 'amber' ? 'text-amber-400' : 'text-indigo-400'}`} style={{ fontSize: s(13), marginBottom: s(8) }}>No schedule items yet</p>
+                        <button onClick={addItem} className={`text-white font-bold flex items-center transition-all ${accentColor === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}`} style={{ padding: `${s(6)}px ${s(12)}px`, fontSize: s(11), borderRadius: s(8), gap: s(4) }}><Plus size={s(14)} /> Add Activity</button>
                     </div>
                 ) : (
                     scheduleData.map((item, index) => {
@@ -161,7 +203,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                 onDragStart={() => handleDragStart(index)}
                                 onDragOver={handleDragOver}
                                 onDrop={() => handleDrop(index)}
-                                className={`relative group flex items-stretch transition-all cursor-move w-full ${isCurrent ? 'bg-indigo-100 border-indigo-400 ring-2 ring-indigo-300' : 'bg-white border-gray-200 hover:border-indigo-200'}`}
+                                className={`relative group flex items-stretch transition-all cursor-move w-full ${isCurrent ? (accentColor === 'rose' ? 'bg-rose-100 border-rose-400 ring-rose-300' : accentColor === 'blue' ? 'bg-blue-100 border-blue-400 ring-blue-300' : accentColor === 'purple' ? 'bg-purple-100 border-purple-400 ring-purple-300' : accentColor === 'emerald' ? 'bg-emerald-100 border-emerald-400 ring-emerald-300' : accentColor === 'amber' ? 'bg-amber-100 border-amber-400 ring-amber-300' : 'bg-indigo-100 border-indigo-400 ring-indigo-300') + ' ring-2' : (accentColor === 'rose' ? 'bg-white border-gray-200 hover:border-rose-200' : accentColor === 'blue' ? 'bg-white border-gray-200 hover:border-blue-200' : accentColor === 'purple' ? 'bg-white border-gray-200 hover:border-purple-200' : accentColor === 'emerald' ? 'bg-white border-gray-200 hover:border-emerald-200' : accentColor === 'amber' ? 'bg-white border-gray-200 hover:border-amber-200' : 'bg-white border-gray-200 hover:border-indigo-200')}`}
                                 style={{
                                     gap: s(6),
                                     padding: itemPadding,
@@ -171,7 +213,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                     zIndex: emojiPickerIndex === index ? 50 : 0,
                                 }}
                             >
-                                {isCurrent && <div className="absolute bg-indigo-500 rounded-full animate-pulse" style={{ left: -s(4), top: '50%', transform: 'translateY(-50%)', width: s(8), height: s(8) }} />}
+                                {isCurrent && <div className={`absolute rounded-full animate-pulse ${accentColor === 'rose' ? 'bg-rose-500' : accentColor === 'blue' ? 'bg-blue-500' : accentColor === 'purple' ? 'bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-500' : 'bg-indigo-500'}`} style={{ left: -s(4), top: '50%', transform: 'translateY(-50%)', width: s(8), height: s(8) }} />}
 
                                 {/* Time column */}
                                 <div className="flex flex-col items-center shrink-0 justify-center" style={{ width: s(64) }}>
@@ -179,7 +221,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                         type="time"
                                         value={item.time || '09:00'}
                                         onChange={(e) => updateItem(index, 'time', e.target.value)}
-                                        className="w-full font-bold text-indigo-600 bg-transparent border-none text-center cursor-pointer hover:bg-indigo-50 rounded"
+                                        className={`w-full font-bold bg-transparent border-none text-center cursor-pointer rounded ${accentColor === 'rose' ? 'text-rose-600 hover:bg-rose-50' : accentColor === 'blue' ? 'text-blue-600 hover:bg-blue-50' : accentColor === 'purple' ? 'text-purple-600 hover:bg-purple-50' : accentColor === 'emerald' ? 'text-emerald-600 hover:bg-emerald-50' : accentColor === 'amber' ? 'text-amber-600 hover:bg-amber-50' : 'text-indigo-600 hover:bg-indigo-50'}`}
                                         style={{ fontSize: timeFontSize }}
                                     />
                                 </div>
@@ -187,7 +229,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                 {/* Emoji column */}
                                 <div className="relative flex items-center shrink-0">
                                     <div
-                                        className="cursor-pointer hover:scale-110 transition-transform rounded hover:bg-indigo-100"
+                                        className={`cursor-pointer hover:scale-110 transition-transform rounded ${accentColor === 'rose' ? 'hover:bg-rose-100' : accentColor === 'blue' ? 'hover:bg-blue-100' : accentColor === 'purple' ? 'hover:bg-purple-100' : accentColor === 'emerald' ? 'hover:bg-emerald-100' : accentColor === 'amber' ? 'hover:bg-amber-100' : 'hover:bg-indigo-100'}`}
                                         style={{ fontSize: emojiSize, padding: s(3), lineHeight: 1 }}
                                         onClick={(e) => { e.stopPropagation(); setEmojiPickerIndex(emojiPickerIndex === index ? null : index); }}
                                     >
@@ -195,7 +237,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                     </div>
                                     {emojiPickerIndex === index && (
                                         <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-2 w-48 max-h-40 overflow-y-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
-                                            <div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-xl p-1.5 rounded-lg hover:bg-indigo-100 transition-colors ${item.emoji === emoji ? 'bg-indigo-200 ring-2 ring-indigo-400' : ''}`}>{emoji}</button>))} </div>
+                                            <div className="grid grid-cols-5 gap-1"> {SCHEDULE_EMOJIS.map((emoji, i) => (<button key={i} onClick={() => selectEmoji(index, emoji)} className={`text-xl p-1.5 rounded-lg transition-colors ${item.emoji === emoji ? (accentColor === 'rose' ? 'bg-rose-200 ring-rose-400' : accentColor === 'blue' ? 'bg-blue-200 ring-blue-400' : accentColor === 'purple' ? 'bg-purple-200 ring-purple-400' : accentColor === 'emerald' ? 'bg-emerald-200 ring-emerald-400' : accentColor === 'amber' ? 'bg-amber-200 ring-amber-400' : 'bg-indigo-200 ring-indigo-400') + ' ring-2' : (accentColor === 'rose' ? 'hover:bg-rose-100' : accentColor === 'blue' ? 'hover:bg-blue-100' : accentColor === 'purple' ? 'hover:bg-purple-100' : accentColor === 'emerald' ? 'hover:bg-emerald-100' : accentColor === 'amber' ? 'hover:bg-amber-100' : 'hover:bg-indigo-100')}`}>{emoji}</button>))} </div>
                                         </div>
                                     )}
                                 </div>
@@ -229,7 +271,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                                 <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0">
                                     <button
                                         onClick={() => duplicateItem(index)}
-                                        className="text-gray-400 hover:text-indigo-600 transition-colors"
+                                        className={`transition-colors ${accentColor === 'rose' ? 'text-gray-400 hover:text-rose-600' : accentColor === 'blue' ? 'text-gray-400 hover:text-blue-600' : accentColor === 'purple' ? 'text-gray-400 hover:text-purple-600' : accentColor === 'emerald' ? 'text-gray-400 hover:text-emerald-600' : accentColor === 'amber' ? 'text-gray-400 hover:text-amber-600' : 'text-gray-400 hover:text-indigo-600'}`}
                                         style={{ padding: s(3) }}
                                         title="Duplicate"
                                     >

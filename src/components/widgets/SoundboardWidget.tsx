@@ -336,7 +336,7 @@ const SoundboardWidget = ({ widget, updateData }: { widget: any, updateData: (da
     const updateMasterVolume = (val: number) => {
         setMasterVolume(val);
         if (masterGainRef.current) masterGainRef.current.gain.value = val;
-        Object.values(players).forEach(p => {
+        Object.values(players).forEach((p: Player) => {
             if (p.audioElement) p.audioElement.volume = val;
         });
     };
@@ -401,12 +401,13 @@ const SoundboardWidget = ({ widget, updateData }: { widget: any, updateData: (da
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50">
                 <div className="grid grid-cols-4 gap-3">
                     {SOUNDS.map(sound => (
-                        <SoundCard
-                            key={sound.id}
-                            sound={sound}
-                            player={players[sound.id]}
-                            onToggle={() => togglePlay(sound.id)}
-                        />
+                        <div key={sound.id}>
+                            <SoundCard
+                                sound={sound}
+                                player={players[sound.id]}
+                                onToggle={() => togglePlay(sound.id)}
+                            />
+                        </div>
                     ))}
                 </div>
             </div>

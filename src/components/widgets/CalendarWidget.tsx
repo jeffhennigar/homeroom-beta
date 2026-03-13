@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RotateCcw } from 'lucide-react';
 
 interface CalendarWidgetProps {
     widget: any;
@@ -9,6 +9,9 @@ interface CalendarWidgetProps {
 
 const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, textColor = 'text-slate-800' }) => {
     const [viewDate, setViewDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+    const [viewMode, setViewMode] = useState<'calendar' | 'today'>(widget.data?.viewMode || 'calendar');
+
     const isGlassy = widget.data?.isGlassy;
     const isDark = (isGlassy === 'glass' || isGlassy === 'clear') && textColor === 'text-white';
 
@@ -24,11 +27,24 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, tex
         setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + delta, 1));
     };
 
-    const isToday = (day: number) => {
+    const goToToday = () => {
+        const today = new Date();
+        setViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
+        setSelectedDate(today);
+    };
+
+    const isCurrentToday = (day: number) => {
         const today = new Date();
         return day === today.getDate() &&
             viewDate.getMonth() === today.getMonth() &&
             viewDate.getFullYear() === today.getFullYear();
+    };
+
+    const isDateSelected = (day: number) => {
+        return selectedDate &&
+            day === selectedDate.getDate() &&
+            viewDate.getMonth() === selectedDate.getMonth() &&
+            viewDate.getFullYear() === selectedDate.getFullYear();
     };
 
     const daysInMonth = getDaysInMonth(viewDate);
@@ -40,83 +56,114 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ widget, updateData, tex
         "July", "August", "September", "October", "November", "December"
     ];
 
-    const [viewMode, setViewMode] = useState<'calendar' | 'big'>('calendar');
-
     return (
-        <div className={`flex flex-col h-full relative p-4 group ${(isGlassy === 'glass' || isGlassy === 'clear') ? 'bg-white/10 backdrop-blur-md rounded-2xl border border-white/20' : 'bg-white rounded-2xl shadow-sm text-slate-800'}`}>
+        <div className={`flex flex-col h-full relative p-5 group transition-all duration-700 ease-in-out`}>
             {/* Header */}
-            <div className={`flex justify-between items-center ${viewMode === 'calendar' ? 'mb-2' : 'mb-0'} shrink-0`}>
-                <div className="flex items-center">
+            <div className={`flex justify-between items-center ${viewMode === 'calendar' ? 'mb-6' : 'mb-2'} shrink-0`}>
+                <div className="flex items-center gap-1">
                     <button
                         onClick={() => changeMonth(-1)}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        className={`p-1.5 rounded-xl transition-all active:scale-95 ${isDark ? 'hover:bg-white/10 text-white/40 hover:text-white' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
                     >
-                        <ChevronLeft size={20} />
+                        <ChevronLeft size={22} strokeWidth={2.5} />
                     </button>
-                    <div className={`font-bold text-[1.1em] mx-1 whitespace-nowrap ${isDark ? 'text-white drop-shadow-sm' : 'text-slate-800'}`}>
+                    <div className={`font-black text-[1.2rem] mx-2 tracking-tight whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                     </div>
                     <button
                         onClick={() => changeMonth(1)}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                        className={`p-1.5 rounded-xl transition-all active:scale-95 ${isDark ? 'hover:bg-white/10 text-white/40 hover:text-white' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'}`}
                     >
-                        <ChevronRight size={20} />
+                        <ChevronRight size={22} strokeWidth={2.5} />
+                    </button>
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={goToToday}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-[0.7rem] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5
+                            ${isDark 
+                                ? 'bg-white/10 text-white hover:bg-white/20' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    >
+                        <RotateCcw size={12} strokeWidth={3} />
+                        Today
                     </button>
                 </div>
             </div>
 
             {viewMode === 'calendar' ? (
-                /* Grid */
-                <div className="flex-1 flex flex-col min-h-0 p-1">
-                    {/* Days Header */}
-                    <div className="grid grid-cols-7 mb-1 shrink-0">
+                /* Grid View */
+                <div className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-700">
+                    {/* Weekdays */}
+                    <div className="grid grid-cols-7 mb-3 shrink-0">
                         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                            <div key={d} className={`text-center text-[0.7em] font-bold uppercase ${isDark ? 'text-white/60' : 'text-slate-400'}`}>{d}</div>
-                        ))}
-                    </div>
-
-                    {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-1 flex-1 content-start">
-                        {blanks.map(i => <div key={`blank-${i}`} />)}
-                        {days.map(d => (
-                            <div
-                                key={d}
-                                className={`
-                        aspect-square flex items-center justify-center rounded-full text-[0.9em] font-medium transition-all
-                        ${isToday(d)
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                                        : isDark ? 'text-white/90 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-50'
-                                    }
-                    `}
-                            >
+                            <div key={d} className={`text-center text-[0.7rem] font-black uppercase tracking-[0.15em] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
                                 {d}
                             </div>
                         ))}
                     </div>
+
+                    {/* Days */}
+                    <div className="grid grid-cols-7 gap-1.5 flex-1 content-start">
+                        {blanks.map(i => <div key={`blank-${i}`} />)}
+                        {days.map(d => {
+                            const selected = isDateSelected(d);
+                            const today = isCurrentToday(d);
+                            return (
+                                <button
+                                    key={d}
+                                    onClick={() => setSelectedDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), d))}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    className={`
+                                        aspect-square flex items-center justify-center rounded-full text-[0.95rem] font-bold transition-all relative
+                                        ${selected
+                                            ? (isDark ? 'bg-white text-slate-900 shadow-xl scale-110 z-10' : 'bg-slate-900 text-white shadow-xl scale-110 z-10')
+                                            : today
+                                                ? (isDark ? 'bg-white/20 text-white ring-2 ring-white/50' : 'bg-white text-slate-900 ring-2 ring-slate-100 shadow-sm')
+                                                : isDark
+                                                    ? 'text-white/80 hover:bg-white/10'
+                                                    : 'text-slate-600 hover:bg-slate-100'
+                                        }
+                                    `}
+                                >
+                                    {d}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             ) : (
-                /* Big Date View */
-                <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative">
-                    <div className={`text-[5em] font-black leading-none tracking-tighter ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                /* Today View (Big Date) */
+                <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative animate-in fade-in zoom-in duration-700">
+                    <div className={`text-[7rem] font-black leading-none tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {new Date().getDate()}
                     </div>
-                    <div className={`text-[1.2em] font-bold uppercase tracking-widest ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
+                    <div className={`text-[1.5rem] font-black uppercase tracking-[0.2em] mt-2 ${isDark ? 'text-white/50' : 'text-slate-400'}`}>
                         {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
                     </div>
-                    <div className={`absolute top-2 right-2 text-xs font-bold ${isDark ? 'text-white/30' : 'text-slate-300'}`}>TODAY</div>
+                    <div className={`mt-4 font-black px-5 py-1.5 rounded-full text-[0.65rem] uppercase tracking-[0.3em] ${isDark ? 'bg-white/10 text-white/60' : 'bg-slate-100 text-slate-400'}`}>
+                        {monthNames[new Date().getMonth()]} {new Date().getFullYear()}
+                    </div>
                 </div>
             )}
 
-            {/* Big Date Toggle / Overlay */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            {/* View Mode Toggle */}
+            <div className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20">
                 <button
-                    onClick={() => setViewMode(viewMode === 'calendar' ? 'big' : 'calendar')}
-                    className="p-1.5 bg-gray-100 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-colors border border-gray-200 shadow-sm"
+                    onClick={() => {
+                        const nextMode = viewMode === 'calendar' ? 'today' : 'calendar';
+                        setViewMode(nextMode);
+                        updateData(widget.id, { viewMode: nextMode });
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className={`p-2 rounded-xl transition-all shadow-lg border active:scale-95 ${isDark ? 'bg-white/20 border-white/20 text-white hover:bg-white/30' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-900'}`}
                     title={viewMode === 'calendar' ? "Switch to Today View" : "Switch to Calendar"}
                 >
-                    <CalendarIcon size={14} />
+                    <CalendarIcon size={18} strokeWidth={2.5} />
                 </button>
             </div>
         </div>

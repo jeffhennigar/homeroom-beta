@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Pause, Play, RotateCcw, Clock } from 'lucide-react';
 
 const TimerWidget = ({ widget, updateData }) => {
-  const { durationMinutes = 2, timeLeft = 120, isRunning = false, fontSize = 16, mode = 'visual', color = 'blue', isMuted = false } = widget.data;
+  const data = widget.data || {};
+  const { timeLeft = 120, isRunning = false, isMuted = false, mode = 'visual', color = 'blue', fontSize = 16, elapsed = 0 } = data;
   const [customTime, setCustomTime] = useState("");
   const [showColorMenu, setShowColorMenu] = useState(false);
   const intervalRef = useRef(null);
@@ -17,9 +18,9 @@ const TimerWidget = ({ widget, updateData }) => {
     orange: { stroke: '#f97316', handle: '#ea580c', bg: 'bg-orange-500' },
     purple: { stroke: '#a855f7', handle: '#9333ea', bg: 'bg-purple-500' }
   };
-  const theme = COLORS[color] || COLORS.blue;
+  const theme = (color && COLORS[color]) ? COLORS[color] : COLORS.blue;
 
-  const playWindchime = () => {
+  const playAlarm = () => {
     if (isMuted) return;
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -46,20 +47,40 @@ const TimerWidget = ({ widget, updateData }) => {
         osc.start(ctx.currentTime + delay);
         osc.stop(ctx.currentTime + delay + 2.5);
       });
-    } catch (e) { console.error("Audio error", e); }
+    } catch (e) {
+      console.error("Audio error", e);
+    }
   };
 
   useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = window.setInterval(() => {
-        updateData(widget.id, { timeLeft: Math.max(0, timeLeft - 1) });
-      }, 1000);
-    } else if (timeLeft === 0 && isRunning) {
-      updateData(widget.id, { isRunning: false });
-      playWindchime();
+    if (isRunning) {
+      if (mode === 'stopwatch') {
+        const start = performance.now() - (elapsed || 0);
+        const loop = () => {
+          const now = performance.now();
+          updateData(widget.id, { elapsed: now - start });
+          intervalRef.current = requestAnimationFrame(loop);
+        };
+        intervalRef.current = requestAnimationFrame(loop);
+      } else {
+        // Standard Countdown
+        if (timeLeft > 0) {
+          intervalRef.current = window.setInterval(() => {
+            updateData(widget.id, { timeLeft: Math.max(0, timeLeft - 1) });
+          }, 1000);
+        } else if (timeLeft === 0) {
+          updateData(widget.id, { isRunning: false });
+          playAlarm();
+        }
+      }
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, timeLeft, widget.id, updateData]);
+    return () => {
+      if (intervalRef.current) {
+        if (mode === 'stopwatch') cancelAnimationFrame(intervalRef.current);
+        else clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning, timeLeft, widget.id, updateData, mode, elapsed]);
 
   const calculateTimeFromPointerEvent = (e) => {
     if (!timerRef.current) return;
@@ -109,8 +130,20 @@ const TimerWidget = ({ widget, updateData }) => {
   };
 
   const toggleTimer = () => updateData(widget.id, { isRunning: !isRunning });
-  const resetTimer = () => updateData(widget.id, { isRunning: false, timeLeft: 120 });
+  const resetTimer = () => {
+    if (mode === 'stopwatch') updateData(widget.id, { isRunning: false, elapsed: 0 });
+    else updateData(widget.id, { isRunning: false, timeLeft: 120 });
+  };
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+
+  const formatStopwatch = (ms) => {
+    if (!ms) return "00:00.00";
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    const centi = Math.floor((ms % 1000) / 10); // 2 digits
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${centi.toString().padStart(2, '0')}`;
+  };
 
   const progress = timeLeft / 3600;
 
@@ -119,6 +152,22 @@ const TimerWidget = ({ widget, updateData }) => {
   const handleR = 38; // Slightly inside outer edge (45)
   const handleX = 50 + handleR * Math.cos(angle);
   const handleY = 50 + handleR * Math.sin(angle);
+
+  const PieChartIcon = ({ size }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+      <path d="M22 12A10 10 0 0 0 12 2v10z" />
+    </svg>
+  );
+
+  const HashIcon = ({ size }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="9" x2="20" y2="9" />
+      <line x1="4" y1="15" x2="20" y2="15" />
+      <line x1="10" y1="3" x2="8" y2="21" />
+      <line x1="16" y1="3" x2="14" y2="21" />
+    </svg>
+  );
 
   return (
     <div className="flex flex-col items-center justify-between h-full p-2 relative bg-white select-none group">
@@ -144,7 +193,12 @@ const TimerWidget = ({ widget, updateData }) => {
           </>
         )}
       </div>
-      <button onClick={() => updateData(widget.id, { mode: mode === 'digital' ? 'visual' : 'digital' })} className="absolute top-2 right-2 p-1.5 text-gray-300 hover:text-blue-600 rounded-full hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity z-20" title="Switch Mode"><Clock size={16} /></button>
+
+      <div className="absolute top-2 right-2 flex bg-gray-100 rounded-lg p-0.5 gap-0.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onClick={() => updateData(widget.id, { mode: 'visual' })} className={`p-1 rounded-md transition-all ${mode === 'visual' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} title="Visual Timer"><PieChartIcon size={12} /></button>
+        <button onClick={() => updateData(widget.id, { mode: 'digital' })} className={`p-1 rounded-md transition-all ${mode === 'digital' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} title="Digital Timer"><HashIcon size={12} /></button>
+        <button onClick={() => updateData(widget.id, { mode: 'stopwatch', isRunning: false })} className={`p-1 rounded-md transition-all ${mode === 'stopwatch' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} title="Stopwatch"><Clock size={12} /></button>
+      </div>
 
       <div className="flex-1 w-full flex items-center justify-center p-2 min-h-0">
         {mode === 'visual' ? (
@@ -153,16 +207,14 @@ const TimerWidget = ({ widget, updateData }) => {
               {/* Ticks */}
               {Array.from({ length: 60 }).map((_, i) => {
                 const isMajor = i % 5 === 0;
-                const tickAngle = (i / 60) * 2 * Math.PI;
-                // Inner and outer radius for the tick lines
-                // Track is at r=45. Let's put ticks inside or on it.
-                // Let's go slightly inside: r=38 to r=44
+                const deg = i * 6;
+                const rad = deg * Math.PI / 180;
                 const rInner = isMajor ? 36 : 40;
                 const rOuter = 44;
-                const x1 = 50 + rInner * Math.cos(tickAngle);
-                const y1 = 50 + rInner * Math.sin(tickAngle);
-                const x2 = 50 + rOuter * Math.cos(tickAngle);
-                const y2 = 50 + rOuter * Math.sin(tickAngle);
+                const x1 = 50 + rInner * Math.cos(rad);
+                const y1 = 50 + rInner * Math.sin(rad);
+                const x2 = 50 + rOuter * Math.cos(rad);
+                const y2 = 50 + rOuter * Math.sin(rad);
 
                 return (
                   <line
@@ -181,7 +233,7 @@ const TimerWidget = ({ widget, updateData }) => {
 
               {/* colored slice - r=22.5, width=45 covers 0-45 radius (full pie) */}
               {timeLeft > 0 && (
-                <circle cx="50" cy="50" r="22.5" stroke={theme.stroke} strokeWidth="45" fill="none"
+                <circle cx="50" cy="50" r="22.5" stroke={COLORS[color]?.stroke || COLORS.blue.stroke} strokeWidth="45" fill="none"
                   strokeDasharray={`${2 * Math.PI * 22.5} ${2 * Math.PI * 22.5}`}
                   strokeDashoffset={2 * Math.PI * 22.5 * (1 - progress)}
                   className="transition-all duration-75 ease-linear pointer-events-none"
@@ -194,17 +246,17 @@ const TimerWidget = ({ widget, updateData }) => {
               {/* Handle */}
               {!isRunning && (
                 <g transform={`translate(${handleX}, ${handleY})`}>
-                  <circle r="5" fill="white" stroke={theme.handle} strokeWidth="2" className="shadow-sm cursor-grab active:cursor-grabbing" />
+                  <circle r="5" fill="white" stroke={COLORS[color]?.handle || COLORS.blue.handle} strokeWidth="2" className="shadow-sm cursor-grab active:cursor-grabbing" />
                 </g>
               )}
             </svg>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="font-bold text-slate-700 bg-white/80 px-2 rounded-lg backdrop-blur-sm shadow-sm" style={{ fontSize: (fontSize * 1.5) + 'px' }}>{formatTime(timeLeft)}</span>
+              <span className="font-bold text-slate-700 bg-white/80 px-2 rounded-lg backdrop-blur-sm shadow-sm tracking-tight" style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 1.5) + 'px' }}>{formatTime(timeLeft)}</span>
             </div>
           </div>
-        ) : (
+        ) : mode === 'digital' ? (
           <div className="flex flex-col items-center">
-            <div className={`font-black text-slate-800 tracking-widest mb-4 font-sans`} style={{ fontSize: (fontSize * 4) + 'px' }}>{formatTime(timeLeft)}</div>
+            <div className="font-bold text-slate-800 tracking-tight mb-4" style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 4) + 'px' }}>{formatTime(timeLeft)}</div>
             {!isRunning && (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex gap-2 items-center mt-2">
@@ -240,6 +292,14 @@ const TimerWidget = ({ widget, updateData }) => {
                 </div>
               </div>
             )}
+          </div>
+        ) : (
+          /* Stopwatch Mode */
+          <div className="flex flex-col items-center">
+            <div className="font-bold text-slate-800 tracking-tight" style={{ fontVariantNumeric: 'tabular-nums', fontSize: (fontSize * 3) + 'px' }}>
+              {formatStopwatch(elapsed)}
+            </div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Stopwatch</div>
           </div>
         )}
       </div>

@@ -18,6 +18,7 @@ interface DraggableResizableProps {
   onFontSizeChange?: (delta: number) => void;
   onMinimizeToggle?: (id: string) => void;
   onSpotlightToggle?: (id: string) => void;
+  accentColor?: string;
   children: React.ReactNode;
 }
 
@@ -40,6 +41,7 @@ const DraggableResizable: React.FC<DraggableResizableProps> = ({
   onFontSizeChange,
   onMinimizeToggle,
   onSpotlightToggle,
+  accentColor = 'indigo',
   children
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -170,13 +172,13 @@ const DraggableResizable: React.FC<DraggableResizableProps> = ({
   // Header and Border Styles
   const isChromeless = chromeless;
   const showBorder = isSelected;
-  const borderColor = isSelected ? 'border-blue-500' : 'border-transparent';
+  const borderColor = isSelected ? (accentColor === 'rose' ? 'border-rose-500' : accentColor === 'blue' ? 'border-blue-500' : accentColor === 'purple' ? 'border-purple-500' : accentColor === 'emerald' ? 'border-emerald-500' : accentColor === 'amber' ? 'border-amber-500' : 'border-indigo-500') : 'border-transparent';
   const shadowClass = isSelected ? 'shadow-2xl' : 'shadow-none';
 
   return (
     <div
       className={`absolute flex flex-col transition-all duration-200 ${isChromeless ? 'rounded-2xl' : 'bg-white rounded-xl border-2'
-        } ${showBorder ? 'border-2 ' + borderColor : (isChromeless ? 'border-2 border-transparent hover:border-blue-200' : 'border-gray-100')} ${shadowClass}`}
+        } ${showBorder ? 'border-2 ' + borderColor : (isChromeless ? 'border-2 border-transparent ' + (accentColor === 'rose' ? 'hover:border-rose-200' : accentColor === 'blue' ? 'hover:border-blue-200' : accentColor === 'purple' ? 'hover:border-purple-200' : accentColor === 'emerald' ? 'hover:border-emerald-200' : accentColor === 'amber' ? 'hover:border-amber-200' : 'hover:border-indigo-200') : 'border-gray-100')} ${shadowClass}`}
       style={{
         left: position.x,
         top: position.y,
@@ -193,7 +195,7 @@ const DraggableResizable: React.FC<DraggableResizableProps> = ({
       {isChromeless && isSelected && (
         <>
           <div
-            className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center cursor-move shadow-lg z-50 text-white hover:scale-110 transition-transform"
+            className={`absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-lg flex items-center justify-center cursor-move shadow-lg z-50 text-white hover:scale-110 transition-transform ${accentColor === 'rose' ? 'bg-rose-500' : accentColor === 'blue' ? 'bg-blue-500' : accentColor === 'purple' ? 'bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-500' : 'bg-indigo-500'}`}
             onMouseDown={(e) => {
               e.stopPropagation();
               setIsDragging(true);
@@ -229,14 +231,14 @@ const DraggableResizable: React.FC<DraggableResizableProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(-2); }}
-              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"
+              className={`p-1 text-gray-400 rounded transition-colors ${accentColor === 'rose' ? 'hover:text-rose-600 hover:bg-rose-100' : accentColor === 'blue' ? 'hover:text-blue-600 hover:bg-blue-100' : accentColor === 'purple' ? 'hover:text-purple-600 hover:bg-purple-100' : accentColor === 'emerald' ? 'hover:text-emerald-600 hover:bg-emerald-100' : accentColor === 'amber' ? 'hover:text-amber-600 hover:bg-amber-100' : 'hover:text-indigo-600 hover:bg-indigo-100'}`}
               title="Decrease Font Size"
             >
               <Minus size={14} strokeWidth={3} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onFontSizeChange?.(2); }}
-              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"
+              className={`p-1 text-gray-400 rounded transition-colors ${accentColor === 'rose' ? 'hover:text-rose-600 hover:bg-rose-100' : accentColor === 'blue' ? 'hover:text-blue-600 hover:bg-blue-100' : accentColor === 'purple' ? 'hover:text-purple-600 hover:bg-purple-100' : accentColor === 'emerald' ? 'hover:text-emerald-600 hover:bg-emerald-100' : accentColor === 'amber' ? 'hover:text-amber-600 hover:bg-amber-100' : 'hover:text-indigo-600 hover:bg-indigo-100'}`}
               title="Increase Font Size"
             >
               <Plus size={14} strokeWidth={3} />
@@ -244,7 +246,7 @@ const DraggableResizable: React.FC<DraggableResizableProps> = ({
           </div>
 
           <div className="flex-1 flex justify-center">
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors" />
+            <div className={`w-12 h-1.5 rounded-full transition-colors ${accentColor === 'rose' ? 'bg-rose-300 group-hover:bg-rose-500' : accentColor === 'blue' ? 'bg-blue-300 group-hover:bg-blue-500' : accentColor === 'purple' ? 'bg-purple-300 group-hover:bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-300 group-hover:bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-300 group-hover:bg-amber-500' : 'bg-gray-300 group-hover:bg-indigo-400'}`} />
           </div>
 
           <div className="flex items-center gap-1">
@@ -263,7 +265,7 @@ const DraggableResizable: React.FC<DraggableResizableProps> = ({
             {/* Minimize Button */}
             <button
               onClick={(e) => { e.stopPropagation(); onMinimizeToggle?.(id); }}
-              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"
+              className={`p-1 text-gray-400 rounded transition-colors ${accentColor === 'rose' ? 'hover:text-rose-600 hover:bg-rose-100' : accentColor === 'blue' ? 'hover:text-blue-600 hover:bg-blue-100' : accentColor === 'purple' ? 'hover:text-purple-600 hover:bg-purple-100' : accentColor === 'emerald' ? 'hover:text-emerald-600 hover:bg-emerald-100' : accentColor === 'amber' ? 'hover:text-amber-600 hover:bg-amber-100' : 'hover:text-indigo-600 hover:bg-indigo-100'}`}
               title={isMinimized ? "Restore" : "Minimize"}
             >
               {isMinimized ? <PlusSquare size={14} strokeWidth={2} /> : <MinusSquare size={14} strokeWidth={2} />}

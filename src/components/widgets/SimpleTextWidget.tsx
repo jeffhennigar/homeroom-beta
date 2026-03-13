@@ -75,7 +75,7 @@ const SimpleTextWidget: React.FC<WidgetProps> = ({ widget, updateData }) => {
 
         return () => observer.disconnect();
 
-    }, [content, widget.size.width, widget.size.height]);
+    }, [content, widget.width, widget.height]);
 
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
         updateData(widget.id, { content: e.currentTarget.innerHTML });
