@@ -30,7 +30,7 @@ const RosterManager: React.FC<RosterManagerProps> = ({ onClose, onSave }) => {
 
         // Map names to students, preserving existing IDs/state if name matches
         const newRoster = names.map(name => {
-            const existing = students.find(s => s.name === name);
+            const existing = (students || []).find(s => s?.name === name);
             return existing ? existing : { id: Math.random().toString(36).substr(2, 9), name, active: true };
         });
 

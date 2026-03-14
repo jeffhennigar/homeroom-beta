@@ -231,7 +231,7 @@ const GroupMakerWidget = ({
 
             {/* Groups Grid */}
             <div ref={containerRef} className="flex-1 overflow-x-auto overflow-y-auto p-4 flex gap-4 content-start min-h-0 custom-scrollbar group-container">
-                {groups.map((group, idx) => (
+                {(groups || []).map((group, idx) => (
                     <div 
                         key={idx} 
                         onDragOver={(e) => handleDragOver(e, idx)}
@@ -242,19 +242,19 @@ const GroupMakerWidget = ({
                     >
                         <div className="p-3 border-b flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
                             <span className="text-[10px] font-black uppercase tracking-tighter text-slate-400">Group {idx + 1}</span>
-                            <span className="text-[10px] font-bold text-slate-300 bg-white px-1.5 py-0.5 rounded-full border border-slate-100">{group.length}</span>
+                            <span className="text-[10px] font-bold text-slate-300 bg-white px-1.5 py-0.5 rounded-full border border-slate-100">{(group || []).length}</span>
                         </div>
                         <div className="p-2 space-y-1 overflow-y-auto min-h-[40px]">
-                            {group.map(student => (
+                            {(group || []).map(student => (
                                 <div 
-                                    key={student.id}
+                                    key={student?.id || Math.random().toString()}
                                     draggable
                                     onDragStart={(e) => handleDragStart(e, student, idx)}
                                     onPointerDown={(e) => e.stopPropagation()}
                                     className={`px-3 py-2 bg-slate-50 hover:bg-white border border-transparent rounded-xl text-slate-600 font-bold transition-all cursor-grab active:cursor-grabbing hover:shadow-sm whitespace-nowrap overflow-hidden text-ellipsis select-text ${accentColor === 'rose' ? 'hover:border-rose-100' : accentColor === 'blue' ? 'hover:border-blue-100' : accentColor === 'purple' ? 'hover:border-purple-100' : accentColor === 'emerald' ? 'hover:border-emerald-100' : accentColor === 'amber' ? 'hover:border-amber-100' : 'hover:border-indigo-100'}`}
                                     style={{ fontSize: fontSize }}
                                 >
-                                    {student.name}
+                                    {student?.name || "Unknown"}
                                 </div>
                             ))}
                         </div>

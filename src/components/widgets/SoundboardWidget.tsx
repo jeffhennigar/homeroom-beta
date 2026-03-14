@@ -400,7 +400,7 @@ const SoundboardWidget = ({ widget, updateData }: { widget: any, updateData: (da
             {/* Sound Grid - Compact 4-col */}
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50">
                 <div className="grid grid-cols-4 gap-3">
-                    {SOUNDS.map(sound => (
+                    {SOUNDS?.map(sound => (
                         <div key={sound.id}>
                             <SoundCard
                                 sound={sound}
@@ -445,7 +445,7 @@ const SoundboardWidget = ({ widget, updateData }: { widget: any, updateData: (da
                                 {/* Recently Played Bar */}
                                 {recentStreams.length > 0 && (
                                     <div className="flex flex-wrap gap-1.5 mt-1 border-t border-slate-100 pt-2">
-                                        {recentStreams.map((url, i) => {
+                                        {recentStreams?.map((url, i) => {
                                             const isSpotify = url.includes('spotify');
                                             const id = url.split(/[?v=/]/).filter(Boolean).pop()?.slice(0, 8);
                                             return (

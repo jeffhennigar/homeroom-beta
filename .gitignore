@@ -8,9 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-# dist
-dist-ssr
+dist
 *.local
+
+# Nested repos/clones
+homeroom-beta/
+beta.ourhomeroom.app/
+wrangler.toml
 
 # Editor directories and files
 .vscode/*

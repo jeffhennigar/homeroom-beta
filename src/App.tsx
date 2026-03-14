@@ -34,6 +34,7 @@ import SparkWidget from './components/widgets/SparkWidget';
 import SortWidget from './components/widgets/SortWidget';
 import MarbleJarWidget from './components/widgets/MarbleJarWidget';
 import WeatherWidget from './components/widgets/WeatherWidget';
+import RandomizerWidget from './components/widgets/RandomizerWidget';
 import SimpleTextWidget from './components/widgets/SimpleTextWidget';
 import { supabase } from './services/supabaseClient';
 import { syncManager } from './services/SyncManager';
@@ -206,10 +207,10 @@ const App = () => {
             const mainDefaults = ['TIMER', 'CLOCK', 'OVERLAY_TEXT', 'RANDOMIZER', 'GROUP_MAKER', 'SEAT_PICKER', 'SCHEDULE', 'TEXT', 'CALENDAR'];
             const drawerDefaults = INIT_DOCK_ORDER.filter(id => !mainDefaults.includes(id));
 
-            if (parsed && parsed.main && parsed.drawer) {
+            if (parsed && typeof parsed === 'object' && parsed.main && parsed.drawer) {
                 // Remove non-existent types
-                const cleanedMain = parsed.main.map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
-                const cleanedDrawer = parsed.drawer.map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
+                const cleanedMain = (parsed.main || []).map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
+                const cleanedDrawer = (parsed.drawer || []).map((t: string) => t === 'YOUTUBE' ? 'EMBED' : t).filter((t: string) => DOCK_LABELS[t]);
                 const currentIds = [...cleanedMain, ...cleanedDrawer];
                 
                 // FORCE: Add CLOCK and OVERLAY_TEXT to MAIN if they are completely missing
@@ -644,7 +645,7 @@ const App = () => {
 
                 // 2. Load Slides (Widgets)
                 const rawSlides = await dataService.getSlides(user.id);
-                const slides = rawSlides ? rawSlides.map(s => ({ ...s, widgets: syncManager.decompressPayload(s.widgets) })) : [];
+                const slides = (rawSlides || []).map(s => ({ ...s, widgets: syncManager.decompressPayload(s.widgets) }));
                 if (slides && Array.isArray(slides)) {
                     const slide = slides.find(s => s.slide_index === currentSlideIndex);
                     if (slide) {
@@ -666,7 +667,7 @@ const App = () => {
 
                 // 3. Load Rosters
                 const rawRosters = await dataService.getRosters(user.id);
-                const cloudRosters = rawRosters ? rawRosters.map(r => ({ ...r, roster: syncManager.decompressPayload(r.roster) })) : [];
+                const cloudRosters = (rawRosters || []).map(r => ({ ...r, roster: syncManager.decompressPayload(r.roster) }));
 
                 // For rosters, we merge but prioritize newest
                 const localRostersWrapper = JSON.parse(localStorage.getItem('homeroom_all_rosters') || '{}');
@@ -1075,16 +1076,18 @@ const App = () => {
         let data: any = { fontSize: 16 };
         if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual', fontSize: 14 };
         if (type === 'CLOCK') data = { ...data, style: 'standard', isGlassy: 'clear', fontSize: 20 };
-        if (type === 'RANDOMIZER') data = { ...data, student: null, fontSize: 20 };
+        if (type === 'RANDOMIZER') data = { ...data, students: [], currentName: null, isAnimating: false, fontSize: 16 };
         if (type === 'GROUP_MAKER') data = { ...data, groupCount: 4, groups: [] };
         if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [], fontSize: 12 };
         if (type === 'OVERLAY_TEXT') data = { ...data, fontSize: 32, fontScale: 3, hasShadow: true, isGlassy: 'clear' };
-        if (type === 'WHITEBOARD') data = { ...data, color: '#000000', brushSize: 5, tool: 'pen' };
-        if (type === 'MARBLE_JAR') data = { ...data, title: 'Classroom Goal', marbles: 0, goalCount: 50, theme: 'classic', jarColor: 'standard' };
-        if (type === 'SPARK') data = { ...data, prompt: '', result: null };
+        if (type === 'WHITEBOARD' || type === 'DRAWING') data = { ...data, color: '#000000', brushSize: 5, tool: 'pen' };
+        if (type === 'MARBLE_JAR') data = { ...data, title: 'Classroom Goal', count: 0, goal: 50, theme: 'classic', jarColor: 'standard' };
+        if (type === 'SPARK') data = { ...data, topic: '', type: 'HOOK', result: null };
         if (type === 'WEATHER') data = { ...data, city: 'London' };
         if (type === 'SORT') data = { ...data, categories: [], items: [] };
         if (type === 'CALENDAR' || type === 'SCHEDULE') data = { ...data, isGlassy: 'clear' };
+        if (type === 'EMBED' || type === 'YOUTUBE') data = { ...data, youtubeUrl: '' };
+        if (type === 'CALCULATOR') data = { ...data, fontSize: 16 };
 
         data = { ...data, ...extraData };
 
@@ -1374,12 +1377,12 @@ const App = () => {
 
             {/* Spotlight Overlay */}
             <div 
-                className={`fixed inset-0 bg-slate-950/80 backdrop-blur-[3px] transition-all duration-700 ease-in-out pointer-events-none ${widgets.some(w => w.data?.isSpotlighted) ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`}
+                className={`fixed inset-0 bg-slate-950/80 backdrop-blur-[3px] transition-opacity duration-1000 ease-in-out pointer-events-none ${widgets?.some(w => w.data?.isSpotlighted) ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`}
                 style={{ zIndex: 19000 }}
             />
 
             {/* Widgets Layer */}
-            {widgets.map(w => (
+            {widgets?.map(w => (
                 <DraggableResizable
                     key={w.id}
                     id={w.id}
@@ -1442,8 +1445,6 @@ const App = () => {
                             case 'SORT': return <SortWidget {...props} />;
                             case 'SOUNDBOARD': return <SoundboardWidget {...props} />;
                             case 'TIMER': return <TimerWidget {...props} />;
-                            // case 'STOPWATCH': return <StopwatchWidget {...props} />;
-                            // case 'CALCULATOR': return <CalculatorWidget {...props} />;
                             case 'DICE': return <DiceWidget {...props} />;
                             case 'SEAT_PICKER': return <SeatPickerWidget {...props} />;
                             case 'GROUP_MAKER': return <GroupMakerWidget {...props} />;
@@ -1462,7 +1463,7 @@ const App = () => {
                                 return (
                                     <div className="flex h-full items-center justify-center p-8 overflow-hidden">
                                         <ClockDisplay 
-                                            style={w.data.style || 'standard'} 
+                                            style={w.data?.style || 'standard'} 
                                             textColor={extraProps.textColor}
                                             onSettingsClick={() => setShowSettings(true)}
                                         />
@@ -1478,31 +1479,11 @@ const App = () => {
                             case 'POLYPAD': return <PolypadWidget {...props} />;
                             case 'OVERLAY_TEXT': return <SimpleTextWidget {...props} />;
                             case 'CALENDAR': return <CalendarWidget {...props} textColor={extraProps.textColor} />;
-                            case 'RANDOMIZER': // Random student picker
-                                return (
-                                    <div className="flex flex-col h-full bg-white p-4 items-center justify-center text-center">
-                                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Random Student</h3>
-                                        <div className="flex-1 flex items-center justify-center w-full">
-                                            <div className={`text-3xl font-black ${accentColor === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50/50' : accentColor === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50/50' : accentColor === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50/50' : accentColor === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50/50' : accentColor === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50/50' : 'text-indigo-600 border-indigo-100 bg-indigo-50/50'} animate-in zoom-in duration-300 border-2 rounded-2xl p-6 shadow-sm`}>
-                                                {w.data.student || "Ready?"}
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                const active = roster.filter((s: Student) => s.active);
-                                                const rand = active[Math.floor(Math.random() * active.length)];
-                                                updateWidgetData(w.id, { student: rand?.name || "No Students" });
-                                            }}
-                                            className={`mt-4 ${accentColor === 'rose' ? 'bg-rose-600 shadow-rose-200 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 shadow-blue-200 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 shadow-purple-200 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 shadow-amber-200 hover:bg-amber-700' : 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700'} text-white px-6 py-2 rounded-xl font-bold shadow-lg active:scale-95 transition-all flex items-center gap-2`}
-                                        >
-                                            <Shuffle size={18} /> Pick Random
-                                        </button>
-                                    </div>
-                                );
+                            case 'RANDOMIZER': return <RandomizerWidget {...props} />;
                             case 'WEBCAM':
                                 return (
                                     <div className="h-full bg-black flex flex-col items-center justify-center relative overflow-hidden rounded-2xl">
-                                        {!w.data.streamActive ? (
+                                        {!w.data?.streamActive ? (
                                             <button onClick={async () => {
                                                 try {
                                                     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -1517,7 +1498,7 @@ const App = () => {
                                         ) : (
                                             <video id={`video-${w.id}`} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
                                         )}
-                                        {w.data.streamActive && (
+                                        {w.data?.streamActive && (
                                             <button onClick={() => {
                                                 const video = document.getElementById(`video-${w.id}`) as HTMLVideoElement;
                                                 if (video && video.srcObject) {
@@ -1529,7 +1510,7 @@ const App = () => {
                                         )}
                                     </div>
                                 );
-                            default: return <div>Unknown Widget</div>;
+                            default: return <div className="p-4 text-slate-400 font-bold uppercase tracking-widest text-[10px] flex items-center justify-center h-full">Unknown Widget: {w.type}</div>;
                         }
                     })()}
                 </DraggableResizable>
@@ -1546,10 +1527,11 @@ const App = () => {
                         className="backdrop-blur-3xl shadow-2xl rounded-[1.5rem] flex items-center p-1 gap-0.5 transition-all duration-300 hover:scale-[1.01] ring-1 ring-white/30 relative bg-white/20 backdrop-saturate-150"
                         onPointerDown={(e) => e.stopPropagation()}
                     >
-                        {dockOrder.main.map((type: string) => {
-                            const activeInstances = widgets.filter(w => w.type === type);
+                        {dockOrder?.main?.map((type: string) => {
+                            const activeInstances = (widgets || []).filter(w => w.type === type);
                             const isActive = activeInstances.length > 0;
                             const isMinimizedStatus = activeInstances.some(w => w.isMinimized);
+                            const labelData = DOCK_LABELS[type] || { label: type, icon: <LayoutGrid size={24} /> };
 
                             return (
                                 <button
@@ -1561,10 +1543,10 @@ const App = () => {
                                     onDragOver={(e) => e.preventDefault()}
                                     onDrop={(e) => handleDockDrop(e, type, 'main')}
                                     className={`p-1.5 rounded-[1rem] transition-all relative group flex flex-col items-center gap-0.5 z-10 hover:bg-white/30 ${background?.textColor || 'text-slate-800'} ${!isLocked ? 'animate-wobble ring-2 ring-white/50 bg-white/10 shadow-lg' : ''}`}
-                                    title={DOCK_LABELS[type].label}
+                                    title={labelData.label}
                                 >
-                                    <div className={`w-9 h-9 flex items-center justify-center transition-all duration-300 dock-icon-wrapper group-hover:-translate-y-1 rounded-xl ${isMinimizedStatus ? (accentColor === 'rose' ? 'bg-rose-100/50 text-rose-600' : accentColor === 'blue' ? 'bg-blue-100/50 text-blue-600' : accentColor === 'purple' ? 'bg-purple-100/50 text-purple-600' : accentColor === 'emerald' ? 'bg-emerald-100/50 text-emerald-600' : accentColor === 'amber' ? 'bg-amber-100/50 text-amber-600' : 'bg-indigo-100/50 text-indigo-600') + ' shadow-inner' : (background.textColor === 'text-white' ? 'bg-white/10' : 'bg-slate-800/5')}`}>
-                                        {DOCK_LABELS[type].icon}
+                                    <div className={`w-9 h-9 flex items-center justify-center transition-all duration-300 dock-icon-wrapper group-hover:-translate-y-1 rounded-xl ${isMinimizedStatus ? (accentColor === 'rose' ? 'bg-rose-100/50 text-rose-600' : accentColor === 'blue' ? 'bg-blue-100/50 text-blue-600' : accentColor === 'purple' ? 'bg-purple-100/50 text-purple-600' : accentColor === 'emerald' ? 'bg-emerald-100/50 text-emerald-600' : accentColor === 'amber' ? 'bg-amber-100/50 text-amber-600' : 'bg-indigo-100/50 text-indigo-600') + ' shadow-inner' : (background?.textColor === 'text-white' ? 'bg-white/10' : 'bg-slate-800/5')}`}>
+                                        {labelData.icon}
                                         {activeInstances.length > 1 && (
                                             <div className={`absolute -top-1 -right-1 ${accentColor === 'rose' ? 'bg-rose-600' : accentColor === 'blue' ? 'bg-blue-600' : accentColor === 'purple' ? 'bg-purple-600' : accentColor === 'emerald' ? 'bg-emerald-600' : accentColor === 'amber' ? 'bg-amber-600' : 'bg-indigo-600'} text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20`}>
                                                 {activeInstances.length}
@@ -1572,16 +1554,16 @@ const App = () => {
                                         )}
                                     </div>
                                     <span className="text-[8px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 absolute -bottom-5 bg-slate-900 text-white px-1.5 py-0.5 rounded shadow-xl whitespace-nowrap pointer-events-none transition-all transform translate-y-2 group-hover:translate-y-0">
-                                        {DOCK_LABELS[type].label}
+                                        {labelData.label}
                                     </span>
                                     {isActive && (
-                                        <div className={`mt-0.5 w-[2px] h-[2px] rounded-full transition-all ${isMinimizedStatus ? (accentColor === 'rose' ? 'bg-rose-500' : accentColor === 'blue' ? 'bg-blue-500' : accentColor === 'purple' ? 'bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-500' : 'bg-indigo-500') : (background.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-400')}`} />
+                                        <div className={`mt-0.5 w-[2px] h-[2px] rounded-full transition-all ${isMinimizedStatus ? (accentColor === 'rose' ? 'bg-rose-500' : accentColor === 'blue' ? 'bg-blue-500' : accentColor === 'purple' ? 'bg-purple-500' : accentColor === 'emerald' ? 'bg-emerald-500' : accentColor === 'amber' ? 'bg-amber-500' : 'bg-indigo-500') : (background?.textColor === 'text-white' ? 'bg-white/80' : 'bg-slate-400')}`} />
                                     )}
 
                                     {/* Reflection */}
                                     <div className="absolute top-full left-0 right-0 flex flex-col items-center pointer-events-none -mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                                         <div className="w-9 h-9 flex items-center justify-center dock-reflection scale-y-[-1] blur-[1px] opacity-20">
-                                            {DOCK_LABELS[type].icon}
+                                            {labelData.icon}
                                         </div>
                                     </div>
                                 </button>
@@ -1620,10 +1602,11 @@ const App = () => {
 
                             {showMoreDrawer && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-3 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 grid grid-cols-3 gap-2 min-w-[280px] z-50 animate-in slide-in-from-bottom-2 duration-200">
-                                    {dockOrder.drawer.map((type: string) => {
-                                        const activeInstances = widgets.filter(w => w.type === type);
+                                    {dockOrder?.drawer?.map((type: string) => {
+                                        const activeInstances = (widgets || []).filter(w => w.type === type);
                                         const isActive = activeInstances.length > 0;
                                         const isMinimizedStatus = activeInstances.some(w => w.isMinimized);
+                                        const labelData = DOCK_LABELS[type] || { label: type, icon: <LayoutGrid size={24} /> };
 
                                         return (
                                             <button
@@ -1637,9 +1620,9 @@ const App = () => {
                                                 className={`p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative text-slate-600 ${!isLocked ? 'animate-wobble ring-2 ring-indigo-500/30 shadow-lg' : ''} ${accentColor === 'rose' ? 'hover:bg-rose-50 hover:text-rose-600' : accentColor === 'blue' ? 'hover:bg-blue-50 hover:text-blue-600' : accentColor === 'purple' ? 'hover:bg-purple-50 hover:text-purple-600' : accentColor === 'emerald' ? 'hover:bg-emerald-50 hover:text-emerald-600' : accentColor === 'amber' ? 'hover:bg-amber-50 hover:text-amber-600' : 'hover:bg-indigo-50 hover:text-indigo-600'}`}
                                             >
                                                 <div className="relative">
-                                                    {DOCK_LABELS[type].icon}
+                                                    {labelData.icon}
                                                 </div>
-                                                <span className="text-[10px] font-bold">{DOCK_LABELS[type].label}</span>
+                                                <span className="text-[10px] font-bold">{labelData.label}</span>
                                                 {activeInstances.length > 1 && (
                                                     <div className={`absolute -top-1 -right-1 ${accentColor === 'rose' ? 'bg-rose-600' : accentColor === 'blue' ? 'bg-blue-600' : accentColor === 'purple' ? 'bg-purple-600' : accentColor === 'emerald' ? 'bg-emerald-600' : accentColor === 'amber' ? 'bg-amber-600' : 'bg-indigo-600'} text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full shadow-lg border border-white/20`}>
                                                         {activeInstances.length}

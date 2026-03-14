@@ -193,7 +193,7 @@ const ScheduleWidget: React.FC<ScheduleWidgetProps> = ({
                         <button onClick={addItem} className={`text-white font-bold flex items-center transition-all ${accentColor === 'rose' ? 'bg-rose-600 hover:bg-rose-700' : accentColor === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : accentColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : accentColor === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : accentColor === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}`} style={{ padding: `${s(6)}px ${s(12)}px`, fontSize: s(11), borderRadius: s(8), gap: s(4) }}><Plus size={s(14)} /> Add Activity</button>
                     </div>
                 ) : (
-                    scheduleData.map((item, index) => {
+                    scheduleData?.map((item, index) => {
                         const isCurrent = isCurrentItem(item, index);
                         const hasDescription = !!(item.description && item.description.trim());
                         return (

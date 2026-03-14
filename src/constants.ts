@@ -48,7 +48,7 @@ export const createDefaultGroups = (students: Student[]): Student[][] => {
 export const WIDGET_SIZES: Record<string, Size> = {
   TIMER: { width: 280, height: 340 },
   CLOCK: { width: 500, height: 210 },
-  RANDOMIZER: { width: 250, height: 290 },
+  RANDOMIZER: { width: 250, height: 250 },
   GROUP_MAKER: { width: 900, height: 550 },
   SEAT_PICKER: { width: 900, height: 530 },
   TEXT: { width: 300, height: 300 },
@@ -61,7 +61,7 @@ export const WIDGET_SIZES: Record<string, Size> = {
   WHITEBOARD: { width: 900, height: 550 },
   SCHEDULE: { width: 380, height: 500 },
   EMBED: { width: 480, height: 360 },
-  CALENDAR: { width: 320, height: 350 },
+  CALENDAR: { width: 320, height: 380 },
   MARBLE_JAR: { width: 400, height: 500 },
   SOUNDBOARD: { width: 600, height: 500 },
   CALCULATOR: { width: 280, height: 390 },

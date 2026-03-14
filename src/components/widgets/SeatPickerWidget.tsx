@@ -404,10 +404,10 @@ const SeatPickerWidget = ({
                                 Auto-Generate Grid
                             </button>
                         </div>
-                    ) : desks.map(desk => {
+                    ) : (desks || []).map(desk => {
                         const student = currentAssignments[desk.id];
                         const isSelected = selectedIds.includes(desk.id);
-                        const isAbsent = student && activeRoster.find(s => s.name === student && !s.active);
+                        const isAbsent = student && (activeRoster || []).find(s => (s?.name === student || s === student) && !s?.active);
                         const scale = fontSize / 16;
                         const deskW = (desk.type === 'teacher' ? 140 : 100) * scale;
                         const deskH = (desk.type === 'teacher' ? 80 : 60) * scale;
@@ -497,14 +497,14 @@ const SeatPickerWidget = ({
                             <span className="text-[10px] font-bold text-slate-400">{unseatedStudents.length} items</span>
                         </div>
                         <div className="flex-1 flex items-center gap-2 px-4 overflow-x-auto custom-scrollbar">
-                            {unseatedStudents.map(student => (
+                            {(unseatedStudents || []).map(student => (
                                 <div 
-                                    key={student.name}
+                                    key={student?.name || Math.random().toString()}
                                     draggable
-                                    onDragStart={(e) => handleStudentDragStart(e, null, student.name)}
+                                    onDragStart={(e) => handleStudentDragStart(e, null, student?.name)}
                                     className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs font-bold text-slate-600 cursor-grab active:cursor-grabbing hover:bg-white hover:border-indigo-300 hover:text-indigo-600 transition-all whitespace-nowrap shadow-sm"
                                 >
-                                    {student.name}
+                                    {student?.name || "Unknown"}
                                 </div>
                             ))}
                         </div>

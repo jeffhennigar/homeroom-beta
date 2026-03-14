@@ -329,9 +329,9 @@ const SortWidget: React.FC<SortWidgetProps> = ({ widget, updateData, user }) => 
                                 <button onClick={searchWikimedia} className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition-all"><Search size={18}/></button>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                                {isSearching ? <div className="col-span-3 text-center py-4 text-slate-400 italic text-sm">Searching...</div> : searchResults.map(res => (
-                                    <button key={res.id} onClick={() => updateData({ selectedMedia: [...selectedMedia, { id: `img-${Date.now()}-${res.id}`, type: 'image', content: res.previewURL, label: '' }] })} className="aspect-square rounded-xl overflow-hidden border hover:border-blue-400 transition-all shadow-sm bg-white">
-                                        <img src={res.previewURL} className="w-full h-full object-contain p-1" alt="clipart" />
+                                {isSearching ? <div className="col-span-3 text-center py-4 text-slate-400 italic text-sm">Searching...</div> : (searchResults || []).map(res => (
+                                    <button key={res?.id || Math.random().toString()} onClick={() => updateData({ selectedMedia: [...(selectedMedia || []), { id: `img-${Date.now()}-${res?.id}`, type: 'image', content: res?.previewURL, label: '' }] })} className="aspect-square rounded-xl overflow-hidden border hover:border-blue-400 transition-all shadow-sm bg-white">
+                                        <img src={res?.previewURL || ''} className="w-full h-full object-contain p-1" alt="clipart" />
                                     </button>
                                 ))}
                             </div>
