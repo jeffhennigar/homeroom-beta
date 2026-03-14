@@ -259,8 +259,8 @@ const App = () => {
             // Ensure Default Widgets exist on Slide 0 for new users or fresh sessions
             if (slidesData.length > 0 && Array.isArray(slidesData[0]) && slidesData[0].length === 0) {
                 const now = Date.now();
-                const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
-                const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
+                const screenWidth = (typeof window !== 'undefined' && window.innerWidth > 0) ? window.innerWidth : 1440;
+                const screenHeight = (typeof window !== 'undefined' && window.innerHeight > 0) ? window.innerHeight : 900;
                 
                 const defaults = [
                     {
@@ -569,12 +569,16 @@ const App = () => {
                     .map(r => r.id)
                     .filter(id => id && id !== 'default' && /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(id)));
 
+                /* 
+                // CRITICAL: Temporarily disabled roster cleanup as it causes 400 errors due to URL length limits 
+                // in some environments (PostgREST URL limits). 
                 if (validUUIDs.length > 0) {
                     await supabase.from('rosters')
                         .delete()
                         .eq('user_id', user.id)
                         .not('id', 'in', `(${validUUIDs.map(id => `'${id}'`).join(',')})`);
                 }
+                */
 
                 // 3. Sync Profile (Check for changes)
                 const profilePayload = {
