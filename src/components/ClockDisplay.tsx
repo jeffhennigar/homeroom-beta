@@ -126,20 +126,20 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, showDate 
     );
 
     const renderStandard = () => (
-        <>
-            <div className={`text-8xl font-bold tracking-tight ${textColor === 'text-white' ? 'drop-shadow-lg' : 'drop-shadow-sm'}`}>
+        <div className="flex flex-col items-center justify-center w-full h-full text-center">
+            <div className={`text-7xl font-bold tracking-tight whitespace-nowrap ${textColor === 'text-white' ? 'drop-shadow-lg' : 'drop-shadow-sm'}`}>
                 {timeString}
             </div>
             {showDate && (
-                <div className={`text-3xl font-medium mt-2 opacity-90 ${textColor === 'text-white' ? 'drop-shadow-md' : ''}`}>
+                <div className={`text-2xl font-medium mt-2 opacity-90 ${textColor === 'text-white' ? 'drop-shadow-md' : ''}`}>
                     {dateString}
                 </div>
             )}
-        </>
+        </div>
     );
 
     return (
-        <div className="flex flex-col items-start gap-1 p-4 w-full h-full">
+        <div className="flex flex-col items-center justify-center w-full h-full">
             {style === 'analog' && renderAnalog()}
             {style === 'modern-analog' && renderModernAnalog()}
             {style === 'bighour' && renderBigHour()}

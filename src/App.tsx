@@ -256,22 +256,55 @@ const App = () => {
                 else if (parsed && typeof parsed === 'object' && 'slides' in parsed) slidesData = parsed.slides;
             }
             
-            // Ensure Gallery Clock exists on Slide 0
-            if (slidesData.length > 0 && Array.isArray(slidesData[0])) {
-                const hasClock = slidesData[0].some((w: any) => w.type === 'CLOCK');
-                if (!hasClock) {
-                    const galleryClock = {
-                        id: 'gallery-clock-' + Date.now(),
+            // Ensure Default Widgets exist on Slide 0 for new users or fresh sessions
+            if (slidesData.length > 0 && Array.isArray(slidesData[0]) && slidesData[0].length === 0) {
+                const now = Date.now();
+                const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
+                const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
+                
+                const defaults = [
+                    {
+                        id: 'default-clock-' + now,
                         type: 'CLOCK',
-                        x: 0,
-                        y: 0,
-                        width: 400,
-                        height: 200,
+                        x: Math.round((screenWidth - 500) / 2),
+                        y: 80,
+                        width: 500,
+                        height: 210,
                         data: { style: 'standard', fontSize: 20, isGlassy: 'clear' },
                         zIndex: 1
-                    };
-                    slidesData[0] = [galleryClock, ...slidesData[0]];
-                }
+                    },
+                    {
+                        id: 'default-timer-' + now,
+                        type: 'TIMER',
+                        x: 80,
+                        y: 120,
+                        width: 280,
+                        height: 340,
+                        data: { timeLeft: 120, isRunning: false, mode: 'visual', fontSize: 14 },
+                        zIndex: 2
+                    },
+                    {
+                        id: 'default-text-' + now,
+                        type: 'TEXT',
+                        x: Math.round(screenWidth - 380),
+                        y: 120,
+                        width: 300,
+                        height: 300,
+                        data: { mode: 'text', content: '## Welcome to HomeRoom Pro! 🚀\n\nThis is your space to organize your classroom.\n\n- Drag tools to move them\n- Resize from the corners\n- Use the dock below to add more tools!', fontSize: 13 },
+                        zIndex: 3
+                    },
+                    {
+                        id: 'default-calendar-' + now,
+                        type: 'CALENDAR',
+                        x: Math.round(screenWidth - 400),
+                        y: Math.max(120, screenHeight - 450),
+                        width: 320,
+                        height: 380,
+                        data: { isGlassy: 'clear' },
+                        zIndex: 4
+                    }
+                ];
+                slidesData[0] = defaults;
             }
             return slidesData;
         } catch (e) { return [[]]; }
@@ -357,13 +390,6 @@ const App = () => {
         setRedoStack(prev => [...prev, widgets]);
         setWidgets(previous);
         setHistory(prev => prev.slice(0, -1));
-    }, [history, widgets]);
-
-    const handleRedo = useCallback(() => {
-        if (redoStack.length === 0) return;
-        const next = redoStack[redoStack.length - 1];
-        setHistory(prev => [...prev, widgets]);
-        setWidgets(next);
         setRedoStack(prev => prev.slice(0, -1));
     }, [redoStack, widgets]);
 
@@ -626,7 +652,9 @@ const App = () => {
                         if (profile.clock_style) setClockStyle(profile.clock_style);
                         if (profile.accent_color) setAccentColor(profile.accent_color);
                         if (profile.grid_enabled !== undefined) setShowGrid(profile.grid_enabled);
-                        if (profile.dock_order) setDockOrder(profile.dock_order);
+                        if (profile.dock_order && (profile.dock_order.main?.length > 0 || profile.dock_order.drawer?.length > 0)) {
+                            setDockOrder(profile.dock_order);
+                        }
 
                         if (profile.schedule) {
                             const { _settings, ...template } = profile.schedule;
@@ -821,7 +849,9 @@ const App = () => {
                     if (p.clock_style) setClockStyle(p.clock_style);
                     if (p.accent_color) setAccentColor(p.accent_color);
                     if (p.grid_enabled !== undefined) setShowGrid(p.grid_enabled);
-                    if (p.dock_order) setDockOrder(p.dock_order);
+                    if (p.dock_order && (p.dock_order.main?.length > 0 || p.dock_order.drawer?.length > 0)) {
+                        setDockOrder(p.dock_order);
+                    }
 
                     // Apply schedule updates
                     if (p.schedule) {
