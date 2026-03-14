@@ -299,6 +299,7 @@ const App = () => {
     const [accentColor, setAccentColor] = useState(() => localStorage.getItem('homeroom_accent_color') || 'indigo');
     const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
     const [lastSyncError, setLastSyncError] = useState<string | null>(null);
+    const [focusedId, setFocusedId] = useState<string | null>(null);
 
     // Feature Toggles (Pro Parity)
     const [showClockDate, setShowClockDate] = useState(() => localStorage.getItem('homeroom_show_clock_date') !== 'false');
@@ -1075,7 +1076,7 @@ const App = () => {
 
         let data: any = { fontSize: 16 };
         if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual', fontSize: 14 };
-        if (type === 'CLOCK') data = { ...data, style: 'standard', isGlassy: 'clear', fontSize: 20, showDate: true };
+        if (type === 'CLOCK') data = { ...data, style: 'standard', isGlassy: 'clear', fontSize: 20 };
         if (type === 'RANDOMIZER') data = { ...data, students: [], currentName: null, isAnimating: false, fontSize: 16 };
         if (type === 'GROUP_MAKER') data = { ...data, groupCount: 4, groups: [] };
         if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [], fontSize: 12 };
@@ -1238,6 +1239,7 @@ const App = () => {
     };
 
     const bringToFront = (id) => {
+        setFocusedId(id);
         setMaxZ(prev => {
             const nextZ = prev + 1;
             setZIndices(prevIndices => ({ ...prevIndices, [id]: nextZ }));
@@ -1353,7 +1355,16 @@ const App = () => {
     }
 
     return (
-        <div className={`w-screen h-screen overflow-hidden relative ${activeBg.type === 'image' || activeBg.type === 'custom' ? '' : (activeBg.preview || '')}`} style={bgStyle}>
+        <div 
+            className={`w-screen h-screen overflow-hidden relative ${activeBg.type === 'image' || activeBg.type === 'custom' ? '' : (activeBg.preview || '')}`} 
+            style={bgStyle}
+            onPointerDown={(e) => {
+                // If we clicked the background directly (not a widget or dock), defocus all
+                if (e.target === e.currentTarget) {
+                    setFocusedId(null);
+                }
+            }}
+        >
             {activeBg.id === 'default' && <OriginalBackground />}
 
             {/* Backup Reminder Toast */}
@@ -1407,7 +1418,7 @@ const App = () => {
                     locked={isLocked || w.data?.locked}
                     closingWidgetId={closingWidgetId}
                     chromeless={['WEATHER'].includes(w.type)}
-                    isSelected={zIndices[w.id] === maxZ}
+                    isSelected={focusedId === w.id}
                     {...w.data} // Pass minimized/transparent etc.
                     accentColor={accentColor}
                     showGrid={showGrid}
