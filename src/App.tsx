@@ -1075,7 +1075,7 @@ const App = () => {
 
         let data: any = { fontSize: 16 };
         if (type === 'TIMER') data = { ...data, timeLeft: 120, isRunning: false, mode: 'visual', fontSize: 14 };
-        if (type === 'CLOCK') data = { ...data, style: 'standard', isGlassy: 'clear', fontSize: 20 };
+        if (type === 'CLOCK') data = { ...data, style: 'standard', isGlassy: 'clear', fontSize: 20, showDate: true };
         if (type === 'RANDOMIZER') data = { ...data, students: [], currentName: null, isAnimating: false, fontSize: 16 };
         if (type === 'GROUP_MAKER') data = { ...data, groupCount: 4, groups: [] };
         if (type === 'TEXT') data = { ...data, mode: 'text', content: '', items: [], fontSize: 12 };
@@ -1464,6 +1464,7 @@ const App = () => {
                                     <div className="flex h-full items-center justify-center p-8 overflow-hidden">
                                         <ClockDisplay 
                                             style={w.data?.style || 'standard'} 
+                                            showDate={w.data?.showDate !== undefined ? w.data.showDate : showClockDate}
                                             textColor={extraProps.textColor}
                                             onSettingsClick={() => setShowSettings(true)}
                                         />

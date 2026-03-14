@@ -4,10 +4,11 @@ import { ClockStyle } from '../types';
 interface ClockDisplayProps {
     style: ClockStyle;
     textColor: string;
+    showDate?: boolean;
     onSettingsClick: () => void;
 }
 
-const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSettingsClick }) => {
+const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, showDate = true, onSettingsClick }) => {
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -54,9 +55,11 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSetting
             </div>
 
             {/* Date below analog clock */}
-            <div className={`text-lg font-medium opacity-90 whitespace-nowrap ${textColor} drop-shadow-md text-center`}>
-                {dateString}
-            </div>
+            {showDate && (
+                <div className={`text-lg font-medium opacity-90 whitespace-nowrap ${textColor} drop-shadow-md text-center`}>
+                    {dateString}
+                </div>
+            )}
         </div>
     );
 
@@ -75,7 +78,7 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSetting
                     <div className={`absolute w-3.5 h-3.5 rounded-full z-10 shadow-md border-2 border-red-500 ${textColor === 'text-white' ? 'bg-white' : 'bg-slate-800'}`} />
                 </div>
             </div>
-            <div className={`text-sm font-bold uppercase tracking-[0.3em] opacity-80 text-center ${textColor}`}>{dateString}</div>
+            {showDate && <div className={`text-sm font-bold uppercase tracking-[0.3em] opacity-80 text-center ${textColor}`}>{dateString}</div>}
         </div>
     );
 
@@ -87,9 +90,11 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSetting
             <div className={`text-[6rem] font-bold tracking-tight ${textColor} opacity-80 drop-shadow-md`}>
                 {minutes.toString().padStart(2, '0')}
             </div>
-            <div className={`text-xl font-medium mt-2 opacity-90 ${textColor} drop-shadow-md`}>
-                {dateString}
-            </div>
+            {showDate && (
+                <div className={`text-xl font-medium mt-2 opacity-90 ${textColor} drop-shadow-md`}>
+                    {dateString}
+                </div>
+            )}
         </div>
     );
 
@@ -98,9 +103,11 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSetting
             <div className={`text-8xl font-thin tracking-widest ${textColor} drop-shadow-sm`}>
                 {timeString}
             </div>
-            <div className={`text-xl font-light tracking-wide uppercase opacity-80 ${textColor}`}>
-                {dateString}
-            </div>
+            {showDate && (
+                <div className={`text-xl font-light tracking-wide uppercase opacity-80 ${textColor}`}>
+                    {dateString}
+                </div>
+            )}
         </div>
     );
 
@@ -110,26 +117,24 @@ const ClockDisplay: React.FC<ClockDisplayProps> = ({ style, textColor, onSetting
                 {displayHours}:{minutes.toString().padStart(2, '0')}
                 <span className="text-4xl ml-2 opacity-80">{ampm}</span>
             </div>
-            <div className={`text-xl font-bold mt-2 opacity-80 ${textColor}`} style={{ textShadow: '0 0 5px currentColor' }}>
-                {dateString.toUpperCase()}
-            </div>
+            {showDate && (
+                <div className={`text-xl font-bold mt-2 opacity-80 ${textColor}`} style={{ textShadow: '0 0 5px currentColor' }}>
+                    {dateString.toUpperCase()}
+                </div>
+            )}
         </div>
     );
 
     const renderStandard = () => (
         <>
-            <div className="flex items-center gap-1.5 mb-1 opacity-80">
-                <div className={`px-1.5 py-0.5 rounded text-[10px] font-black tracking-tighter shadow-md ${textColor === 'text-white' ? 'bg-white text-slate-900' : 'bg-slate-800 text-white'}`}>
-                    HR
-                </div>
-                <div className="text-xs font-bold uppercase tracking-widest">HomeRoom</div>
-            </div>
             <div className={`text-8xl font-bold tracking-tight ${textColor === 'text-white' ? 'drop-shadow-lg' : 'drop-shadow-sm'}`}>
                 {timeString}
             </div>
-            <div className={`text-3xl font-medium mt-2 opacity-90 ${textColor === 'text-white' ? 'drop-shadow-md' : ''}`}>
-                {dateString}
-            </div>
+            {showDate && (
+                <div className={`text-3xl font-medium mt-2 opacity-90 ${textColor === 'text-white' ? 'drop-shadow-md' : ''}`}>
+                    {dateString}
+                </div>
+            )}
         </>
     );
 

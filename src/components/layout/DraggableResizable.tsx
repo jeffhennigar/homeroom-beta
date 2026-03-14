@@ -201,7 +201,7 @@ const DraggableResizable = ({
                         ${locked ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
                         ${isGlassy === 'glass' ? 'bg-white/20' : (isGlassy === 'clear' ? 'bg-transparent' : 'bg-white')}
                         ${(isGlassy === 'clear' || isGlassy === 'glass') && ['CLOCK', 'OVERLAY_TEXT', 'CALENDAR', 'SCHEDULE', 'TEXT'].includes(widgetType)
-                            ? (isSelected || isHovered ? 'opacity-100 h-10 visible' : 'opacity-0 h-0 overflow-hidden invisible pointer-events-none')
+                            ? (isSelected ? 'opacity-100 h-10 visible' : 'opacity-0 h-0 overflow-hidden invisible pointer-events-none')
                             : 'opacity-100 h-10 visible'}
                     `}
                     onPointerDown={handlePointerDown}
