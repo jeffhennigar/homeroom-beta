@@ -73,6 +73,7 @@ class SyncManagerService {
 
     // Compress large JSON objects
     private compressPayload(data: any): any {
+        if (data === undefined || data === null) return null;
         const jsonString = JSON.stringify(data);
         const compressed = LZString.compressToUTF16(jsonString);
 

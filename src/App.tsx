@@ -256,56 +256,6 @@ const App = () => {
                 else if (parsed && typeof parsed === 'object' && 'slides' in parsed) slidesData = parsed.slides;
             }
             
-            // Ensure Default Widgets exist on Slide 0 for new users or fresh sessions
-            if (slidesData.length > 0 && Array.isArray(slidesData[0]) && slidesData[0].length === 0) {
-                const now = Date.now();
-                const screenWidth = (typeof window !== 'undefined' && window.innerWidth > 0) ? window.innerWidth : 1440;
-                const screenHeight = (typeof window !== 'undefined' && window.innerHeight > 0) ? window.innerHeight : 900;
-                
-                const defaults = [
-                    {
-                        id: 'default-clock-' + now,
-                        type: 'CLOCK',
-                        x: Math.round((screenWidth - 500) / 2),
-                        y: 80,
-                        width: 500,
-                        height: 210,
-                        data: { style: 'standard', fontSize: 20, isGlassy: 'clear' },
-                        zIndex: 1
-                    },
-                    {
-                        id: 'default-timer-' + now,
-                        type: 'TIMER',
-                        x: 80,
-                        y: 120,
-                        width: 280,
-                        height: 340,
-                        data: { timeLeft: 120, isRunning: false, mode: 'visual', fontSize: 14 },
-                        zIndex: 2
-                    },
-                    {
-                        id: 'default-text-' + now,
-                        type: 'TEXT',
-                        x: Math.round(screenWidth - 380),
-                        y: 120,
-                        width: 300,
-                        height: 300,
-                        data: { mode: 'text', content: '## Welcome to HomeRoom Pro! 🚀\n\nThis is your space to organize your classroom.\n\n- Drag tools to move them\n- Resize from the corners\n- Use the dock below to add more tools!', fontSize: 13 },
-                        zIndex: 3
-                    },
-                    {
-                        id: 'default-calendar-' + now,
-                        type: 'CALENDAR',
-                        x: Math.round(screenWidth - 400),
-                        y: Math.max(120, screenHeight - 450),
-                        width: 320,
-                        height: 380,
-                        data: { isGlassy: 'clear' },
-                        zIndex: 4
-                    }
-                ];
-                slidesData[0] = defaults;
-            }
             return slidesData;
         } catch (e) { return [[]]; }
     }); // Array of widget arrays
@@ -754,7 +704,26 @@ const App = () => {
                 if (slides && Array.isArray(slides)) {
                     // Populate allSlides state
                     const sortedSlides = [...slides].sort((a, b) => a.slide_index - b.slide_index);
-                    const slidesArray = sortedSlides.map(s => s.widgets || []);
+                    let slidesArray = sortedSlides.map(s => s.widgets || []);
+
+                    // CRITICAL: If no slides found, or they are all empty, initialize slide 0 with defaults
+                    if (slidesArray.length === 0 || (slidesArray.length === 1 && slidesArray[0].length === 0)) {
+                        const now = Date.now();
+                        const screenWidth = (typeof window !== 'undefined' && window.innerWidth > 0) ? window.innerWidth : 1440;
+                        const screenHeight = (typeof window !== 'undefined' && window.innerHeight > 0) ? window.innerHeight : 900;
+                        const defaults = [
+                            { id: 'def-clock-' + now, type: 'CLOCK', x: Math.round((screenWidth - 500) / 2), y: 80, width: 500, height: 210, data: { style: 'standard', fontSize: 20, isGlassy: 'clear' }, zIndex: 1 },
+                            { id: 'def-timer-' + now, type: 'TIMER', x: 80, y: 120, width: 280, height: 340, data: { timeLeft: 120, isRunning: false, mode: 'visual', fontSize: 14 }, zIndex: 2 },
+                            { id: 'def-text-' + now, type: 'TEXT', x: Math.round(screenWidth - 380), y: 120, width: 300, height: 300, data: { mode: 'text', content: '## Welcome to HomeRoom Pro! 🚀\n\nThis is your space to organize your classroom.\n\n- Drag tools to move them\n- Resize from the corners\n- Use the dock below to add more tools!', fontSize: 13 }, zIndex: 3 },
+                            { id: 'def-calendar-' + now, type: 'CALENDAR', x: Math.round(screenWidth - 400), y: Math.max(120, screenHeight - 450), width: 320, height: 380, data: { isGlassy: 'clear' }, zIndex: 4 }
+                        ];
+                        slidesArray = [defaults];
+                        
+                        // Populate mirror/sync state for defaults to avoid immediate re-save
+                        lastSyncedRef.current.slides[0] = JSON.stringify(defaults);
+                        if (currentSlideIndex === 0) setWidgets(defaults);
+                    }
+
                     setAllSlides(slidesArray);
 
                     slides.forEach((s: any) => {
@@ -1020,7 +989,8 @@ const App = () => {
 
         setAllSlides(prev => {
             const next = [...prev];
-            if (next[currentSlideIndex] !== widgets) {
+            const current = next[currentSlideIndex] || [];
+            if (JSON.stringify(current) !== JSON.stringify(widgets)) {
                 next[currentSlideIndex] = widgets;
                 return next;
             }
