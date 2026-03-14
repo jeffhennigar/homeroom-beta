@@ -531,11 +531,14 @@ const App = () => {
                 */
 
                 // 3. Sync Profile (Check for changes)
+                // Compatibility: Database might expect a flat JSON array for dock_order
                 const profilePayload = {
                     grid_enabled: showGrid,
                     clock_style: clockStyle,
                     accent_color: accentColor,
-                    dock_order: dockOrder,
+                    dock_order: (dockOrder?.main && dockOrder?.drawer) 
+                        ? [...dockOrder.main, ...dockOrder.drawer] 
+                        : (Array.isArray(dockOrder) ? dockOrder : []),
                     background: background,
                     slide_backgrounds: slideBackgrounds,
                     my_backgrounds: customBackgrounds,
@@ -606,8 +609,15 @@ const App = () => {
                         if (profile.clock_style) setClockStyle(profile.clock_style);
                         if (profile.accent_color) setAccentColor(profile.accent_color);
                         if (profile.grid_enabled !== undefined) setShowGrid(profile.grid_enabled);
-                        if (profile.dock_order && (profile.dock_order.main?.length > 0 || profile.dock_order.drawer?.length > 0)) {
-                            setDockOrder(profile.dock_order);
+                        if (profile.dock_order) {
+                            if (profile.dock_order.main && profile.dock_order.drawer) {
+                                setDockOrder(profile.dock_order);
+                            } else if (Array.isArray(profile.dock_order) && profile.dock_order.length > 0) {
+                                // Convert flat cloud array back to local main/drawer split
+                                const main = profile.dock_order.slice(0, 9);
+                                const drawer = profile.dock_order.slice(9);
+                                setDockOrder({ main, drawer });
+                            }
                         }
 
                         if (profile.schedule) {
@@ -822,8 +832,14 @@ const App = () => {
                     if (p.clock_style) setClockStyle(p.clock_style);
                     if (p.accent_color) setAccentColor(p.accent_color);
                     if (p.grid_enabled !== undefined) setShowGrid(p.grid_enabled);
-                    if (p.dock_order && (p.dock_order.main?.length > 0 || p.dock_order.drawer?.length > 0)) {
-                        setDockOrder(p.dock_order);
+                    if (p.dock_order) {
+                        if (p.dock_order.main && p.dock_order.drawer) {
+                            setDockOrder(p.dock_order);
+                        } else if (Array.isArray(p.dock_order) && p.dock_order.length > 0) {
+                            const main = p.dock_order.slice(0, 9);
+                            const drawer = p.dock_order.slice(9);
+                            setDockOrder({ main, drawer });
+                        }
                     }
 
                     // Apply schedule updates
